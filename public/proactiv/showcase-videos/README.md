@@ -1,0 +1,60 @@
+# Showcase video sources
+
+The MP4 files in this folder were downloaded from Mixkit under its [Stock Video
+Free License](https://mixkit.co/license/) for the template-gallery demo. The
+source pages are:
+
+- `skincare-creator`: https://mixkit.co/free-stock-video/a-woman-shows-how-to-use-a-moisturizing-skincare-product-50417/
+- `product-studio`: https://mixkit.co/free-stock-video/female-photographer-taking-product-photos-on-a-set-44119/
+- `neon-fashion`: https://mixkit.co/free-stock-video/stylish-woman-leaning-in-a-camaro-44556/
+- `coffee-machine`: https://mixkit.co/free-stock-video/cup-being-filled-with-coffee-in-a-coffee-machine-41865/
+- `morning-routine`: https://mixkit.co/free-stock-video/coffee-and-music-in-the-morning-43391/
+- `coffee-pour`: https://mixkit.co/free-stock-video/pouring-coffee-in-a-cup-43941/
+- `color-dance`: https://mixkit.co/free-stock-video/shadow-of-a-dancer-in-a-performance-on-a-colorful-51280/
+- `urban-fashion`: https://mixkit.co/free-stock-video/conceptual-urban-fashion-42581/
+- `coffee-texture`: https://mixkit.co/free-stock-video/coffee-beans-texture-42944/
+- `honey-detail`: https://mixkit.co/free-stock-video/honey-dipper-coming-out-of-a-glass-vase-with-honey-2801/
+- `skincare-phone`: https://mixkit.co/free-stock-video/a-smartphone-is-recording-a-brunette-woman-applying-skincare-products-50406/
+- `skincare-influencer`: https://mixkit.co/free-stock-video/a-young-influencer-recording-a-moisturizing-skincare-video-at-home-50423/
+- `blue-beauty`: https://mixkit.co/free-stock-video/blue-mascara-and-eye-shadow-4058/
+- `studio-model`: https://mixkit.co/free-stock-video/model-turns-to-pose-as-a-photographer-takes-photos-in-50641/
+- `mirror-fashion`: https://mixkit.co/free-stock-video/fashion-model-in-front-of-multiple-mirrors-809/
+- `heels-motion`: https://mixkit.co/free-stock-video/feet-in-high-heels-of-a-woman-walking-down-steps-35987/
+- `light-bars`: https://mixkit.co/free-stock-video/two-urban-girls-between-bars-of-colored-light-42286/
+- `retro-dance`: https://mixkit.co/free-stock-video/two-young-girls-having-fun-dancing-and-posing-to-the-42298/
+- `cafe-laptop`: https://mixkit.co/free-stock-video/a-woman-working-remotely-in-a-choffe-shop-43269/
+- `coffee-smile`: https://mixkit.co/free-stock-video/cheerful-woman-drinking-a-cup-of-coffee-43394/
+- `coffee-closeup`: https://mixkit.co/free-stock-video/close-up-of-a-woman-blowing-on-coffee-43268/
+- `coffee-reading`: https://mixkit.co/free-stock-video/close-up-of-a-woman-reading-and-drinking-coffee-43267/
+- `coffee-on-off`: https://mixkit.co/free-stock-video/filling-a-cup-with-coffee-on-a-surface-with-allegory-13766/
+- `cafe-call`: https://mixkit.co/free-stock-video/girl-on-a-video-call-while-drinking-coffee-39812/
+- `camaro-exit`: https://mixkit.co/free-stock-video/stylish-woman-getting-out-of-a-camaro-in-a-parking-44554/
+- `camaro-pose`: https://mixkit.co/free-stock-video/stylish-woman-posing-with-a-camaro-car-44560/
+- `orange-slice`: https://mixkit.co/free-stock-video/orange-slice-on-an-orange-background-10429/
+- `orange-pour`: https://mixkit.co/free-stock-video/serving-juice-in-a-glass-with-some-oranges-on-a-10428/
+- `coconut-splash`: https://mixkit.co/free-stock-video/spilling-water-from-a-coconut-on-a-yellow-background-10432/
+- `sandwich-cut`: https://mixkit.co/free-stock-video/cutting-a-sandwich-in-half-for-a-healthy-lunch-26094/
+- `abstract-ink`: https://mixkit.co/free-stock-video/abstract-close-up-of-black-ink-in-water-154/
+- `dark-ink`: https://mixkit.co/free-stock-video/abstract-video-of-a-liquid-with-dark-ink-flowing-44818/
+- `lens-rotate`: https://mixkit.co/free-stock-video/camera-lens-rotates-for-a-demo-48529/
+- `cyber-glasses`: https://mixkit.co/free-stock-video/close-up-of-cyberpunk-glasses-with-neon-laser-lights-50460/
+- `triangle-tunnel`: https://mixkit.co/free-stock-video/colored-tunnel-in-the-shape-of-triangle-vj-loop-35327/
+- `violet-passage`: https://mixkit.co/free-stock-video/crossing-a-rhombus-passage-of-violet-lights-34351/
+- `nightclub-dj`: https://mixkit.co/free-stock-video/dj-at-a-nightclub-mixing-music-832/
+- `neon-dancer`: https://mixkit.co/free-stock-video/man-in-cyberpunk-glasses-dances-under-neon-lights-50453/
+- `stage-lights`: https://mixkit.co/free-stock-video/neon-lights-lines-on-abstract-stage-loop-video-30599/
+- `black-cubes`: https://mixkit.co/free-stock-video/traveling-through-a-tunnel-of-black-cubes-in-3d-31497/
+- `mono-compositions`: https://mixkit.co/free-stock-video/monochromatic-visual-compositions-4974/
+- `circular-tunnel`: https://mixkit.co/free-stock-video/neon-circular-lights-in-a-futuristic-tunnel-35331/
+- `blue-crystal`: https://mixkit.co/free-stock-video/blue-crystal-like-light-leak-overlay-47282/
+- `night-bokeh`: https://mixkit.co/free-stock-video/blurred-abstract-cars-lights-at-night-with-bokeh-effect-30/
+- `fractal-space`: https://mixkit.co/free-stock-video/going-through-a-space-tunnel-with-fractal-shapes-31562/
+- `blue-tunnel`: https://mixkit.co/free-stock-video/triangular-tunnel-with-blue-lights-in-its-walls-34317/
+- `red-tunnel`: https://mixkit.co/free-stock-video/tunnels-made-of-forms-with-lines-of-red-light-35644/
+- `neon-sparkles`: https://mixkit.co/free-stock-video/sparkles-of-neon-lights-flying-in-the-dark-18151/
+- `night-fireworks`: https://mixkit.co/free-stock-video/fireworks-at-night-sky-4064/
+- `dream-clouds`: https://mixkit.co/free-stock-video/traveling-to-the-dream-world-through-the-clouds-14165/
+- `pacific-sunrise`: https://mixkit.co/free-stock-video/sunrise-on-a-virgin-pacific-beach-51492/
+- `camera-shutter`: https://mixkit.co/free-stock-video/dsrl-camera-shutter-opening-and-closing-2374/
+- `clapperboard-start`: https://mixkit.co/free-stock-video/using-a-clapperboard-to-start-filming-a-shot-46353/
+- `desert-photoshoot`: https://mixkit.co/free-stock-video/photoshoot-of-a-girl-posing-in-the-desert-34409/

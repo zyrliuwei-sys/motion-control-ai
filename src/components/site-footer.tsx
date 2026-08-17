@@ -3,7 +3,7 @@ import type { ComponentType, SVGProps } from 'react';
 import { Link } from '@/core/i18n/navigation';
 import { envConfigs } from '@/config';
 import { cn } from '@/lib/utils';
-import { BuiltWithShipAny } from '@/components/built-with-shipany';
+import { BuiltWithMotionControlAi } from '@/components/built-with-motion-control-ai';
 import { LocaleSelector } from '@/components/locale-selector';
 
 export interface FooterColumn {
@@ -116,7 +116,7 @@ export function SiteFooter({
 
         {/* Bottom bar */}
         <div className="mt-6 flex flex-col gap-3 border-t border-neutral-800 pt-5 sm:flex-row sm:items-center sm:justify-between">
-          <BuiltWithShipAny />
+          <BuiltWithMotionControlAi />
           <span className="text-sm text-neutral-400">
             {copyright ||
               `© ${year} ${envConfigs.app_name}. All rights reserved.`}
