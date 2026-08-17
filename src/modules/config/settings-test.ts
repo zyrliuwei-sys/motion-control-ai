@@ -29,6 +29,8 @@ import type { TestResult } from './settings-test-specs';
 export { getTestSpec, getTestableGroups } from './settings-test-specs';
 export type { TestField, TestSpec, TestResult } from './settings-test-specs';
 
+const EVOLINK_DIRECT_API_BASE_URL = 'https://direct.evolink.ai/v1';
+
 export async function runTest(
   group: string,
   inputs: Record<string, string>,
@@ -58,6 +60,8 @@ export async function runTest(
         return await testReplicate(inputs, configs);
       case 'fal':
         return await testFal(inputs, configs);
+      case 'evolink':
+        return await testEvoLink(inputs, configs);
       default:
         return { success: false, message: `No test available for "${group}"` };
     }
@@ -400,6 +404,45 @@ async function testOpenAI(
   return {
     success: true,
     message: 'OpenAI accepted the request',
+    details: {
+      Model: data?.model || inputs.model,
+      Reply: reply.slice(0, 200) || '(empty)',
+    },
+  };
+}
+
+async function testEvoLink(
+  inputs: Record<string, string>,
+  configs: Record<string, string>
+): Promise<TestResult> {
+  const missing = need(configs, ['evolink_api_key']);
+  if (missing) return { success: false, message: missing };
+
+  const resp = await fetch(`${EVOLINK_DIRECT_API_BASE_URL}/messages`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${configs.evolink_api_key}`,
+    },
+    body: JSON.stringify({
+      model: inputs.model,
+      max_tokens: 64,
+      messages: [{ role: 'user', content: inputs.prompt }],
+    }),
+  });
+
+  const data: any = await resp.json().catch(() => ({}));
+  if (!resp.ok) {
+    return {
+      success: false,
+      message: data?.error?.message || `Request failed (${resp.status})`,
+    };
+  }
+
+  const reply = String(data?.content?.[0]?.text ?? '').trim();
+  return {
+    success: true,
+    message: 'EvoLink accepted the request',
     details: {
       Model: data?.model || inputs.model,
       Reply: reply.slice(0, 200) || '(empty)',

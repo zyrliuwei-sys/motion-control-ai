@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import {
   Box,
   Check,
+  ChevronDown,
   Image,
   ImagePlus,
   Minus,
@@ -11,6 +12,14 @@ import {
   Video,
   X,
 } from 'lucide-react';
+
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 export interface ProactivHeroComposerLabels {
   addReference: string;
@@ -28,24 +37,45 @@ export interface ProactivHeroComposerLabels {
   video: string;
 }
 
+export interface ProactivGenerationReference {
+  file: File;
+  id: string;
+  name: string;
+  slot?: 'avatar' | 'product';
+  type: 'image' | 'video';
+}
+
+export interface ProactivGenerationValues {
+  aspectRatio: string;
+  batchSize: number;
+  mode: 'image' | 'video';
+  prompt: string;
+  references: ProactivGenerationReference[];
+  style: string;
+}
+
 export interface ProactivHeroComposerProps {
+  isGenerating?: boolean;
   labels: ProactivHeroComposerLabels;
   onPromptChange?: (prompt: string) => void;
-  onGenerate?: (values: {
-    aspectRatio: string;
-    batchSize: number;
-    mode: 'image' | 'video';
-    prompt: string;
-    references: string[];
-    style: string;
-  }) => void;
+  onGenerate?: (values: ProactivGenerationValues) => void;
   promptValue?: string;
 }
 
 const styles = ['Closeup', 'Cinematic', 'Editorial'];
-const aspectRatios = ['9:16', '1:1', '16:9'];
+const aspectRatioOptions = [
+  { value: '21:9', previewClassName: 'h-3 w-10' },
+  { value: '16:9', previewClassName: 'h-4 w-9' },
+  { value: '4:3', previewClassName: 'h-6 w-8' },
+  { value: '1:1', previewClassName: 'size-7' },
+  { value: '3:4', previewClassName: 'h-8 w-6' },
+  { value: '9:16', previewClassName: 'h-10 w-[22px]' },
+  { value: 'adaptive', previewClassName: 'size-8' },
+] as const;
+const defaultAspectRatio = '9:16';
 type ReferenceSlot = 'avatar' | 'product' | null;
 type ReferenceAttachment = {
+  file: File;
   id: string;
   name: string;
   previewUrl: string;
@@ -55,23 +85,24 @@ type ReferenceAttachment = {
 
 /** A compact landing composer with dedicated image and video creation modes. */
 export function ProactivHeroComposer({
+  isGenerating = false,
   labels,
   onPromptChange,
   onGenerate,
   promptValue,
 }: ProactivHeroComposerProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [mode, setMode] = useState<'image' | 'video'>('image');
+  const [mode, setMode] = useState<'image' | 'video'>('video');
   const [uncontrolledPrompt, setUncontrolledPrompt] = useState('');
   const [style, setStyle] = useState(styles[0]);
-  const [aspectRatio, setAspectRatio] = useState(aspectRatios[0]);
+  const [aspectRatio, setAspectRatio] = useState(defaultAspectRatio);
   const [batchSize, setBatchSize] = useState(1);
   const [references, setReferences] = useState<ReferenceAttachment[]>([]);
   const [referenceSlot, setReferenceSlot] = useState<ReferenceSlot>(null);
   const [hasRequestedGeneration, setHasRequestedGeneration] = useState(false);
   const referencesRef = useRef<ReferenceAttachment[]>([]);
   const prompt = promptValue ?? uncontrolledPrompt;
-  const isReady = prompt.trim().length > 0;
+  const isReady = prompt.trim().length > 0 || references.length > 0;
 
   const updatePrompt = (nextPrompt: string) => {
     if (promptValue === undefined) {
@@ -132,6 +163,7 @@ export function ProactivHeroComposer({
 
     const uploaded = Array.from(files).map((file, index) => ({
       id: `${Date.now()}-${index}-${file.name}`,
+      file,
       name: file.name,
       previewUrl: URL.createObjectURL(file),
       slot: referenceSlot ?? undefined,
@@ -153,14 +185,20 @@ export function ProactivHeroComposer({
   };
 
   const requestGeneration = () => {
-    if (!isReady) return;
+    if (!isReady || isGenerating) return;
 
     setHasRequestedGeneration(true);
     onGenerate?.({
       mode,
       prompt,
-      references: references.map((reference) =>
-        reference.slot ? `${reference.slot}:${reference.name}` : reference.name
+      references: references.map(
+        ({ file, id, name, slot, type }): ProactivGenerationReference => ({
+          file,
+          id,
+          name,
+          slot,
+          type,
+        })
       ),
       style,
       aspectRatio,
@@ -234,7 +272,7 @@ export function ProactivHeroComposer({
                     ref={fileInputRef}
                     type="file"
                     multiple
-                    accept={mode === 'video' ? 'image/*,video/*' : 'image/*'}
+                    accept="image/*,video/*"
                     className="sr-only"
                     onChange={(event) => {
                       addUploadedReferences(event.target.files);
@@ -300,32 +338,14 @@ export function ProactivHeroComposer({
                     </select>
                   </label>
 
-                  <label className="inline-flex h-7 shrink-0 items-center gap-1 rounded-lg bg-white/6 px-2 text-xs font-medium text-[#d9e0e7] transition-colors hover:bg-white/10">
-                    <span
-                      className="size-3.5 rounded-[3px] border border-current"
-                      aria-hidden="true"
-                    />
-                    <span className="sr-only">{labels.aspectRatio}</span>
-                    <select
-                      value={aspectRatio}
-                      onChange={(event) => {
-                        setAspectRatio(event.target.value);
-                        setHasRequestedGeneration(false);
-                      }}
-                      aria-label={labels.aspectRatio}
-                      className="bg-transparent text-xs text-white outline-none"
-                    >
-                      {aspectRatios.map((option) => (
-                        <option
-                          key={option}
-                          value={option}
-                          className="bg-[#15191e]"
-                        >
-                          {option}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
+                  <AspectRatioPicker
+                    label={labels.aspectRatio}
+                    value={aspectRatio}
+                    onChange={(nextRatio) => {
+                      setAspectRatio(nextRatio);
+                      setHasRequestedGeneration(false);
+                    }}
+                  />
 
                   <div className="inline-flex h-7 shrink-0 items-center rounded-lg bg-white/6 text-xs font-medium text-[#d9e0e7]">
                     <button
@@ -374,7 +394,7 @@ export function ProactivHeroComposer({
                 />
                 <button
                   type="button"
-                  disabled={!isReady}
+                  disabled={!isReady || isGenerating}
                   onClick={requestGeneration}
                   className="group relative min-w-[112px] flex-1 overflow-hidden rounded-xl bg-[#d1fe17] px-4 text-xs font-bold tracking-wide text-[#0a1000] uppercase shadow-[inset_0_-3px_0_#829b19,0_12px_24px_rgba(0,0,0,0.28)] transition-[filter,transform] hover:brightness-105 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#d1fe17] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40"
                 >
@@ -394,6 +414,86 @@ export function ProactivHeroComposer({
         </div>
       </div>
     </section>
+  );
+}
+
+function AspectRatioPicker({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  const selectedOption =
+    aspectRatioOptions.find((option) => option.value === value) ??
+    aspectRatioOptions[5];
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        aria-label={label}
+        className="inline-flex h-7 shrink-0 items-center gap-1.5 rounded-lg bg-white/6 px-2 text-xs font-medium text-[#d9e0e7] transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#d1fe17]"
+      >
+        <span
+          className={`block rounded-[3px] border border-current ${selectedOption.previewClassName}`}
+          aria-hidden="true"
+        />
+        <span>{value}</span>
+        <ChevronDown className="size-3.5 text-white/75" aria-hidden="true" />
+      </DropdownMenuTrigger>
+
+      <DropdownMenuContent
+        side="top"
+        align="start"
+        sideOffset={10}
+        className="w-[292px] min-w-[292px] rounded-xl border border-[#3d413e] bg-[#181b1a] p-1.5 text-white shadow-[0_18px_48px_rgba(0,0,0,0.52)]"
+      >
+        <p className="px-2.5 pt-1.5 pb-2 text-[10px] font-semibold tracking-[0.16em] text-[#aeb1aa] uppercase">
+          {label}
+        </p>
+        <DropdownMenuRadioGroup
+          value={value}
+          onValueChange={(nextValue) => onChange(String(nextValue))}
+          className="grid grid-cols-2 gap-1"
+        >
+          {aspectRatioOptions.map((option) => {
+            const selected = value === option.value;
+            const compactPreviewScale =
+              option.value === '9:16'
+                ? 'scale-[0.6]'
+                : option.value === '3:4' || option.value === 'adaptive'
+                  ? 'scale-75'
+                  : '';
+
+            return (
+              <DropdownMenuRadioItem
+                key={option.value}
+                value={option.value}
+                label={option.value}
+                closeOnClick
+                className="group/ratio flex h-11 items-center gap-2.5 rounded-lg border border-transparent px-2.5 py-1.5 text-xs font-medium text-[#b7bab3] transition-[background-color,border-color,color] duration-150 hover:border-white/10 hover:bg-white/[0.055] hover:text-white focus:border-[#a58a2d] focus:bg-[#282518] focus:text-white data-checked:border-[#8d7627] data-checked:bg-[#282518] data-checked:text-white [&_[data-slot=dropdown-menu-radio-item-indicator]]:right-2 [&_[data-slot=dropdown-menu-radio-item-indicator]]:text-[#e0b918]"
+              >
+                <span
+                  className={`grid h-7 w-10 shrink-0 place-items-center rounded-md border transition-colors ${
+                    selected
+                      ? 'border-[#bda348] bg-[#211d12] text-[#e3d7a7]'
+                      : 'border-white/12 bg-black/10 text-[#aaa59b] group-hover/ratio:border-white/25 group-hover/ratio:text-white'
+                  }`}
+                  aria-hidden="true"
+                >
+                  <span
+                    className={`block rounded-[2px] border-[1.5px] border-current ${option.previewClassName} ${compactPreviewScale}`}
+                  />
+                </span>
+                <span className="tabular-nums">{option.value}</span>
+              </DropdownMenuRadioItem>
+            );
+          })}
+        </DropdownMenuRadioGroup>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 

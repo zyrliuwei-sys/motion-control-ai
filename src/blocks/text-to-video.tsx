@@ -1,4 +1,5 @@
 import { m } from '@/paraglide/messages.js';
+import { ProactivVideoHistorySidebar } from '@/components/proactiv/proactiv-video-history-sidebar';
 import type { ProactivVideoShowcaseCase } from '@/components/proactiv/proactiv-video-showcase';
 import { ProactivVideoStudio } from '@/components/proactiv/proactiv-video-studio';
 import {
@@ -81,9 +82,14 @@ function studioCases(): ProactivVideoShowcaseCase[] {
   const homeCases = videoRecords('proactiv.showcase.records').slice(0, 20);
   const extraCases = videoRecords('proactiv.video.studio.records');
 
-  return homeCases.flatMap((homeCase, index) =>
+  const feedCases = homeCases.flatMap((homeCase, index) =>
     extraCases[index] ? [homeCase, extraCases[index]] : [homeCase]
   );
+
+  // The studio feed is a visual reference surface, so repeat the complete
+  // sequence to make the background wall twice as deep without introducing
+  // unrelated stock footage.
+  return [...feedCases, ...feedCases];
 }
 
 /** Localized content wiring for the immersive text-to-video workspace. */
@@ -100,6 +106,16 @@ export function TextToVideo({ initialPrompt }: { initialPrompt?: string }) {
       demoLabel={m['proactiv.book_demo']()}
       demoHref="/book-demo"
       navGroups={navGroups()}
+      sidebarPanel={
+        <ProactivVideoHistorySidebar
+          labels={{
+            title: m['proactiv.video.history.title'](),
+            empty: m['proactiv.video.history.empty'](),
+            open: m['proactiv.video.history.open'](),
+            download: m['proactiv.video.history.download'](),
+          }}
+        />
+      }
     >
       <ProactivVideoStudio
         cases={cases}
@@ -128,6 +144,21 @@ export function TextToVideo({ initialPrompt }: { initialPrompt?: string }) {
           composerLabel: m['proactiv.video.studio.composer'](),
           liveLabel: m['proactiv.video.studio.live'](),
           readyLabel: m['proactiv.video.studio.ready'](),
+          referenceImageLabel: m['proactiv.video.studio.reference_image'](),
+          referenceVideoLabel: m['proactiv.video.studio.reference_video'](),
+          generatedVideoLabel: m['proactiv.video.studio.generated_video'](),
+          downloadVideoLabel: m['proactiv.video.studio.download_video'](),
+          openGeneratedVideoLabel:
+            m['proactiv.video.studio.open_generated_video'](),
+          resultExpirationLabel: m['proactiv.video.studio.result_expiration'](),
+          resultSavedLabel: m['proactiv.video.studio.result_saved'](),
+          uploadsRequiredMessage: m['proactiv.video.studio.uploads_required'](),
+          uploadInProgressLabel: m['proactiv.video.studio.uploading'](),
+          taskPendingLabel: m['proactiv.video.studio.task_pending'](),
+          taskProcessingLabel: m['proactiv.video.studio.task_processing'](),
+          taskCompletedLabel: m['proactiv.video.studio.task_completed'](),
+          taskFailedLabel: m['proactiv.video.studio.task_failed'](),
+          retryGenerationLabel: m['proactiv.video.studio.retry_generation'](),
           selectTemplateLabel: m['proactiv.video.studio.select_template'](),
         }}
       />

@@ -35,6 +35,7 @@ export interface SenziaAppShellProps {
   demoLabel: string;
   demoHref: string;
   navGroups: SenziaNavGroup[];
+  sidebarPanel?: ReactNode;
   children: ReactNode;
 }
 
@@ -54,6 +55,7 @@ export function SenziaAppShell({
   demoLabel,
   demoHref,
   navGroups,
+  sidebarPanel,
   children,
 }: SenziaAppShellProps) {
   const { data: session } = useSession();
@@ -120,7 +122,7 @@ export function SenziaAppShell({
       <MobileNav items={mobileItems} />
 
       <div className="flex min-h-[calc(100dvh-4rem)] min-w-0">
-        <aside className="hidden w-64 shrink-0 border-r border-[#252b34] bg-[#12161c] p-3 md:block">
+        <aside className="sticky top-16 hidden h-[calc(100dvh-4rem)] w-64 shrink-0 overflow-y-auto border-r border-[#252b34] bg-[#12161c] p-3 md:block">
           <nav className="space-y-5">
             {navGroups.map((group, groupIndex) => (
               <section key={`${group.label ?? 'group'}-${groupIndex}`}>
@@ -137,6 +139,11 @@ export function SenziaAppShell({
               </section>
             ))}
           </nav>
+          {sidebarPanel ? (
+            <div className="mt-5 border-t border-[#252b34] pt-4">
+              {sidebarPanel}
+            </div>
+          ) : null}
         </aside>
 
         <main className="min-w-0 flex-1">{children}</main>

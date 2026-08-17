@@ -172,6 +172,12 @@ export function getSettingGroups(): SettingGroup[] {
       tab: 'ai',
     },
     { name: 'fal', title: 'Fal', description: 'Fal AI API', tab: 'ai' },
+    {
+      name: 'evolink',
+      title: 'EvoLink',
+      description: 'EvoLink unified AI API',
+      tab: 'ai',
+    },
 
     // Analytics
     {
@@ -822,6 +828,16 @@ export function getSettings(): Setting[] {
       type: 'password',
       placeholder: 'xxx',
       group: 'fal',
+      tab: 'ai',
+    },
+
+    // ─── AI / EvoLink ───────────────────────────────────────────────
+    {
+      name: 'evolink_api_key',
+      title: 'API Key',
+      type: 'password',
+      placeholder: 'sk-xxx',
+      group: 'evolink',
       tab: 'ai',
     },
 

@@ -8,7 +8,9 @@ import {
   useTransform,
 } from 'motion/react';
 
+import { useSession } from '@/core/auth/client';
 import { Link } from '@/core/i18n/navigation';
+import { localizeHref } from '@/paraglide/runtime.js';
 import { MotionControlMark } from '@/components/motion-control-mark';
 
 export interface ProactivNavLink {
@@ -24,6 +26,7 @@ export interface ProactivNavProps {
   links?: ProactivNavLink[];
   loginLabel?: string;
   loginHref?: string;
+  adminLabel?: string;
   demoLabel?: string;
   demoHref?: string;
 }
@@ -42,10 +45,12 @@ export function ProactivNav({
   links = defaultLinks,
   loginLabel = 'Login',
   loginHref = '/sign-in',
+  adminLabel = 'Admin',
   demoLabel = 'Book a demo',
   demoHref = '/book-demo',
 }: ProactivNavProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { data: session } = useSession();
   const reduceMotion = useReducedMotion() ?? false;
   const { scrollY } = useScroll();
   const compactScale = useTransform(scrollY, [0, 100], [1, 0.8]);
@@ -57,6 +62,9 @@ export function ProactivNav({
   const insetLineOpacity = useTransform(scrollY, [0, 100], [0, 1]);
 
   const closeMobileMenu = () => setMobileOpen(false);
+  const isSignedIn = Boolean(session?.user);
+  const accountHref = isSignedIn ? '/admin' : loginHref;
+  const accountLabel = isSignedIn ? adminLabel : loginLabel;
 
   return (
     <header className="pointer-events-none fixed inset-x-0 top-4 z-50">
@@ -98,12 +106,12 @@ export function ProactivNav({
         </nav>
 
         <div className="relative hidden items-center gap-2 lg:flex">
-          <Link
-            href={loginHref}
-            className="rounded-[6px] border border-white/15 bg-white/5 px-4 py-2 text-sm font-medium text-white transition-colors duration-200 hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#39c3ef]"
+          <a
+            href={localizeHref(accountHref)}
+            className="rounded-[6px] border border-white/15 bg-white/5 px-4 py-2 text-sm font-medium text-white transition-[background-color,transform] duration-200 hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#39c3ef] active:scale-[0.98]"
           >
-            {loginLabel}
-          </Link>
+            {accountLabel}
+          </a>
           <DemoLink href={demoHref} label={demoLabel} />
         </div>
 
@@ -165,13 +173,13 @@ export function ProactivNav({
                 </m.div>
               ))}
               <div className="mt-7 flex flex-wrap items-center gap-3">
-                <Link
-                  href={loginHref}
+                <a
+                  href={localizeHref(accountHref)}
                   onClick={closeMobileMenu}
-                  className="rounded-[6px] border border-white/20 bg-white/5 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[#171717] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#39c3ef]"
+                  className="rounded-[6px] border border-white/20 bg-white/5 px-4 py-2.5 text-sm font-medium text-white transition-[background-color,transform] hover:bg-[#171717] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#39c3ef] active:scale-[0.98]"
                 >
-                  {loginLabel}
-                </Link>
+                  {accountLabel}
+                </a>
                 <DemoLink
                   href={demoHref}
                   label={demoLabel}

@@ -20,6 +20,44 @@ import {
 
 const splitRows = (value: string) => value.split('\n').filter(Boolean);
 
+// Lead with the more cinematic and abstract clips. Product and lifestyle work
+// stays in the library, but no longer dominates the first viewport of cases.
+const showcasePriority = new Map(
+  [
+    'product-studio',
+    'blue-beauty',
+    'skincare-creator',
+    'skincare-phone',
+    'skincare-influencer',
+    'honey-detail',
+    'lens-rotate',
+    'camera-shutter',
+    'coconut-splash',
+    'coffee-on-off',
+    'neon-fashion',
+    'camaro-exit',
+    'camaro-pose',
+    'studio-model',
+    'urban-fashion',
+    'neon-dancer',
+    'cyber-glasses',
+    'fractal-space',
+    'red-tunnel',
+    'color-dance',
+    'nightclub-dj',
+    'blue-crystal',
+    'black-cubes',
+    'circular-tunnel',
+    'triangle-tunnel',
+    'dark-ink',
+    'neon-sparkles',
+    'stage-lights',
+    'blue-tunnel',
+    'mirror-fashion',
+    'retro-dance',
+  ].map((name, index) => [`/proactiv/showcase-videos/${name}.mp4`, index])
+);
+
 function navigation(): ProactivNavLink[] {
   return m['proactiv.nav']()
     .split('~~')
@@ -36,6 +74,7 @@ function tiers(): ProactivPriceTier[] {
       description,
       monthlyPrice,
       yearlyPrice,
+      oneTimePrice,
       cta,
       featured,
       items,
@@ -45,6 +84,7 @@ function tiers(): ProactivPriceTier[] {
       description: description ?? '',
       monthlyPrice: monthlyPrice ? Number(monthlyPrice) : null,
       yearlyPrice: yearlyPrice ? Number(yearlyPrice) : null,
+      oneTimePrice: oneTimePrice ? Number(oneTimePrice) : null,
       cta: cta ?? '',
       featured: featured === 'true',
       features: items?.split('~~').filter(Boolean) ?? [],
@@ -77,16 +117,28 @@ function footerColumns(): ProactivFooterColumn[] {
 }
 
 function showcaseCases(): ProactivVideoShowcaseCase[] {
-  return splitRows(m['proactiv.showcase.records']()).map((row) => {
-    const [title, description, src, posterSrc, category] = row.split('||');
-    return {
-      category: category ?? '',
-      title: title ?? '',
-      description: description ?? '',
-      src: src ?? '',
-      posterSrc: posterSrc ?? '',
-    };
-  });
+  const records = [
+    m['proactiv.showcase.records'](),
+    m['proactiv.showcase.extra_records'](),
+    m['proactiv.showcase.supplemental_records'](),
+  ].join('\n');
+
+  return splitRows(records)
+    .map((row) => {
+      const [title, description, src, posterSrc, category] = row.split('||');
+      return {
+        category: category ?? '',
+        title: title ?? '',
+        description: description ?? '',
+        src: src ?? '',
+        posterSrc: posterSrc ?? '',
+      };
+    })
+    .sort(
+      (left, right) =>
+        (showcasePriority.get(left.src) ?? Number.MAX_SAFE_INTEGER) -
+        (showcasePriority.get(right.src) ?? Number.MAX_SAFE_INTEGER)
+    );
 }
 
 function showcaseFilters(): ProactivVideoShowcaseFilter[] {
@@ -108,6 +160,7 @@ export function ProactivLanding() {
         links={navigation()}
         loginLabel={m['proactiv.login']()}
         loginHref="/sign-in"
+        adminLabel={m['admin.back_to_dashboard']()}
         demoLabel={demoLabel}
         demoHref="/book-demo"
       />
@@ -140,12 +193,22 @@ export function ProactivLanding() {
           unmuteLabel={m['proactiv.showcase.unmute']()}
           cases={showcaseCases()}
           filters={showcaseFilters()}
+          showAllCategories
         />
         <ProactivPricing
           title={m['proactiv.pricing.title']()}
           description={m['proactiv.pricing.description']()}
           monthlyLabel={m['proactiv.pricing.monthly']()}
           yearlyLabel={m['proactiv.pricing.yearly']()}
+          oneTimeLabel={m['proactiv.pricing.one_time']()}
+          oneTimePriceLabel={m['proactiv.pricing.one_time_price_label']()}
+          oneTimeCtaLabel={m['proactiv.pricing.buy_credits']()}
+          creditsAfterPaymentLabel={m[
+            'proactiv.pricing.credits_after_payment'
+          ]()}
+          annualBillingLabel={(price) =>
+            m['proactiv.pricing.billed_annually']({ price })
+          }
           logosHeading={m['proactiv.pricing.trusted']()}
           tiers={tiers()}
           getCtaHref={(tier) =>

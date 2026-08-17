@@ -3,6 +3,7 @@ import type { ProactivPriceTier } from '@/types/proactiv';
 import { Check, Sparkles } from 'lucide-react';
 
 import { Link } from '@/core/i18n/navigation';
+import { creditsForPriceInCents } from '@/lib/retail-pricing';
 import { cn } from '@/lib/utils';
 
 export interface ProactivLogo {
@@ -16,8 +17,13 @@ export interface ProactivPricingProps {
   description?: string;
   monthlyLabel?: string;
   yearlyLabel?: string;
+  oneTimeLabel?: string;
   monthlyPriceLabel?: string;
   yearlyPriceLabel?: string;
+  oneTimePriceLabel?: string;
+  oneTimeCtaLabel?: string;
+  creditsAfterPaymentLabel?: string;
+  annualBillingLabel?: (price: string) => string;
   customPriceLabel?: string;
   currencySymbol?: string;
   ctaHref?: string;
@@ -35,7 +41,7 @@ const defaultLogos: readonly ProactivLogo[] = [
 ];
 
 /**
- * A controlled-by-props pricing section. Only the monthly/yearly billing
+ * A controlled-by-props pricing section. Only the billing-period selection
  * selection is local state; tier copy and calls-to-action remain page data.
  */
 export function ProactivPricing({
@@ -44,8 +50,13 @@ export function ProactivPricing({
   description = 'Simple pricing for startups, small businesses, medium scale businesses and enterprises.',
   monthlyLabel = 'Monthly',
   yearlyLabel = 'Yearly',
+  oneTimeLabel = 'One-time',
   monthlyPriceLabel = '/ month',
-  yearlyPriceLabel = '/ month',
+  yearlyPriceLabel = '/ year',
+  oneTimePriceLabel = 'one time',
+  oneTimeCtaLabel = 'Buy credits',
+  creditsAfterPaymentLabel = 'Credits after payment:',
+  annualBillingLabel = (price) => `Billed ${price} annually`,
   customPriceLabel = 'Custom',
   currencySymbol = '$',
   ctaHref = '#book-demo',
@@ -54,11 +65,15 @@ export function ProactivPricing({
   logos = defaultLogos,
   className,
 }: ProactivPricingProps) {
-  const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'yearly'>(
-    'monthly'
-  );
-  const isYearly = billingPeriod === 'yearly';
+  const [billingPeriod, setBillingPeriod] = useState<
+    'one-time' | 'monthly' | 'yearly'
+  >('monthly');
   const repeatedLogos = [...logos, ...logos];
+  const billingPeriods = [
+    { value: 'one-time' as const, label: oneTimeLabel },
+    { value: 'monthly' as const, label: monthlyLabel },
+    { value: 'yearly' as const, label: yearlyLabel },
+  ];
 
   return (
     <section
@@ -101,41 +116,62 @@ export function ProactivPricing({
             {description}
           </p>
 
-          <div className="mt-7 flex items-center gap-3 text-sm text-[#a3a3a3]">
-            <span className={cn(!isYearly && 'text-white')}>
-              {monthlyLabel}
-            </span>
-            <button
-              type="button"
-              role="switch"
-              aria-checked={isYearly}
-              aria-label={`Switch to ${isYearly ? monthlyLabel : yearlyLabel} pricing`}
-              onClick={() => setBillingPeriod(isYearly ? 'monthly' : 'yearly')}
-              className="relative h-5 w-10 rounded-full border border-[#737373] bg-[#171717] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#39c3ef]"
-            >
-              <span
-                aria-hidden="true"
-                className={cn(
-                  'absolute top-0.5 left-0.5 h-3.5 w-3.5 rounded-full bg-white transition-all delay-100 duration-300 ease-out',
-                  isYearly ? 'w-4 translate-x-5' : 'translate-x-0'
-                )}
-              />
-            </button>
-            <span className={cn(isYearly && 'text-white')}>{yearlyLabel}</span>
+          <div
+            aria-label="Billing period"
+            className="mt-7 inline-flex rounded-xl border border-white/10 bg-[#111] p-1 text-sm"
+            role="tablist"
+          >
+            {billingPeriods.map((period) => {
+              const isActive = billingPeriod === period.value;
+
+              return (
+                <button
+                  aria-selected={isActive}
+                  className={cn(
+                    'min-h-9 rounded-lg px-3.5 font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-[#39c3ef] sm:px-4',
+                    isActive
+                      ? 'bg-[#39c3ef] text-black'
+                      : 'text-[#a3a3a3] hover:text-white'
+                  )}
+                  key={period.value}
+                  onClick={() => setBillingPeriod(period.value)}
+                  role="tab"
+                  type="button"
+                >
+                  {period.label}
+                </button>
+              );
+            })}
           </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-10 py-20 md:grid-cols-2 lg:grid-cols-4 lg:gap-4">
+        <div className="mx-auto grid max-w-[1080px] grid-cols-1 gap-5 py-20 md:grid-cols-3">
           {tiers.map((tier, index) => {
-            const price = isYearly ? tier.yearlyPrice : tier.monthlyPrice;
-            const priceLabel = isYearly ? yearlyPriceLabel : monthlyPriceLabel;
+            const price =
+              billingPeriod === 'one-time'
+                ? tier.oneTimePrice
+                : billingPeriod === 'yearly'
+                  ? tier.yearlyPrice
+                  : tier.monthlyPrice;
+            const priceLabel =
+              billingPeriod === 'one-time'
+                ? oneTimePriceLabel
+                : billingPeriod === 'yearly'
+                  ? monthlyPriceLabel
+                  : monthlyPriceLabel;
+            const displayPrice =
+              billingPeriod === 'yearly' && price !== null
+                ? (price / 12).toFixed(2)
+                : price;
+            const credits =
+              price === null ? null : creditsForPriceInCents(price * 100);
             const href = getCtaHref?.(tier, index) ?? ctaHref;
 
             return (
               <article
                 key={`${tier.title}-${index}`}
                 className={cn(
-                  'relative flex min-h-[390px] flex-col overflow-hidden rounded-lg px-6 py-4',
+                  'relative flex min-h-[420px] flex-col overflow-hidden rounded-lg px-6 py-5',
                   tier.featured
                     ? 'bg-[radial-gradient(circle_at_50%_0%,#262626_0%,#171717_48%,#0d0d0d_100%)] ring-1 ring-white/10'
                     : 'bg-transparent ring-1 ring-white/10'
@@ -162,16 +198,35 @@ export function ProactivPricing({
                   </p>
                   <div className="mt-7 flex items-end gap-1">
                     <span className="text-4xl leading-none font-semibold tracking-[-0.04em]">
-                      {price === null
+                      {displayPrice === null
                         ? customPriceLabel
-                        : `${currencySymbol}${price}`}
+                        : `${currencySymbol}${displayPrice}`}
                     </span>
-                    {price !== null && (
+                    {displayPrice !== null && (
                       <span className="pb-0.5 text-xs text-[#a3a3a3]">
                         {priceLabel}
                       </span>
                     )}
                   </div>
+                  {billingPeriod === 'yearly' && price !== null && (
+                    <p className="mt-2 text-xs font-medium text-[#a3a3a3]">
+                      {annualBillingLabel(
+                        `${currencySymbol}${price.toLocaleString('en-US')}`
+                      )}
+                    </p>
+                  )}
+                  {credits !== null && (
+                    <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-[#39c3ef]/30 bg-[#39c3ef]/10 px-3 py-1.5 text-xs font-medium text-[#dff8ff]">
+                      <Sparkles
+                        aria-hidden="true"
+                        className="size-3.5 text-[#39c3ef]"
+                      />
+                      <span className="tabular-nums">
+                        {creditsAfterPaymentLabel}{' '}
+                        {credits.toLocaleString('en-US')}
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 <Link
@@ -183,7 +238,7 @@ export function ProactivPricing({
                       : 'bg-[#262626] text-white hover:bg-[#303030] focus-visible:outline-white'
                   )}
                 >
-                  {tier.cta}
+                  {billingPeriod === 'one-time' ? oneTimeCtaLabel : tier.cta}
                 </Link>
 
                 <ul

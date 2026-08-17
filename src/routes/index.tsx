@@ -1,42 +1,91 @@
 import { createFileRoute } from '@tanstack/react-router';
 
-import { envConfigs } from '@/config';
+import {
+  MOTION_CONTROL_SITE_URL,
+  motionControlSeo,
+} from '@/lib/motion-control-seo';
 import { m } from '@/paraglide/messages.js';
-import { getLocale, locales, localizeUrl } from '@/paraglide/runtime.js';
 import { ProactivLanding } from '@/blocks/proactiv-landing';
 
-/**
- * Default landing page — demo content. Rewrite this file (and the blocks in
- * src/blocks/) for your project. The primitives in src/components/ stay.
- * See /quick-start or /clone-website to automate the rewrite.
- */
 function HomePage() {
-  return <ProactivLanding />;
+  const faqs = m['proactiv.faq.records']()
+    .split('\n')
+    .filter(Boolean)
+    .map((record) => {
+      const [question, answer] = record.split('||');
+      return { question: question ?? '', answer: answer ?? '' };
+    });
+  const structuredData = [
+    {
+      '@context': 'https://schema.org',
+      '@type': 'SoftwareApplication',
+      name: 'Motion Control AI',
+      url: MOTION_CONTROL_SITE_URL,
+      applicationCategory: 'MultimediaApplication',
+      operatingSystem: 'Web',
+      offers: {
+        '@type': 'Offer',
+        price: '0',
+        priceCurrency: 'USD',
+      },
+    },
+    {
+      '@context': 'https://schema.org',
+      '@type': 'FAQPage',
+      mainEntity: faqs.map((faq) => ({
+        '@type': 'Question',
+        name: faq.question,
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: faq.answer,
+        },
+      })),
+    },
+  ];
+
+  return (
+    <>
+      <ProactivLanding />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+      />
+    </>
+  );
 }
 
 export const Route = createFileRoute('/')({
-  loader: () => ({ locale: getLocale() }),
-  head: ({ loaderData }) => {
-    const locale = loaderData?.locale ?? 'en';
-    const urlFor = (loc: string) =>
-      localizeUrl(`${envConfigs.app_url}/`, { locale: loc as any }).href;
-    return {
-      meta: [
-        {
-          name: 'description',
-          content: m['proactiv.hero.subtitle']({}, { locale: locale as any }),
-        },
-      ],
-      links: [
-        { rel: 'canonical', href: urlFor(locale) },
-        ...locales.map((loc) => ({
-          rel: 'alternate',
-          hrefLang: loc,
-          href: urlFor(loc),
-        })),
-        { rel: 'alternate', hrefLang: 'x-default', href: urlFor('en') },
-      ],
-    };
-  },
+  head: () => ({
+    meta: [
+      { title: motionControlSeo.home.title },
+      { name: 'description', content: motionControlSeo.home.description },
+      { name: 'robots', content: 'index,follow' },
+      { property: 'og:type', content: 'website' },
+      { property: 'og:title', content: motionControlSeo.home.title },
+      {
+        property: 'og:description',
+        content: motionControlSeo.home.description,
+      },
+      { property: 'og:url', content: MOTION_CONTROL_SITE_URL },
+      {
+        property: 'og:image',
+        content: `${MOTION_CONTROL_SITE_URL}/proactiv/showcase-videos/neon-dancer.jpg`,
+      },
+      { name: 'twitter:card', content: 'summary_large_image' },
+      { name: 'twitter:title', content: motionControlSeo.home.title },
+      {
+        name: 'twitter:description',
+        content: motionControlSeo.home.description,
+      },
+      {
+        name: 'twitter:image',
+        content: `${MOTION_CONTROL_SITE_URL}/proactiv/showcase-videos/neon-dancer.jpg`,
+      },
+    ],
+    links: [
+      { rel: 'canonical', href: MOTION_CONTROL_SITE_URL },
+      { rel: 'alternate', hrefLang: 'en', href: MOTION_CONTROL_SITE_URL },
+    ],
+  }),
   component: HomePage,
 });

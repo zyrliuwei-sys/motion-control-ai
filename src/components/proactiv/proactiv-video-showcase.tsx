@@ -34,24 +34,12 @@ export interface ProactivVideoShowcaseProps {
   muteLabel: string;
   pauseLabel: string;
   playLabel: string;
+  showAllCategories?: boolean;
   title: string;
   unmuteLabel: string;
 }
 
-const galleryLayouts = [
-  'aspect-[2/3] object-center',
-  'aspect-[3/4] object-center',
-  'aspect-[4/5] object-center',
-  'aspect-[9/16] object-center',
-  'aspect-[3/4] object-center',
-  'aspect-[5/4] object-center',
-  'aspect-[2/3] object-center',
-  'aspect-[3/4] object-center',
-  'aspect-[4/5] object-center',
-  'aspect-[9/16] object-center',
-  'aspect-[3/4] object-center',
-  'aspect-[4/5] object-center',
-];
+const uniformGalleryLayout = 'aspect-[3/4] object-center';
 
 const filterIcons = {
   ads: MonitorPlay,
@@ -71,6 +59,7 @@ export function ProactivVideoShowcase({
   muteLabel,
   pauseLabel,
   playLabel,
+  showAllCategories = false,
   title,
   unmuteLabel,
 }: ProactivVideoShowcaseProps) {
@@ -78,18 +67,17 @@ export function ProactivVideoShowcase({
   const galleryCases = useMemo(() => {
     if (!cases.length) return [];
 
-    return cases.map((videoCase, index) => ({
+    return cases.map((videoCase) => ({
       // Every video belongs to the complete "All" collection as well as its
       // specific category, so no case can disappear from the default view.
       categories: ['all', videoCase.category],
-      layout: galleryLayouts[index % galleryLayouts.length]!,
+      layout: uniformGalleryLayout,
       videoCase,
     }));
   }, [cases]);
   const visibleCases = galleryCases.filter((item) =>
     item.categories.includes(activeFilter)
   );
-
   if (!cases.length) return null;
 
   return (
@@ -111,56 +99,68 @@ export function ProactivVideoShowcase({
           >
             {title}
           </h2>
-          <p id="showcase-description" className="sr-only">
+          <p
+            id="showcase-description"
+            className={
+              showAllCategories
+                ? 'mt-2 max-w-xl text-sm leading-6 text-white/55'
+                : 'sr-only'
+            }
+          >
             {description}
           </p>
-          <div
-            className="mt-5 flex gap-2 overflow-x-auto pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-            role="tablist"
-            aria-label={title}
-          >
-            {filters.map((filter) => {
-              const Icon =
-                filterIcons[filter.id as keyof typeof filterIcons] ?? Sparkles;
-              const isActive = activeFilter === filter.id;
+          {!showAllCategories && (
+            <div
+              className="mt-5 flex gap-2 overflow-x-auto pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+              role="tablist"
+              aria-label={title}
+            >
+              {filters.map((filter) => {
+                const Icon =
+                  filterIcons[filter.id as keyof typeof filterIcons] ??
+                  Sparkles;
+                const isActive = activeFilter === filter.id;
 
-              return (
-                <button
-                  key={filter.id}
-                  type="button"
-                  role="tab"
-                  aria-selected={isActive}
-                  onClick={() => setActiveFilter(filter.id)}
-                  className={`inline-flex h-11 shrink-0 items-center gap-2 rounded-full border px-4 text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#d1fe17] ${
-                    isActive
-                      ? 'border-white/10 bg-[#3a3b3f] text-white'
-                      : 'border-white/5 bg-[#242529] text-white/55 hover:border-white/15 hover:bg-[#303136] hover:text-white'
-                  }`}
-                >
-                  <Icon
-                    className="size-4"
-                    strokeWidth={1.75}
-                    aria-hidden="true"
-                  />
-                  {filter.label}
-                </button>
-              );
-            })}
-          </div>
+                return (
+                  <button
+                    key={filter.id}
+                    type="button"
+                    role="tab"
+                    aria-selected={isActive}
+                    onClick={() => setActiveFilter(filter.id)}
+                    className={`inline-flex h-11 shrink-0 items-center gap-2 rounded-full border px-4 text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#d1fe17] ${
+                      isActive
+                        ? 'border-white/10 bg-[#3a3b3f] text-white'
+                        : 'border-white/5 bg-[#242529] text-white/55 hover:border-white/15 hover:bg-[#303136] hover:text-white'
+                    }`}
+                  >
+                    <Icon
+                      className="size-4"
+                      strokeWidth={1.75}
+                      aria-hidden="true"
+                    />
+                    {filter.label}
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
 
-        <div className="columns-2 gap-[3px] px-[3px] sm:columns-3 lg:columns-6">
-          {visibleCases.map((item, index) => (
-            <VideoCaseCard
-              key={`${item.videoCase.src}-${index}`}
-              aspectRatio={item.layout}
-              videoCase={item.videoCase}
-              muteLabel={muteLabel}
-              pauseLabel={pauseLabel}
-              playLabel={playLabel}
-              unmuteLabel={unmuteLabel}
-            />
-          ))}
+        <div className="mt-5 grid grid-cols-2 gap-[3px] px-[3px] sm:mt-7 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6">
+          {(showAllCategories ? galleryCases : visibleCases).map(
+            (item, index) => (
+              <VideoCaseCard
+                key={`${item.videoCase.src}-${index}`}
+                aspectRatio={item.layout}
+                videoCase={item.videoCase}
+                muteLabel={muteLabel}
+                pauseLabel={pauseLabel}
+                playLabel={playLabel}
+                unmuteLabel={unmuteLabel}
+              />
+            )
+          )}
         </div>
       </div>
     </section>
@@ -225,7 +225,7 @@ function VideoCaseCard({
   };
 
   return (
-    <article className="group relative mb-[3px] inline-block w-full break-inside-avoid overflow-hidden bg-[#17191c] align-top">
+    <article className="group relative w-full overflow-hidden bg-[#17191c]">
       <div className={`relative overflow-hidden ${aspectRatio}`}>
         <video
           ref={videoRef}

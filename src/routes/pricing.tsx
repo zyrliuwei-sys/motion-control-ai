@@ -4,14 +4,14 @@ import { m } from '@/paraglide/messages.js';
 import { getLocale } from '@/paraglide/runtime.js';
 import { Footer } from '@/blocks/footer';
 import { Header } from '@/blocks/header';
-import { Pricing } from '@/blocks/pricing';
+import { MiniMaxH3PricingBlock } from '@/blocks/minimax-h3-pricing';
 
 export const Route = createFileRoute('/pricing')({
   loader: () => {
     const locale = getLocale();
     return {
-      title: m['landing.pricing.title']({}, { locale }),
-      description: m['landing.pricing.description']({}, { locale }),
+      title: m['pricing.kling.meta_title']({}, { locale }),
+      description: m['pricing.kling.meta_description']({}, { locale }),
     };
   },
   head: ({ loaderData }) => ({
@@ -30,7 +30,7 @@ function PricingPage() {
     <div className="bg-background text-foreground flex min-h-screen flex-col">
       <Header />
       <main className="flex-1">
-        <Pricing />
+        <MiniMaxH3PricingBlock />
       </main>
       <Footer />
     </div>
