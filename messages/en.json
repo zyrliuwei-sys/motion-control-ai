@@ -898,6 +898,7 @@
   "proactiv.video.studio.reference_image": "Reference image",
   "proactiv.video.studio.reference_video": "Motion video",
   "proactiv.video.studio.generated_video": "Generated video",
+  "proactiv.video.studio.dismiss_generated_video": "Close generated video",
   "proactiv.video.studio.download_video": "Download video",
   "proactiv.video.studio.open_generated_video": "Open video",
   "proactiv.video.studio.result_expiration": "The source link expires after 24 hours. Download your video now.",

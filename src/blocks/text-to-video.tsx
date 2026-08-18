@@ -152,6 +152,8 @@ export function TextToVideo({ initialPrompt }: { initialPrompt?: string }) {
             m['proactiv.video.studio.open_generated_video'](),
           resultExpirationLabel: m['proactiv.video.studio.result_expiration'](),
           resultSavedLabel: m['proactiv.video.studio.result_saved'](),
+          dismissGeneratedVideoLabel:
+            m['proactiv.video.studio.dismiss_generated_video'](),
           uploadsRequiredMessage: m['proactiv.video.studio.uploads_required'](),
           uploadInProgressLabel: m['proactiv.video.studio.uploading'](),
           taskPendingLabel: m['proactiv.video.studio.task_pending'](),

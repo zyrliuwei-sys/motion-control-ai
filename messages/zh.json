@@ -898,6 +898,7 @@
   "proactiv.video.studio.reference_image": "参考人物图",
   "proactiv.video.studio.reference_video": "动作参考视频",
   "proactiv.video.studio.generated_video": "生成视频",
+  "proactiv.video.studio.dismiss_generated_video": "关闭生成视频",
   "proactiv.video.studio.download_video": "下载视频",
   "proactiv.video.studio.open_generated_video": "打开视频",
   "proactiv.video.studio.result_expiration": "源视频链接将在 24 小时后失效，请及时下载保存。",

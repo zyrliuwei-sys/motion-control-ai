@@ -460,13 +460,6 @@ function AspectRatioPicker({
         >
           {aspectRatioOptions.map((option) => {
             const selected = value === option.value;
-            const compactPreviewScale =
-              option.value === '9:16'
-                ? 'scale-[0.6]'
-                : option.value === '3:4' || option.value === 'adaptive'
-                  ? 'scale-75'
-                  : '';
-
             return (
               <DropdownMenuRadioItem
                 key={option.value}
@@ -476,17 +469,13 @@ function AspectRatioPicker({
                 className="group/ratio flex h-11 items-center gap-2.5 rounded-lg border border-transparent px-2.5 py-1.5 text-xs font-medium text-[#b7bab3] transition-[background-color,border-color,color] duration-150 hover:border-white/10 hover:bg-white/[0.055] hover:text-white focus:border-[#a58a2d] focus:bg-[#282518] focus:text-white data-checked:border-[#8d7627] data-checked:bg-[#282518] data-checked:text-white [&_[data-slot=dropdown-menu-radio-item-indicator]]:right-2 [&_[data-slot=dropdown-menu-radio-item-indicator]]:text-[#e0b918]"
               >
                 <span
-                  className={`grid h-7 w-10 shrink-0 place-items-center rounded-md border transition-colors ${
+                  className={`block shrink-0 rounded-[2px] border-[1.5px] transition-colors ${option.previewClassName} ${
                     selected
-                      ? 'border-[#bda348] bg-[#211d12] text-[#e3d7a7]'
-                      : 'border-white/12 bg-black/10 text-[#aaa59b] group-hover/ratio:border-white/25 group-hover/ratio:text-white'
+                      ? 'border-[#e3d7a7] text-[#e3d7a7]'
+                      : 'border-[#aaa59b] text-[#aaa59b] group-hover/ratio:border-white group-hover/ratio:text-white'
                   }`}
                   aria-hidden="true"
-                >
-                  <span
-                    className={`block rounded-[2px] border-[1.5px] border-current ${option.previewClassName} ${compactPreviewScale}`}
-                  />
-                </span>
+                />
                 <span className="tabular-nums">{option.value}</span>
               </DropdownMenuRadioItem>
             );

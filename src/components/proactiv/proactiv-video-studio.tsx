@@ -8,6 +8,7 @@ import {
   Layers3,
   Play,
   Radio,
+  X,
 } from 'lucide-react';
 
 import { useSession } from '@/core/auth/client';
@@ -33,6 +34,7 @@ export interface ProactivVideoStudioCopy {
   openGeneratedVideoLabel: string;
   resultExpirationLabel: string;
   resultSavedLabel: string;
+  dismissGeneratedVideoLabel: string;
   uploadsRequiredMessage: string;
   uploadInProgressLabel: string;
   taskPendingLabel: string;
@@ -145,6 +147,7 @@ export function ProactivVideoStudio({
   const [isQueued, setIsQueued] = useState(false);
   const [isComposerOpen, setIsComposerOpen] = useState(false);
   const [motionTask, setMotionTask] = useState<MotionControlTask | null>(null);
+  const [dismissedTaskId, setDismissedTaskId] = useState<string | null>(null);
   const [retryValues, setRetryValues] =
     useState<ProactivGenerationValues | null>(null);
   const [showRetry, setShowRetry] = useState(false);
@@ -183,7 +186,7 @@ export function ProactivVideoStudio({
   });
 
   useEffect(() => {
-    if (!taskQuery.data) return;
+    if (!taskQuery.data || taskQuery.data.id === dismissedTaskId) return;
     setMotionTask(taskQuery.data);
     setIsQueued(!isTerminalTask(taskQuery.data.status));
     if (taskQuery.data.status === 'success') {
@@ -194,7 +197,7 @@ export function ProactivVideoStudio({
     } else if (['failed', 'canceled'].includes(taskQuery.data.status)) {
       setShowRetry(true);
     }
-  }, [queryClient, taskQuery.data]);
+  }, [dismissedTaskId, queryClient, taskQuery.data]);
 
   const generationMutation = useMutation({
     mutationFn: async (values: ProactivGenerationValues) => {
@@ -226,6 +229,7 @@ export function ProactivVideoStudio({
       });
     },
     onSuccess: (task) => {
+      setDismissedTaskId(null);
       setMotionTask(task);
       setIsQueued(!isTerminalTask(task.status));
       setShowRetry(false);
@@ -240,6 +244,7 @@ export function ProactivVideoStudio({
   function startGeneration(values: ProactivGenerationValues) {
     setRetryValues(values);
     setShowRetry(false);
+    setDismissedTaskId(null);
     setMotionTask(null);
     setIsQueued(true);
     generationMutation.mutate(values);
@@ -253,8 +258,11 @@ export function ProactivVideoStudio({
   useEffect(() => {
     if (generationMutation.isPending || isQueued || motionTask) return;
     const mostRecentTask = recentTasksQuery.data?.[0];
-    if (mostRecentTask) setMotionTask(mostRecentTask);
+    if (mostRecentTask && mostRecentTask.id !== dismissedTaskId) {
+      setMotionTask(mostRecentTask);
+    }
   }, [
+    dismissedTaskId,
     generationMutation.isPending,
     isQueued,
     motionTask,
@@ -318,7 +326,7 @@ export function ProactivVideoStudio({
         </div>
       </div>
 
-      <div className="fixed right-3 bottom-3 left-3 z-40 md:right-5 md:bottom-5 md:left-[calc(16rem+1.25rem)] lg:left-[calc(16rem+2rem)]">
+      <div className="fixed right-3 bottom-3 left-3 z-40 md:right-5 md:bottom-5 md:left-[calc(16rem+1.25rem)]">
         <div className="mx-auto w-full max-w-[980px]">
           <div className="relative overflow-hidden rounded-[30px] border border-white/12 bg-[#12161b]/92 p-1.5 shadow-[0_24px_90px_rgba(0,0,0,0.6),0_0_0_1px_rgba(209,254,23,0.06)] backdrop-blur-2xl sm:p-2">
             <div
@@ -366,7 +374,15 @@ export function ProactivVideoStudio({
 
             <div className={isComposerOpen ? 'block' : 'hidden md:block'}>
               {motionTask ? (
-                <MotionTaskCard task={motionTask} copy={copy} />
+                <MotionTaskCard
+                  task={motionTask}
+                  copy={copy}
+                  onDismiss={() => {
+                    setDismissedTaskId(motionTask.id);
+                    setMotionTask(null);
+                    setShowRetry(false);
+                  }}
+                />
               ) : null}
               {showRetry && retryValues ? (
                 <div className="mx-1 mt-1 mb-2 rounded-[22px] border border-white/12 bg-white/[0.035] p-2 sm:p-3">
@@ -408,9 +424,11 @@ export function ProactivVideoStudio({
 function MotionTaskCard({
   task,
   copy,
+  onDismiss,
 }: {
   task: MotionControlTask;
   copy: ProactivVideoStudioCopy;
+  onDismiss: () => void;
 }) {
   const failed = task.status === 'failed' || task.status === 'canceled';
 
@@ -420,7 +438,17 @@ function MotionTaskCard({
       role="status"
       aria-live="polite"
     >
-      <div className="flex items-center justify-between gap-4">
+      <button
+        type="button"
+        onClick={onDismiss}
+        className="absolute top-3 right-3 inline-flex size-8 items-center justify-center rounded-full border border-white/12 bg-white/[0.04] text-white/60 transition hover:border-[#d1fe17]/60 hover:bg-[#d1fe17] hover:text-[#101600] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#d1fe17] sm:top-4 sm:right-4"
+        aria-label={copy.dismissGeneratedVideoLabel}
+        title={copy.dismissGeneratedVideoLabel}
+      >
+        <X className="size-4" strokeWidth={2.5} aria-hidden="true" />
+      </button>
+
+      <div className="flex items-center justify-between gap-4 pr-10">
         <div className="min-w-0">
           <p className="text-[10px] font-semibold tracking-[0.14em] text-white/50 uppercase">
             {copy.generatedVideoLabel}
