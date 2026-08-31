@@ -3,57 +3,66 @@ import {
   ProactivHeroComposer,
   type ProactivHeroComposerLabels,
 } from '@/components/proactiv/proactiv-hero-composer';
-import { ProactivHeroStage } from '@/components/proactiv/proactiv-hero-stage';
+import { ProactivHeroStream } from '@/components/proactiv/proactiv-hero-stream';
 
 export interface ProactivMarketingHeroProps {
+  eyebrow?: string;
   description?: string;
+  motionStatement?: readonly string[];
+  openEditorLabel?: string;
   title?: string;
   composerLabels?: ProactivHeroComposerLabels;
 }
 
 /** Marketing hero retained for the homepage; the text-to-video workspace lives on its own route. */
 export function ProactivMarketingHero({
+  eyebrow = 'Motion direction, without the production overhead',
   description = 'Automate Campaigns, Engage Audiences, and Boost Lead Generation with Our All-in-One Marketing Solution',
-  title = 'Direct Every Frame with Motion Control AI',
+  motionStatement = ['Direct', 'every', 'movement.', 'Make', 'it yours.'],
+  openEditorLabel = 'Open editor',
+  title = 'Direct Every Frame with uncensored ai',
   composerLabels = {
     addReference: 'Add reference',
     aspectRatio: 'Aspect ratio',
     avatar: 'Avatar',
-    batch: 'Batch',
+    duration: 'Duration',
+    durationLoading: 'Checking',
+    durationPending: 'Awaiting video',
+    durationUnavailable: 'Unavailable',
+    durationUnsupported: 'Use a 3-10s video',
     generate: 'Generate',
     generated: 'Ready',
     image: 'Image',
+    imageModel: 'FLUX.2 Edit',
     model: 'Motion Studio',
     placeholder: 'Describe the scene you imagine...',
     product: 'Product',
     removeAttachment: 'Remove attachment',
-    style: 'Style',
+    textModel: 'FLUX.2 Image',
     video: 'Video',
+    videoModel: 'Motion Studio Video',
   },
 }: ProactivMarketingHeroProps) {
   const router = useRouter();
 
   return (
-    <section className="relative flex min-h-[calc(100svh-64px)] flex-col justify-center overflow-hidden bg-[#090b0e] pt-28 pb-16 text-white lg:min-h-[calc(100svh-72px)] lg:pt-40 lg:pb-24">
-      <div
-        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-[#39c3ef]/60"
-        aria-hidden="true"
+    <section className="relative bg-[#fff8fa] text-[#15202b]">
+      <ProactivHeroStream
+        eyebrow={eyebrow}
+        title={title}
+        description={description}
+        motionStatement={motionStatement}
       />
-      <div className="relative mx-auto flex w-full max-w-[1280px] flex-col items-center px-4">
-        <ProactivHeroStage />
-        <h1 className="mt-10 max-w-[980px] text-center text-3xl leading-[1.1] font-semibold tracking-[-0.055em] text-balance sm:mt-12 sm:text-[46px] lg:mt-16 lg:text-[72px]">
-          {title}
-        </h1>
-        <p className="mt-5 max-w-[720px] text-center text-base leading-relaxed text-[#a3aab3] md:text-xl">
-          {description}
-        </p>
-
-        <div className="mt-8 flex w-full justify-center">
+      <div className="relative bg-[#fff8fa] px-4 py-10 sm:px-6 sm:py-14">
+        <div className="mx-auto flex w-full max-w-[1260px] justify-center">
           <ProactivHeroComposer
-            labels={composerLabels}
+            allowVideoMode={false}
+            compactAction
+            labels={{ ...composerLabels, generate: openEditorLabel }}
+            requireReferences={false}
             onGenerate={({ prompt }) => {
               router.push(
-                `/text-to-video?prompt=${encodeURIComponent(prompt)}`
+                `/text-to-image?prompt=${encodeURIComponent(prompt)}`
               );
             }}
           />

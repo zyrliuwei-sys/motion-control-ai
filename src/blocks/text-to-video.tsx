@@ -1,5 +1,5 @@
+import { envConfigs } from '@/config';
 import { m } from '@/paraglide/messages.js';
-import { ProactivVideoHistorySidebar } from '@/components/proactiv/proactiv-video-history-sidebar';
 import type { ProactivVideoShowcaseCase } from '@/components/proactiv/proactiv-video-showcase';
 import { ProactivVideoStudio } from '@/components/proactiv/proactiv-video-studio';
 import {
@@ -11,7 +11,6 @@ const hiddenNavigationIds = new Set([
   'image-to-video',
   'image-generator',
   'video-extender',
-  'photo-editor',
 ]);
 
 function navGroups(): SenziaNavGroup[] {
@@ -41,14 +40,15 @@ function navGroups(): SenziaNavGroup[] {
 
 function navHref(id: string) {
   switch (id) {
+    case 'photo-editor':
+      return '/photo-editor';
     case 'explore':
     case 'image-to-video':
     case 'video-extender':
     case 'image-generator':
-    case 'photo-editor':
-      return '/text-to-video#studio-feed';
+      return '/text-to-image#studio-feed';
     case 'text-to-video':
-      return '/text-to-video';
+      return '/text-to-image';
     case 'home':
       return '/';
     case 'blog':
@@ -56,7 +56,7 @@ function navHref(id: string) {
     case 'upgrade':
       return '/pricing';
     default:
-      return '/text-to-video';
+      return '/text-to-image';
   }
 }
 
@@ -93,47 +93,52 @@ function studioCases(): ProactivVideoShowcaseCase[] {
 }
 
 /** Localized content wiring for the immersive text-to-video workspace. */
-export function TextToVideo({ initialPrompt }: { initialPrompt?: string }) {
+export function TextToVideo({
+  initialPrompt,
+  showTemplateFeed = true,
+}: {
+  initialPrompt?: string;
+  showTemplateFeed?: boolean;
+}) {
   const cases = studioCases();
 
   return (
     <SenziaAppShell
-      brand={m['proactiv.video.reference_brand']()}
+      brand={envConfigs.app_name}
       brandHref="/"
       languageLabel={m['proactiv.video.language']()}
-      loginLabel={m['proactiv.video.login']()}
-      loginHref="/sign-in"
       demoLabel={m['proactiv.book_demo']()}
       demoHref="/book-demo"
+      collapseSidebarLabel={m['proactiv.sidebar.collapse']()}
+      expandSidebarLabel={m['proactiv.sidebar.expand']()}
       navGroups={navGroups()}
-      sidebarPanel={
-        <ProactivVideoHistorySidebar
-          labels={{
-            title: m['proactiv.video.history.title'](),
-            empty: m['proactiv.video.history.empty'](),
-            open: m['proactiv.video.history.open'](),
-            download: m['proactiv.video.history.download'](),
-          }}
-        />
-      }
     >
       <ProactivVideoStudio
         cases={cases}
         initialPrompt={initialPrompt}
+        showTemplateFeed={showTemplateFeed}
         composerLabels={{
           addReference: m['proactiv.hero.composer.add_reference'](),
           aspectRatio: m['proactiv.hero.composer.aspect_ratio'](),
           avatar: m['proactiv.hero.composer.avatar'](),
-          batch: m['proactiv.hero.composer.batch'](),
+          duration: m['proactiv.hero.composer.duration'](),
+          durationLoading: m['proactiv.hero.composer.duration_loading'](),
+          durationPending: m['proactiv.hero.composer.duration_pending'](),
+          durationUnavailable:
+            m['proactiv.hero.composer.duration_unavailable'](),
+          durationUnsupported:
+            m['proactiv.hero.composer.duration_unsupported'](),
           generate: m['proactiv.hero.composer.generate'](),
           generated: m['proactiv.hero.composer.generated'](),
           image: m['proactiv.hero.composer.image'](),
+          imageModel: m['proactiv.hero.composer.image_model'](),
           model: m['proactiv.hero.composer.model'](),
           placeholder: m['proactiv.hero.composer.placeholder'](),
           product: m['proactiv.hero.composer.product'](),
           removeAttachment: m['proactiv.hero.composer.remove_attachment'](),
-          style: m['proactiv.hero.composer.style'](),
+          textModel: m['proactiv.hero.composer.text_model'](),
           video: m['proactiv.hero.composer.video'](),
+          videoModel: m['proactiv.hero.composer.video_model'](),
         }}
         copy={{
           activeTemplateLabel: m['proactiv.video.studio.active_template'](),
@@ -141,25 +146,47 @@ export function TextToVideo({ initialPrompt }: { initialPrompt?: string }) {
             count: cases.length,
           }),
           collapseComposerLabel: m['proactiv.video.studio.collapse_composer'](),
-          composerLabel: m['proactiv.video.studio.composer'](),
           liveLabel: m['proactiv.video.studio.live'](),
           readyLabel: m['proactiv.video.studio.ready'](),
           referenceImageLabel: m['proactiv.video.studio.reference_image'](),
           referenceVideoLabel: m['proactiv.video.studio.reference_video'](),
           generatedVideoLabel: m['proactiv.video.studio.generated_video'](),
+          generatedImageLabel: m['proactiv.video.studio.generated_image'](),
+          imagePreviewEmptyLabel:
+            m['proactiv.video.studio.image_preview_empty'](),
+          imagePreviewTitleLabel: m['proactiv.video.studio.image_preview'](),
+          regenerateLabel: m['proactiv.video.studio.regenerate'](),
+          insufficientCreditsMessage:
+            m['proactiv.video.studio.insufficient_credits'](),
           downloadVideoLabel: m['proactiv.video.studio.download_video'](),
+          downloadImageLabel: m['proactiv.video.studio.download_image'](),
           openGeneratedVideoLabel:
             m['proactiv.video.studio.open_generated_video'](),
+          openGeneratedImageLabel:
+            m['proactiv.video.studio.open_generated_image'](),
           resultExpirationLabel: m['proactiv.video.studio.result_expiration'](),
           resultSavedLabel: m['proactiv.video.studio.result_saved'](),
           dismissGeneratedVideoLabel:
             m['proactiv.video.studio.dismiss_generated_video'](),
+          dismissGeneratedImageLabel:
+            m['proactiv.video.studio.dismiss_generated_image'](),
           uploadsRequiredMessage: m['proactiv.video.studio.uploads_required'](),
+          imageUploadsRequiredMessage:
+            m['proactiv.video.studio.image_uploads_required'](),
           uploadInProgressLabel: m['proactiv.video.studio.uploading'](),
           taskPendingLabel: m['proactiv.video.studio.task_pending'](),
           taskProcessingLabel: m['proactiv.video.studio.task_processing'](),
           taskCompletedLabel: m['proactiv.video.studio.task_completed'](),
           taskFailedLabel: m['proactiv.video.studio.task_failed'](),
+          videoUnavailableMessage:
+            m['proactiv.video.studio.video_unavailable'](),
+          imageTaskPendingLabel:
+            m['proactiv.video.studio.image_task_pending'](),
+          imageTaskProcessingLabel:
+            m['proactiv.video.studio.image_task_processing'](),
+          imageTaskCompletedLabel:
+            m['proactiv.video.studio.image_task_completed'](),
+          imageTaskFailedLabel: m['proactiv.video.studio.image_task_failed'](),
           retryGenerationLabel: m['proactiv.video.studio.retry_generation'](),
           selectTemplateLabel: m['proactiv.video.studio.select_template'](),
         }}

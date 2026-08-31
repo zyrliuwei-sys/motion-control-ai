@@ -14,6 +14,7 @@ import { envConfigs } from '@/config';
 import { m } from '@/paraglide/messages.js';
 import { SupportWidget } from '@/blocks/support-widget';
 import { AppLayout } from '@/components/app-layout';
+import { BrandWordmark } from '@/components/brand-wordmark';
 
 export const Route = createFileRoute('/settings')({
   component: SettingsLayout,
@@ -73,7 +74,7 @@ function SettingsLayout() {
     <AppLayout
       navItems={navItems}
       footerNavItems={footerNavItems}
-      brand={envConfigs.app_name}
+      brand={<BrandWordmark brand={envConfigs.app_name} />}
       brandHref="/settings"
     >
       <Outlet />

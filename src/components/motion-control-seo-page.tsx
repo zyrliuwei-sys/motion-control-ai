@@ -57,7 +57,7 @@ const commonGallery: GalleryItem[] = [
   },
   {
     src: '/proactiv/showcase-videos/product-studio.jpg',
-    alt: 'Motion Control AI Free product character animation example',
+    alt: 'uncensored ai product character animation example',
     label: 'Product character',
     detail: 'Bring a styled character into a directed video moment.',
   },
@@ -73,7 +73,7 @@ const pages: Record<PageKind, PageContent> = {
   home: {
     kind: 'home',
     eyebrow: 'IMAGE + VIDEO → MOTION',
-    h1: 'Motion Control AI Free',
+    h1: 'uncensored ai',
     lead: 'Give a character image the movement of a reference video. Build a clean motion-transfer clip in your browser, with no credit card required to get started.',
     demoLabel: 'Motion transfer demo',
     demoCaption:
@@ -150,9 +150,9 @@ const pages: Record<PageKind, PageContent> = {
     faqTitle: 'FAQ',
     faqs: [
       {
-        question: 'What does Motion Control AI Free do?',
+        question: 'What does uncensored ai do?',
         answer:
-          'Motion Control AI Free transfers the movement from a reference video onto the character in a reference image to create a new animated video.',
+          'uncensored ai transfers the movement from a reference video onto the character in a reference image to create a new animated video.',
       },
       {
         question: 'What files do I need before generating?',
@@ -233,7 +233,7 @@ const pages: Record<PageKind, PageContent> = {
     galleryTitle: 'AI Motion Control Video Examples',
     gallery: commonGallery.map((item) => ({
       ...item,
-      alt: item.alt.replace('Motion Control AI Free', 'AI motion control'),
+      alt: item.alt.replace('uncensored ai', 'AI motion control'),
     })),
     tableTitle: 'Motion Transfer Input and Output Options',
     tableHeadings: ['Stage', 'What you provide', 'What you receive'],
@@ -327,7 +327,7 @@ function JsonLd({ content }: { content: PageContent }) {
     {
       '@context': 'https://schema.org',
       '@type': 'SoftwareApplication',
-      name: 'Motion Control AI',
+      name: 'uncensored ai',
       url: canonicalUrl,
       applicationCategory: 'MultimediaApplication',
       operatingSystem: 'Web',
@@ -377,7 +377,7 @@ export function MotionControlSeoPage({ kind }: { kind: PageKind }) {
             <span className="grid h-8 w-8 place-items-center rounded-full border border-lime-200/30 bg-lime-300/10 transition group-hover:border-lime-200/60">
               <SparkMark />
             </span>
-            <span>Motion Control AI</span>
+            <span>uncensored ai</span>
           </a>
           <div className="hidden items-center gap-7 text-sm text-stone-300 md:flex">
             <a className="transition hover:text-lime-200" href="/">
@@ -400,7 +400,7 @@ export function MotionControlSeoPage({ kind }: { kind: PageKind }) {
             </a>
           </div>
           <a
-            href="/text-to-video"
+            href="/text-to-image"
             className="inline-flex items-center gap-2 rounded-full bg-lime-300 px-4 py-2.5 text-sm font-semibold text-black transition hover:bg-lime-200 focus:ring-2 focus:ring-lime-200 focus:ring-offset-2 focus:ring-offset-[#080b0d] focus:outline-none"
           >
             Try Free Now <ArrowIcon />
@@ -425,7 +425,7 @@ export function MotionControlSeoPage({ kind }: { kind: PageKind }) {
               </p>
               <div className="mt-9 flex flex-wrap items-center gap-4">
                 <a
-                  href="/text-to-video"
+                  href="/text-to-image"
                   className="inline-flex items-center gap-2 rounded-full bg-lime-300 px-6 py-3.5 text-sm font-bold text-black transition hover:-translate-y-0.5 hover:bg-lime-200 focus:ring-2 focus:ring-lime-200 focus:ring-offset-2 focus:ring-offset-[#080b0d] focus:outline-none"
                 >
                   Try Free Now <ArrowIcon />
@@ -700,7 +700,7 @@ export function MotionControlSeoPage({ kind }: { kind: PageKind }) {
       <footer className="border-t border-white/10 bg-[#080b0d]">
         <div className="mx-auto flex max-w-7xl flex-col gap-6 px-5 py-8 text-sm text-stone-500 sm:flex-row sm:items-center sm:justify-between sm:px-8 lg:px-10">
           <p>
-            © 2026 Motion Control AI. Image-to-motion video generation in the
+            © 2026 uncensored ai. Image-to-motion video generation in the
             browser.
           </p>
           <div className="flex flex-wrap gap-x-5 gap-y-3">
@@ -713,7 +713,7 @@ export function MotionControlSeoPage({ kind }: { kind: PageKind }) {
               </a>
             ) : (
               <a href="/" className="transition hover:text-lime-200">
-                Motion Control AI Free
+                uncensored ai
               </a>
             )}
             <a href="/pricing" className="transition hover:text-lime-200">

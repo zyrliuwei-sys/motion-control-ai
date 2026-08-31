@@ -215,6 +215,12 @@ export class FalProvider implements AIProvider {
                 if (image) {
                   image.imageUrl = file.url;
                 }
+                const resultImage = Array.isArray(data.images)
+                  ? data.images[file.index]
+                  : undefined;
+                if (resultImage && typeof resultImage === 'object') {
+                  resultImage.url = file.url;
+                }
               }
             });
           }
@@ -243,6 +249,12 @@ export class FalProvider implements AIProvider {
                 const video = videos[file.index];
                 if (video) {
                   video.videoUrl = file.url;
+                }
+                const resultVideo = Array.isArray(data.videos)
+                  ? data.videos[file.index]
+                  : data.video;
+                if (resultVideo && typeof resultVideo === 'object') {
+                  resultVideo.url = file.url;
                 }
               }
             });
@@ -284,6 +296,9 @@ export class FalProvider implements AIProvider {
   private getQueryModel(model?: string): string {
     if (!model) {
       return '';
+    }
+    if (model === 'fal-ai/flux-2/edit') {
+      return model;
     }
     const parts = model.split('/');
     if (parts.length <= 2) {

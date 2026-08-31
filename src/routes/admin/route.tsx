@@ -11,6 +11,7 @@ import {
 import { envConfigs } from '@/config';
 import { m } from '@/paraglide/messages.js';
 import { AppLayout } from '@/components/app-layout';
+import { BrandWordmark } from '@/components/brand-wordmark';
 
 export const Route = createFileRoute('/admin')({
   component: AdminLayout,
@@ -74,7 +75,7 @@ function AdminLayout() {
     <AppLayout
       navItems={navItems}
       footerNavItems={footerNavItems}
-      brand={envConfigs.app_name}
+      brand={<BrandWordmark brand={envConfigs.app_name} />}
       brandHref="/admin"
       profileHref="/settings/profile"
       requirePermission="admin.*"

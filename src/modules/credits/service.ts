@@ -26,6 +26,13 @@ export enum CreditTransactionScene {
 }
 
 type NewCredit = typeof credit.$inferInsert;
+type ConsumedCreditDetail = {
+  creditId: string;
+  transactionNo: string;
+  creditsConsumed: number;
+  creditsBefore: number;
+  creditsAfter: number;
+};
 
 // --- Expiration ---
 
@@ -252,6 +259,91 @@ export async function revoke(consumeCreditId: string) {
       .set({ status: CreditStatus.DELETED })
       .where(eq(credit.id, consumeCreditId));
   });
+}
+
+/**
+ * Return part of a consumption after a task settles below its reserved cost.
+ * The restored amount goes back to the original grant records, preserving
+ * their expiration dates and the user's FIFO balance.
+ */
+export async function refundConsumedCredits(params: {
+  consumeCreditId: string;
+  credits: number;
+  tx?: any;
+}): Promise<{ refundedCredits: number }> {
+  const amount = Math.max(0, Math.floor(params.credits));
+  if (!amount) return { refundedCredits: 0 };
+
+  const execute = async (tx: any) => {
+    const [consumeRecord] = await tx
+      .select()
+      .from(credit)
+      .where(
+        and(
+          eq(credit.id, params.consumeCreditId),
+          eq(credit.transactionType, CreditTransactionType.CONSUME),
+          eq(credit.status, CreditStatus.ACTIVE)
+        )
+      )
+      .limit(1)
+      .for('update');
+
+    if (!consumeRecord?.consumedDetail) return { refundedCredits: 0 };
+
+    let items: ConsumedCreditDetail[];
+    try {
+      const parsed = JSON.parse(consumeRecord.consumedDetail);
+      if (!Array.isArray(parsed)) return { refundedCredits: 0 };
+      items = parsed.filter((item): item is ConsumedCreditDetail =>
+        Boolean(
+          item &&
+          typeof item.creditId === 'string' &&
+          Number.isInteger(item.creditsConsumed) &&
+          item.creditsConsumed > 0
+        )
+      );
+    } catch {
+      return { refundedCredits: 0 };
+    }
+
+    let remainingToRefund = amount;
+    for (let index = items.length - 1; index >= 0; index -= 1) {
+      if (remainingToRefund <= 0) break;
+
+      const item = items[index];
+      if (!item) continue;
+      const restored = Math.min(remainingToRefund, item.creditsConsumed);
+
+      await tx
+        .update(credit)
+        .set({
+          remainingCredits: sql`${credit.remainingCredits} + ${restored}`,
+        })
+        .where(eq(credit.id, item.creditId));
+
+      item.creditsConsumed -= restored;
+      item.creditsAfter += restored;
+      remainingToRefund -= restored;
+    }
+
+    const refundedCredits = amount - remainingToRefund;
+    if (!refundedCredits) return { refundedCredits: 0 };
+
+    await tx
+      .update(credit)
+      .set({
+        credits: consumeRecord.credits + refundedCredits,
+        consumedDetail: JSON.stringify(
+          items.filter((item) => item.creditsConsumed > 0)
+        ),
+      })
+      .where(eq(credit.id, consumeRecord.id));
+
+    return { refundedCredits };
+  };
+
+  if (params.tx) return execute(params.tx);
+  return db().transaction(execute);
 }
 
 // --- Auto-grant for new user ---

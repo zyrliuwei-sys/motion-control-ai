@@ -1,17 +1,21 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   ChevronDown,
   CircleCheckBig,
   Download,
   ExternalLink,
+  ImageIcon,
   Layers3,
+  LoaderCircle,
   Play,
-  Radio,
+  RefreshCw,
   X,
 } from 'lucide-react';
+import { toast } from 'sonner';
 
 import { useSession } from '@/core/auth/client';
+import { useRouter } from '@/core/i18n/navigation';
 import { apiGet, apiPost, apiUpload } from '@/lib/api-client';
 import {
   ProactivHeroComposer,
@@ -24,23 +28,36 @@ export interface ProactivVideoStudioCopy {
   activeTemplateLabel: string;
   clipCountLabel: string;
   collapseComposerLabel: string;
-  composerLabel: string;
   liveLabel: string;
   readyLabel: string;
   referenceImageLabel: string;
   referenceVideoLabel: string;
   generatedVideoLabel: string;
+  generatedImageLabel: string;
+  imagePreviewEmptyLabel: string;
+  imagePreviewTitleLabel: string;
+  regenerateLabel: string;
+  insufficientCreditsMessage: string;
   downloadVideoLabel: string;
+  downloadImageLabel: string;
   openGeneratedVideoLabel: string;
+  openGeneratedImageLabel: string;
   resultExpirationLabel: string;
   resultSavedLabel: string;
   dismissGeneratedVideoLabel: string;
+  dismissGeneratedImageLabel: string;
   uploadsRequiredMessage: string;
+  imageUploadsRequiredMessage: string;
   uploadInProgressLabel: string;
   taskPendingLabel: string;
   taskProcessingLabel: string;
   taskCompletedLabel: string;
   taskFailedLabel: string;
+  videoUnavailableMessage: string;
+  imageTaskPendingLabel: string;
+  imageTaskProcessingLabel: string;
+  imageTaskCompletedLabel: string;
+  imageTaskFailedLabel: string;
   retryGenerationLabel: string;
   selectTemplateLabel: string;
 }
@@ -50,6 +67,8 @@ export interface ProactivVideoStudioProps {
   composerLabels: ProactivHeroComposerLabels;
   copy: ProactivVideoStudioCopy;
   initialPrompt?: string;
+  showTemplateFeed?: boolean;
+  videoModelEnabled?: boolean;
 }
 
 const galleryLayouts = [
@@ -66,6 +85,7 @@ const galleryLayouts = [
   'aspect-[2/3]',
   'aspect-[4/5]',
 ] as const;
+const maximumImageReferenceCount = 10;
 
 interface MotionControlTask {
   id: string;
@@ -77,6 +97,55 @@ interface MotionControlTask {
   isArchived: boolean;
   errorMessage?: string;
 }
+
+interface FluxImageEditTask {
+  id: string;
+  model: string;
+  status: string;
+  progress: number;
+  resultUrls: string[];
+  errorMessage?: string;
+}
+
+export interface GeneratedImagePreview {
+  createdAt: string;
+  downloadUrl?: string;
+  id: string;
+  prompt: string;
+  url: string;
+}
+
+/** A persisted generation returned by /api/ai-tasks/images. */
+interface SavedGeneratedImage {
+  createdAt: string;
+  downloadUrl?: string;
+  id: string;
+  model: string;
+  prompt: string;
+  url: string;
+}
+
+/** One ChatGPT-style exchange: the submitted prompt and its generated images. */
+interface StudioChatTurn {
+  createdAt: string;
+  id: string;
+  images: GeneratedImagePreview[];
+  prompt: string;
+}
+
+type GenerationTask =
+  | { kind: 'image'; task: FluxImageEditTask }
+  | { kind: 'video'; task: MotionControlTask };
+
+const falImageSizeByAspectRatio: Record<string, string | undefined> = {
+  '21:9': 'landscape_16_9',
+  '16:9': 'landscape_16_9',
+  '4:3': 'landscape_4_3',
+  '1:1': 'square_hd',
+  '3:4': 'portrait_4_3',
+  '9:16': 'portrait_16_9',
+  adaptive: undefined,
+};
 
 function isTerminalTask(status: string) {
   return ['success', 'failed', 'canceled'].includes(status);
@@ -96,14 +165,28 @@ function taskLabel(status: string, copy: ProactivVideoStudioCopy) {
   }
 }
 
-const GENERATION_REQUEST_ATTEMPTS = 2;
-const GENERATION_RETRY_DELAY_MS = 2_000;
-
-function wait(ms: number) {
-  return new Promise<void>((resolve) => setTimeout(resolve, ms));
+function imageTaskLabel(status: string, copy: ProactivVideoStudioCopy) {
+  switch (status) {
+    case 'success':
+      return copy.imageTaskCompletedLabel;
+    case 'failed':
+    case 'canceled':
+      return copy.imageTaskFailedLabel;
+    case 'processing':
+      return copy.imageTaskProcessingLabel;
+    default:
+      return copy.imageTaskPendingLabel;
+  }
 }
 
-async function createMotionControlTaskWithRetry(payload: {
+function promptWithStyle(values: ProactivGenerationValues) {
+  const prompt = values.prompt.trim();
+  return values.style ? `${prompt}\n\nVisual style: ${values.style}` : prompt;
+}
+
+// A submission creates a paid upstream task. Users retry explicitly instead
+// of through an automatic client retry that could trigger a second charge.
+async function createMotionControlTask(payload: {
   prompt: string;
   imageUrls: string[];
   videoUrls: string[];
@@ -111,25 +194,50 @@ async function createMotionControlTaskWithRetry(payload: {
   characterOrientation: 'image';
   keepSound: boolean;
 }): Promise<MotionControlTask> {
-  let lastError: unknown;
+  return apiPost<MotionControlTask>('/api/evolink/motion-control', payload);
+}
 
-  for (let attempt = 1; attempt <= GENERATION_REQUEST_ATTEMPTS; attempt += 1) {
-    try {
-      return await apiPost<MotionControlTask>(
-        '/api/evolink/motion-control',
-        payload
-      );
-    } catch (error) {
-      lastError = error;
-      if (attempt < GENERATION_REQUEST_ATTEMPTS) {
-        await wait(GENERATION_RETRY_DELAY_MS);
-      }
-    }
-  }
+async function createFluxImageEditTask(payload: {
+  prompt: string;
+  imageUrls: string[];
+  imageSize?: string;
+  numImages: number;
+}): Promise<FluxImageEditTask> {
+  return apiPost<FluxImageEditTask>('/api/fal/flux-2-edit', payload);
+}
 
-  throw lastError instanceof Error
-    ? lastError
-    : new Error('Unable to create generation task');
+async function createFluxTextToImageTask(payload: {
+  prompt: string;
+  imageSize?: string;
+  numImages: number;
+}): Promise<FluxImageEditTask> {
+  return apiPost<FluxImageEditTask>('/api/fal/flux-2', payload);
+}
+
+function imageTaskApiBase(task: Pick<FluxImageEditTask, 'model'> | null) {
+  return task?.model === 'fal-ai/flux-2'
+    ? '/api/fal/flux-2'
+    : '/api/fal/flux-2-edit';
+}
+
+function generatedImagePreviews(
+  task: FluxImageEditTask,
+  prompt: string
+): GeneratedImagePreview[] {
+  const createdAt = new Date().toISOString();
+  return task.resultUrls.map((url, index) => ({
+    createdAt,
+    downloadUrl: `${imageTaskApiBase(task)}?taskId=${encodeURIComponent(task.id)}&download=1&index=${index}`,
+    id: `${task.id}-${index}`,
+    prompt,
+    url,
+  }));
+}
+
+/** Strip the appended "Visual style:" note so chat bubbles stay readable. */
+function displayPrompt(prompt: string) {
+  const separatorIndex = prompt.indexOf('\n\nVisual style:');
+  return (separatorIndex > 0 ? prompt.slice(0, separatorIndex) : prompt).trim();
 }
 
 /** A full-bleed template feed with the landing composer docked above it. */
@@ -138,19 +246,54 @@ export function ProactivVideoStudio({
   composerLabels,
   copy,
   initialPrompt = '',
+  showTemplateFeed = true,
+  videoModelEnabled = false,
 }: ProactivVideoStudioProps) {
   const queryClient = useQueryClient();
-  const { data: session } = useSession();
+  const router = useRouter();
+  const { data: session, isPending: isSessionPending } = useSession();
   const [prompt, setPrompt] = useState(initialPrompt);
   const [selectedCase, setSelectedCase] =
     useState<ProactivVideoShowcaseCase | null>(null);
   const [isQueued, setIsQueued] = useState(false);
   const [isComposerOpen, setIsComposerOpen] = useState(false);
+  // The composer is position:fixed, so the feed's bottom padding must track its
+  // live height (task cards, retry rows and reference thumbs all change it) or
+  // the last turns stay hidden behind it even when scrolled to the end.
+  const composerRef = useRef<HTMLDivElement | null>(null);
+  const [composerInset, setComposerInset] = useState(0);
+
+  useEffect(() => {
+    const node = composerRef.current;
+    if (!node) return;
+    const update = () => setComposerInset(node.offsetHeight);
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
+
+  const feedBottomPadding =
+    composerInset > 0 ? `${composerInset + 28}px` : undefined;
   const [motionTask, setMotionTask] = useState<MotionControlTask | null>(null);
+  const [imageTask, setImageTask] = useState<FluxImageEditTask | null>(null);
+  const [imageTaskPrompts, setImageTaskPrompts] = useState<
+    Record<string, string>
+  >({});
+  const [imagePreviewItems, setImagePreviewItems] = useState<
+    GeneratedImagePreview[]
+  >([]);
+  const [selectedImagePreviewId, setSelectedImagePreviewId] = useState<
+    string | null
+  >(null);
   const [dismissedTaskId, setDismissedTaskId] = useState<string | null>(null);
   const [retryValues, setRetryValues] =
     useState<ProactivGenerationValues | null>(null);
   const [showRetry, setShowRetry] = useState(false);
+  const [pendingPrompt, setPendingPrompt] = useState<string | null>(null);
+  const selectedImagePreview =
+    imagePreviewItems.find((item) => item.id === selectedImagePreviewId) ??
+    null;
   const galleryCases = useMemo(
     () =>
       cases.map((videoCase, index) => ({
@@ -171,24 +314,113 @@ export function ProactivVideoStudio({
       apiGet<MotionControlTask>(
         `/api/evolink/motion-control?taskId=${encodeURIComponent(motionTask!.id)}`
       ),
-    enabled: Boolean(motionTask && !isTerminalTask(motionTask.status)),
+    enabled: Boolean(
+      videoModelEnabled && motionTask && !isTerminalTask(motionTask.status)
+    ),
     refetchInterval: (query) =>
       isTerminalTask(query.state.data?.status ?? motionTask?.status ?? '')
         ? false
         : 5_000,
   });
 
+  const imageTaskQuery = useQuery({
+    queryKey: ['fal-flux-2-image', imageTaskApiBase(imageTask), imageTask?.id],
+    queryFn: () =>
+      apiGet<FluxImageEditTask>(
+        `${imageTaskApiBase(imageTask)}?taskId=${encodeURIComponent(imageTask!.id)}`
+      ),
+    enabled: Boolean(imageTask && !isTerminalTask(imageTask.status)),
+    refetchInterval: (query) =>
+      isTerminalTask(query.state.data?.status ?? imageTask?.status ?? '')
+        ? false
+        : 3_000,
+  });
+
   const recentTasksQuery = useQuery({
     queryKey: ['evolink-motion-control', 'recent'],
     queryFn: () => apiGet<MotionControlTask[]>('/api/evolink/motion-control'),
+    enabled: Boolean(videoModelEnabled && session?.user),
+    staleTime: 15_000,
+  });
+
+  const savedImagesQuery = useQuery({
+    queryKey: ['fal-image-history'],
+    queryFn: () => apiGet<SavedGeneratedImage[]>('/api/ai-tasks/images'),
     enabled: Boolean(session?.user),
     staleTime: 15_000,
   });
 
+  // Session results first (they carry download links), then persisted history.
+  // Deduplicated by URL and ordered oldest → newest so the latest image always
+  // lands at the far end, mirroring the chat thread's newest-at-the-bottom flow.
+  const composerImageThumbnails = useMemo(() => {
+    const seen = new Set<string>();
+    const thumbnails: GeneratedImagePreview[] = [];
+    const source = [
+      ...imagePreviewItems,
+      ...(savedImagesQuery.data ?? []),
+    ] as GeneratedImagePreview[];
+    for (const item of source) {
+      if (seen.has(item.url)) continue;
+      seen.add(item.url);
+      thumbnails.push(item);
+    }
+    return thumbnails.sort((a, b) =>
+      (a.createdAt ?? '').localeCompare(b.createdAt ?? '')
+    );
+  }, [imagePreviewItems, savedImagesQuery.data]);
+
+  // ChatGPT-style turns: each submitted prompt with the images it produced.
+  // Session results win on task-id clashes (download links); history fills in
+  // everything generated on previous visits.
+  const chatTurns = useMemo(() => {
+    const turns = new Map<string, StudioChatTurn>();
+    const collect = (items: GeneratedImagePreview[]) => {
+      for (const item of items) {
+        const separator = item.id.lastIndexOf('-');
+        const taskId = separator > 0 ? item.id.slice(0, separator) : item.id;
+        const turn = turns.get(taskId);
+        if (turn) {
+          if (!turn.images.some((image) => image.url === item.url)) {
+            turn.images.push(item);
+          }
+        } else {
+          turns.set(taskId, {
+            createdAt: item.createdAt ?? '',
+            id: taskId,
+            images: [item],
+            prompt: item.prompt,
+          });
+        }
+      }
+    };
+    collect(imagePreviewItems);
+    collect((savedImagesQuery.data ?? []) as GeneratedImagePreview[]);
+    return [...turns.values()].sort((a, b) =>
+      a.createdAt.localeCompare(b.createdAt)
+    );
+  }, [imagePreviewItems, savedImagesQuery.data]);
+
+  const threadEndRef = useRef<HTMLDivElement>(null);
+
+  // The right-hand preview panel docks over 26rem on md+; the docked composer
+  // shifts left of it instead of covering it.
+  const isPreviewPanelOpen = chatTurns.length > 0 || Boolean(pendingPrompt);
+
+  // Keep the latest chat turn in view.
   useEffect(() => {
+    if (!chatTurns.length && !pendingPrompt) return;
+    threadEndRef.current?.scrollIntoView({ block: 'end' });
+  }, [chatTurns, pendingPrompt]);
+
+  useEffect(() => {
+    if (!videoModelEnabled) return;
     if (!taskQuery.data || taskQuery.data.id === dismissedTaskId) return;
     setMotionTask(taskQuery.data);
     setIsQueued(!isTerminalTask(taskQuery.data.status));
+    if (isTerminalTask(taskQuery.data.status)) {
+      setPendingPrompt(null);
+    }
     if (taskQuery.data.status === 'success') {
       setShowRetry(false);
       void queryClient.invalidateQueries({
@@ -197,56 +429,194 @@ export function ProactivVideoStudio({
     } else if (['failed', 'canceled'].includes(taskQuery.data.status)) {
       setShowRetry(true);
     }
-  }, [dismissedTaskId, queryClient, taskQuery.data]);
+  }, [dismissedTaskId, queryClient, taskQuery.data, videoModelEnabled]);
+
+  useEffect(() => {
+    if (!imageTaskQuery.data || imageTaskQuery.data.id === dismissedTaskId) {
+      return;
+    }
+    setImageTask(imageTaskQuery.data);
+    setIsQueued(!isTerminalTask(imageTaskQuery.data.status));
+    if (isTerminalTask(imageTaskQuery.data.status)) {
+      setPendingPrompt(null);
+    }
+    if (imageTaskQuery.data.status === 'success') {
+      setShowRetry(false);
+      void queryClient.invalidateQueries({ queryKey: ['fal-image-history'] });
+    } else if (['failed', 'canceled'].includes(imageTaskQuery.data.status)) {
+      setShowRetry(true);
+    }
+  }, [dismissedTaskId, imageTaskQuery.data, queryClient]);
+
+  useEffect(() => {
+    if (imageTask?.status !== 'success' || !imageTask.resultUrls.length) {
+      return;
+    }
+
+    const taskPreviews = generatedImagePreviews(
+      imageTask,
+      imageTaskPrompts[imageTask.id] ?? copy.generatedImageLabel
+    );
+
+    setImagePreviewItems((current) => {
+      const remaining = current.filter(
+        (item) => !item.id.startsWith(`${imageTask.id}-`)
+      );
+      return [...taskPreviews, ...remaining];
+    });
+  }, [copy.generatedImageLabel, imageTask, imageTaskPrompts]);
+
+  const openImagePreview = useCallback((preview: GeneratedImagePreview) => {
+    setImagePreviewItems((current) =>
+      current.some((item) => item.id === preview.id)
+        ? current
+        : [preview, ...current]
+    );
+    setSelectedImagePreviewId(preview.id);
+  }, []);
+
+  // Every generation API requires a session, so route anonymous visitors to
+  // sign-in (prompt preserved via the ?prompt= search param) instead of
+  // surfacing a raw "Unauthorized" error and a misleading retry bar.
+  const signInForGeneration = (values: ProactivGenerationValues) => {
+    const trimmedPrompt = values.prompt.trim();
+    const target = trimmedPrompt
+      ? `/text-to-image?prompt=${encodeURIComponent(trimmedPrompt)}`
+      : '/text-to-image';
+    router.push(`/sign-in?callbackUrl=${encodeURIComponent(target)}`);
+  };
 
   const generationMutation = useMutation({
-    mutationFn: async (values: ProactivGenerationValues) => {
+    mutationFn: async (
+      values: ProactivGenerationValues
+    ): Promise<GenerationTask> => {
       const images = values.references.filter(
         (reference) => reference.type === 'image'
       );
-      const videos = values.references.filter(
-        (reference) => reference.type === 'video'
+      if (values.mode === 'text' && images.length === 0) {
+        if (!values.prompt.trim()) {
+          throw new Error(copy.imageUploadsRequiredMessage);
+        }
+
+        const task = await createFluxTextToImageTask({
+          prompt: promptWithStyle(values),
+          imageSize: falImageSizeByAspectRatio[values.aspectRatio],
+          numImages: values.batchSize,
+        });
+        return { kind: 'image', task };
+      }
+
+      // Reference images always take precedence over the text-only path. This
+      // keeps every image selected through the composer in the model request,
+      // even if a mode update and a generate click happen in quick succession.
+      if (values.mode === 'edit' || images.length > 0) {
+        if (!values.prompt.trim() || !images.length) {
+          throw new Error(copy.imageUploadsRequiredMessage);
+        }
+
+        const formData = new FormData();
+        for (const reference of images.slice(0, maximumImageReferenceCount)) {
+          formData.append('files', reference.file, reference.name);
+        }
+        const uploaded = await apiUpload<{ images: string[] }>(
+          '/api/storage/upload-media',
+          formData
+        );
+        if (!uploaded.images.length) {
+          throw new Error(copy.imageUploadsRequiredMessage);
+        }
+
+        const task = await createFluxImageEditTask({
+          prompt: promptWithStyle(values),
+          imageUrls: uploaded.images.slice(0, maximumImageReferenceCount),
+          imageSize: falImageSizeByAspectRatio[values.aspectRatio],
+          numImages: values.batchSize,
+        });
+        return { kind: 'image', task };
+      }
+
+      if (!videoModelEnabled) {
+        throw new Error(copy.videoUnavailableMessage);
+      }
+
+      const avatarImage = values.references.find(
+        (reference) => reference.slot === 'avatar' && reference.type === 'image'
       );
-      if (!images.length || !videos.length) {
+      const motionVideo = values.references.find(
+        (reference) =>
+          reference.slot === 'product' && reference.type === 'video'
+      );
+      if (!avatarImage || !motionVideo) {
         throw new Error(copy.uploadsRequiredMessage);
       }
 
       const formData = new FormData();
-      for (const reference of [...images, ...videos]) {
+      for (const reference of [avatarImage, motionVideo]) {
         formData.append('files', reference.file, reference.name);
       }
       const uploaded = await apiUpload<{ images: string[]; videos: string[] }>(
         '/api/storage/upload-media',
         formData
       );
-      return createMotionControlTaskWithRetry({
-        prompt: values.prompt,
+      const task = await createMotionControlTask({
+        prompt: promptWithStyle(values),
         imageUrls: uploaded.images,
         videoUrls: uploaded.videos,
         quality: '720p',
         characterOrientation: 'image',
         keepSound: true,
       });
+      return { kind: 'video', task };
     },
-    onSuccess: (task) => {
+    onSuccess: (result, values) => {
       setDismissedTaskId(null);
-      setMotionTask(task);
-      setIsQueued(!isTerminalTask(task.status));
+      if (result.kind === 'image') {
+        setImageTask(result.task);
+        setImageTaskPrompts((current) => ({
+          ...current,
+          [result.task.id]: values.prompt,
+        }));
+      } else {
+        setMotionTask(result.task);
+      }
+      setIsQueued(!isTerminalTask(result.task.status));
       setShowRetry(false);
     },
-    onError: (_error: Error, values) => {
+    onError: (error: Error, values) => {
+      if (error.message === 'Unauthorized') {
+        setIsQueued(false);
+        setRetryValues(values);
+        setPendingPrompt(null);
+        signInForGeneration(values);
+        return;
+      }
+      const insufficientCredits = error.message === 'Insufficient credits';
+      toast.error(
+        insufficientCredits ? copy.insufficientCreditsMessage : error.message
+      );
       setIsQueued(false);
+      setPendingPrompt(null);
       setRetryValues(values);
-      setShowRetry(true);
+      setShowRetry(!insufficientCredits);
     },
   });
 
   function startGeneration(values: ProactivGenerationValues) {
+    if (!isSessionPending && !session?.user) {
+      signInForGeneration(values);
+      return;
+    }
+
     setRetryValues(values);
     setShowRetry(false);
     setDismissedTaskId(null);
     setMotionTask(null);
+    setImageTask(null);
     setIsQueued(true);
+    setPendingPrompt(values.prompt);
+    // ChatGPT-style send: the prompt moves into the thread and the composer
+    // clears immediately, while pendingPrompt/retryValues keep the text.
+    setPrompt('');
     generationMutation.mutate(values);
   }
 
@@ -255,8 +625,26 @@ export function ProactivVideoStudio({
     startGeneration(retryValues);
   }
 
+  // ChatGPT-style "regenerate": re-run a turn's prompt as a fresh text-to-image
+  // request. Reference files from earlier submissions are intentionally not
+  // reused — only the prompt travels with the turn.
+  function regenerateFromTurn(turn: StudioChatTurn) {
+    if (generationMutation.isPending) return;
+    startGeneration({
+      aspectRatio: retryValues?.aspectRatio ?? '9:16',
+      batchSize: 1,
+      mode: 'text',
+      prompt: turn.prompt,
+      references: [],
+      style: '',
+    });
+  }
+
   useEffect(() => {
-    if (generationMutation.isPending || isQueued || motionTask) return;
+    if (!videoModelEnabled) return;
+    if (generationMutation.isPending || isQueued || motionTask || imageTask) {
+      return;
+    }
     const mostRecentTask = recentTasksQuery.data?.[0];
     if (mostRecentTask && mostRecentTask.id !== dismissedTaskId) {
       setMotionTask(mostRecentTask);
@@ -264,9 +652,11 @@ export function ProactivVideoStudio({
   }, [
     dismissedTaskId,
     generationMutation.isPending,
+    imageTask,
     isQueued,
     motionTask,
     recentTasksQuery.data,
+    videoModelEnabled,
   ]);
 
   const selectCase = (videoCase: ProactivVideoShowcaseCase) => {
@@ -277,147 +667,385 @@ export function ProactivVideoStudio({
   };
 
   return (
-    <section
-      id="studio-feed"
-      className="relative min-h-[calc(100dvh-4rem)] overflow-hidden bg-[#080a0d] pb-[132px] text-white sm:pb-[156px] md:pb-[176px]"
-    >
-      <div
-        className="pointer-events-none absolute inset-0 [background-image:linear-gradient(rgba(255,255,255,0.035)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.035)_1px,transparent_1px)] [background-size:52px_52px] opacity-45"
-        aria-hidden="true"
-      />
-      <div
-        className="pointer-events-none absolute inset-x-0 top-0 h-64 bg-[radial-gradient(ellipse_at_50%_0%,rgba(74,115,26,0.16),transparent_68%)]"
-        aria-hidden="true"
-      />
-
-      <div className="relative px-[3px] pt-3 sm:pt-4">
-        <div className="sticky top-0 z-20 mx-1 mb-3 flex items-center justify-between gap-3 border-y border-white/8 bg-[#080a0d]/80 px-3 py-2.5 backdrop-blur-xl sm:mx-2 sm:px-4">
-          <div className="flex min-w-0 items-center gap-2.5 text-[10px] font-semibold tracking-[0.15em] text-white/60 uppercase sm:text-[11px]">
-            <span className="relative flex size-2 shrink-0">
-              <span className="absolute inline-flex size-2 animate-ping rounded-full bg-[#d1fe17] opacity-60" />
-              <span className="relative inline-flex size-2 rounded-full bg-[#d1fe17]" />
-            </span>
-            <span className="truncate text-white/85">{copy.liveLabel}</span>
-            <span className="hidden text-white/30 sm:inline">/</span>
-            <span className="hidden sm:inline">{copy.clipCountLabel}</span>
-          </div>
-          <div className="flex min-w-0 items-center gap-2 text-[10px] font-medium tracking-[0.1em] text-white/50 uppercase sm:text-[11px]">
-            <Layers3
-              className="size-3.5 shrink-0 text-[#d1fe17]"
-              aria-hidden="true"
-            />
-            <span className="hidden sm:inline">{copy.activeTemplateLabel}</span>
-            <span className="truncate text-white/90">
-              {selectedCase?.title ?? copy.selectTemplateLabel}
-            </span>
-          </div>
-        </div>
-
-        <div className="columns-2 gap-[3px] sm:columns-3 lg:columns-5 2xl:columns-6">
-          {galleryCases.map(({ layout, videoCase }, index) => (
-            <StudioVideoTile
-              key={`${videoCase.src}-${index}`}
-              isSelected={selectedCase?.src === videoCase.src}
-              layout={layout}
-              videoCase={videoCase}
-              onSelect={() => selectCase(videoCase)}
-            />
-          ))}
-        </div>
-      </div>
-
-      <div className="fixed right-3 bottom-3 left-3 z-40 md:right-5 md:bottom-5 md:left-[calc(16rem+1.25rem)]">
-        <div className="mx-auto w-full max-w-[980px]">
-          <div className="relative overflow-hidden rounded-[30px] border border-white/12 bg-[#12161b]/92 p-1.5 shadow-[0_24px_90px_rgba(0,0,0,0.6),0_0_0_1px_rgba(209,254,23,0.06)] backdrop-blur-2xl sm:p-2">
+    <div className="flex h-[calc(100dvh-3rem)] min-w-0">
+      <section
+        id="studio-feed"
+        className="relative flex h-[calc(100dvh-3rem)] min-w-0 flex-1 overflow-hidden bg-[#fff8fa] text-[#15202b]"
+      >
+        {/* The only scrollable region on this page: the thread column and its
+            backdrop scroll here while the sidebar, preview panel and composer
+            stay fixed. Flat #fff8fa backdrop — same tone as the landing page. */}
+        <div className="relative h-full min-w-0 flex-1 overflow-y-auto">
+          {isPreviewPanelOpen ? (
             <div
-              className="pointer-events-none absolute inset-x-10 top-0 h-px bg-[linear-gradient(90deg,transparent,rgba(209,254,23,0.9),transparent)]"
-              aria-hidden="true"
-            />
-            <div
-              className="pointer-events-none absolute -right-8 -bottom-16 size-44 rounded-full bg-[#d1fe17]/10 blur-3xl"
-              aria-hidden="true"
-            />
-
-            <div className="relative flex items-center justify-between gap-3 px-3 pt-1.5 pb-2 sm:px-4 sm:pt-2">
-              <div className="flex min-w-0 items-center gap-2 text-[10px] font-semibold tracking-[0.14em] text-white/55 uppercase">
-                <Radio
-                  className={`size-3.5 shrink-0 ${
-                    isQueued ? 'text-[#d1fe17]' : 'text-white/40'
-                  }`}
-                  aria-hidden="true"
-                />
-                <span className="truncate">
-                  {generationMutation.isPending
-                    ? copy.uploadInProgressLabel
-                    : motionTask
-                      ? taskLabel(motionTask.status, copy)
-                      : isQueued
-                        ? copy.readyLabel
-                        : copy.composerLabel}
-                </span>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsComposerOpen((open) => !open)}
-                className="inline-flex size-7 items-center justify-center rounded-full text-white/55 transition hover:bg-white/8 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#d1fe17] md:hidden"
-                aria-expanded={isComposerOpen}
-                aria-label={copy.collapseComposerLabel}
-              >
-                <ChevronDown
-                  className={`size-4 transition-transform ${
-                    isComposerOpen ? '' : 'rotate-180'
-                  }`}
-                  aria-hidden="true"
-                />
-              </button>
-            </div>
-
-            <div className={isComposerOpen ? 'block' : 'hidden md:block'}>
-              {motionTask ? (
-                <MotionTaskCard
-                  task={motionTask}
-                  copy={copy}
-                  onDismiss={() => {
-                    setDismissedTaskId(motionTask.id);
-                    setMotionTask(null);
-                    setShowRetry(false);
-                  }}
-                />
+              className="relative mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 pt-8 pb-[180px] sm:px-6 sm:pb-[204px] md:pb-[224px]"
+              style={{ paddingBottom: feedBottomPadding }}
+            >
+              {chatTurns.map((turn) => (
+                <article key={turn.id} className="flex flex-col gap-3.5">
+                  <div className="flex justify-end">
+                    <p className="ml-auto max-w-[75%] rounded-[22px] rounded-br-md bg-[#fde3ec] px-4 py-2.5 text-sm leading-6 break-words whitespace-pre-wrap text-[#15202b] md:max-w-[32rem]">
+                      {displayPrompt(turn.prompt) || copy.generatedImageLabel}
+                    </p>
+                  </div>
+                  <div className="flex flex-col items-start gap-2.5">
+                    <div className="flex flex-wrap items-start gap-3">
+                      {turn.images.map((image) => (
+                        <button
+                          key={image.id}
+                          type="button"
+                          onClick={() => openImagePreview(image)}
+                          title={displayPrompt(image.prompt)}
+                          aria-label={copy.openGeneratedImageLabel}
+                          className="group relative overflow-hidden rounded-2xl border border-[#d6e0e7] bg-white shadow-[0_8px_22px_rgba(21,32,43,0.1)] transition duration-200 hover:-translate-y-0.5 hover:border-[#efb0c4] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c92f68]"
+                        >
+                          <img
+                            alt={
+                              displayPrompt(image.prompt) ||
+                              copy.generatedImageLabel
+                            }
+                            src={image.url}
+                            loading="lazy"
+                            decoding="async"
+                            className="h-64 w-auto max-w-full object-cover transition duration-300 group-hover:scale-[1.025]"
+                          />
+                        </button>
+                      ))}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => regenerateFromTurn(turn)}
+                      disabled={generationMutation.isPending}
+                      className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-medium text-[#627181] transition-colors hover:bg-[#fff1f5] hover:text-[#c92f68] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c92f68] disabled:cursor-not-allowed disabled:opacity-55"
+                    >
+                      <RefreshCw className="size-3.5" aria-hidden="true" />
+                      {copy.regenerateLabel}
+                    </button>
+                  </div>
+                </article>
+              ))}
+              {pendingPrompt ? (
+                <article className="flex flex-col gap-3.5">
+                  <div className="flex justify-end">
+                    <p className="ml-auto max-w-[75%] rounded-[22px] rounded-br-md bg-[#fde3ec] px-4 py-2.5 text-sm leading-6 break-words whitespace-pre-wrap text-[#15202b] md:max-w-[32rem]">
+                      {displayPrompt(pendingPrompt)}
+                    </p>
+                  </div>
+                  <div className="inline-flex items-center gap-2 self-start rounded-xl border border-[#d6e0e7] bg-white px-3 py-2 text-xs font-medium text-[#627181] shadow-sm">
+                    <LoaderCircle
+                      className="size-3.5 animate-spin text-[#c92f68]"
+                      aria-hidden="true"
+                    />
+                    {copy.taskProcessingLabel}
+                  </div>
+                </article>
               ) : null}
-              {showRetry && retryValues ? (
-                <div className="mx-1 mt-1 mb-2 rounded-[22px] border border-white/12 bg-white/[0.035] p-2 sm:p-3">
-                  <button
-                    className="flex min-h-10 w-full items-center justify-center rounded-xl bg-white/10 px-3 text-sm font-semibold text-white transition-colors hover:bg-white/16 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#d1fe17] disabled:cursor-wait disabled:opacity-60"
-                    disabled={generationMutation.isPending}
-                    onClick={retryGeneration}
-                    type="button"
-                  >
-                    {copy.retryGenerationLabel}
-                  </button>
+              <div ref={threadEndRef} aria-hidden="true" />
+            </div>
+          ) : showTemplateFeed ? (
+            <div
+              className="relative px-[3px] pt-3 pb-[180px] sm:pt-4 sm:pb-[204px] md:pb-[224px]"
+              style={{ paddingBottom: feedBottomPadding }}
+            >
+              <div className="sticky top-0 z-20 mx-1 mb-3 flex items-center justify-between gap-3 border-y border-[#d6e0e7] bg-white/85 px-3 py-2.5 backdrop-blur-xl sm:mx-2 sm:px-4">
+                <div className="flex min-w-0 items-center gap-2.5 text-[10px] font-semibold tracking-[0.15em] text-[#627181] uppercase sm:text-[11px]">
+                  <span className="relative flex size-2 shrink-0">
+                    <span className="absolute inline-flex size-2 animate-ping rounded-full bg-[#c92f68] opacity-60" />
+                    <span className="relative inline-flex size-2 rounded-full bg-[#c92f68]" />
+                  </span>
+                  <span className="truncate text-[#15202b]">
+                    {copy.liveLabel}
+                  </span>
+                  <span className="hidden text-[#a4b2bd] sm:inline">/</span>
+                  <span className="hidden sm:inline">
+                    {copy.clipCountLabel}
+                  </span>
                 </div>
-              ) : null}
-              <ProactivHeroComposer
-                isGenerating={
-                  generationMutation.isPending ||
-                  Boolean(motionTask && !isTerminalTask(motionTask.status))
-                }
-                labels={{
-                  ...composerLabels,
-                  avatar: copy.referenceImageLabel,
-                  product: copy.referenceVideoLabel,
-                }}
-                promptValue={prompt}
-                onPromptChange={(nextPrompt) => {
-                  setPrompt(nextPrompt);
-                  setIsQueued(false);
-                }}
-                onGenerate={startGeneration}
-              />
+                <div className="flex min-w-0 items-center gap-2 text-[10px] font-medium tracking-[0.1em] text-[#627181] uppercase sm:text-[11px]">
+                  <Layers3
+                    className="size-3.5 shrink-0 text-[#c92f68]"
+                    aria-hidden="true"
+                  />
+                  <span className="hidden sm:inline">
+                    {copy.activeTemplateLabel}
+                  </span>
+                  <span className="truncate text-[#15202b]">
+                    {selectedCase?.title ?? copy.selectTemplateLabel}
+                  </span>
+                </div>
+              </div>
+
+              <div className="columns-2 gap-[3px] sm:columns-3 lg:columns-5 2xl:columns-6">
+                {galleryCases.map(({ layout, videoCase }, index) => (
+                  <StudioVideoTile
+                    key={`${videoCase.src}-${index}`}
+                    isSelected={selectedCase?.src === videoCase.src}
+                    layout={layout}
+                    videoCase={videoCase}
+                    onSelect={() => selectCase(videoCase)}
+                  />
+                ))}
+              </div>
+            </div>
+          ) : null}
+        </div>
+
+        {isPreviewPanelOpen ? (
+          <aside
+            aria-label={copy.imagePreviewTitleLabel}
+            className="absolute inset-y-0 right-0 z-20 flex w-full flex-col border-l border-[#d6e0e7] bg-white pb-[180px] shadow-[-18px_0_44px_rgba(21,32,43,0.14)] sm:pb-[204px] md:static md:w-[26rem] md:shrink-0 md:pb-0"
+          >
+            {selectedImagePreview ? (
+              <>
+                <div className="relative min-h-0 flex-1 overflow-hidden bg-[#fff8fa]">
+                  <div className="fixed top-2 right-2 z-30 flex shrink-0 items-center gap-0.5 rounded-lg border border-[#d6e0e7] bg-white/90 p-0.5 shadow-[0_4px_12px_rgba(21,32,43,0.14)] backdrop-blur">
+                    <a
+                      href={
+                        selectedImagePreview.downloadUrl ??
+                        selectedImagePreview.url
+                      }
+                      download
+                      className="inline-flex size-7 items-center justify-center rounded-md text-[#627181] transition hover:bg-[#fff1f5] hover:text-[#15202b] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c92f68]"
+                      aria-label={copy.downloadImageLabel}
+                      title={copy.downloadImageLabel}
+                    >
+                      <Download className="size-3.5" aria-hidden="true" />
+                    </a>
+                    <a
+                      href={selectedImagePreview.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex size-7 items-center justify-center rounded-md text-[#627181] transition hover:bg-[#fff1f5] hover:text-[#15202b] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c92f68]"
+                      aria-label={copy.openGeneratedImageLabel}
+                      title={copy.openGeneratedImageLabel}
+                    >
+                      <ExternalLink className="size-3.5" aria-hidden="true" />
+                    </a>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedImagePreviewId(null)}
+                      className="inline-flex size-7 items-center justify-center rounded-md text-[#627181] transition hover:bg-[#fff1f5] hover:text-[#15202b] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c92f68]"
+                      aria-label={copy.dismissGeneratedImageLabel}
+                      title={copy.dismissGeneratedImageLabel}
+                    >
+                      <X className="size-4" aria-hidden="true" />
+                    </button>
+                  </div>
+                  <img
+                    alt={
+                      displayPrompt(selectedImagePreview.prompt) ||
+                      copy.generatedImageLabel
+                    }
+                    decoding="async"
+                    src={selectedImagePreview.url}
+                    className="size-full object-cover"
+                  />
+                </div>
+                <div className="shrink-0 border-t border-[#d6e0e7] px-4 py-3">
+                  {composerImageThumbnails.length > 1 ? (
+                    <div className="flex gap-2 overflow-x-auto pb-0.5 [scrollbar-width:thin]">
+                      {composerImageThumbnails.map((image) => {
+                        const selected = image.id === selectedImagePreview.id;
+                        return (
+                          <button
+                            key={image.id}
+                            type="button"
+                            onClick={() => openImagePreview(image)}
+                            title={displayPrompt(image.prompt)}
+                            aria-label={copy.openGeneratedImageLabel}
+                            aria-pressed={selected}
+                            className={`size-12 shrink-0 overflow-hidden rounded-lg border-2 bg-[#fff8fa] transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c92f68] ${
+                              selected
+                                ? 'border-[#c92f68]'
+                                : 'border-transparent hover:border-[#efb0c4]'
+                            }`}
+                          >
+                            <img
+                              alt=""
+                              src={image.url}
+                              loading="lazy"
+                              className="size-full object-cover"
+                            />
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ) : null}
+                </div>
+              </>
+            ) : (
+              <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 bg-[#fff8fa] p-6 text-center">
+                <ImageIcon
+                  className="size-8 text-[#c4d3dc]"
+                  aria-hidden="true"
+                />
+                <p className="max-w-56 text-xs leading-5 text-[#627181]">
+                  {copy.imagePreviewEmptyLabel}
+                </p>
+              </div>
+            )}
+          </aside>
+        ) : null}
+
+        <div
+          ref={composerRef}
+          className={`fixed right-3 bottom-3 left-3 z-40 md:bottom-5 md:left-[calc(var(--app-sidebar-width,0rem)+1.25rem)] ${
+            isPreviewPanelOpen ? 'md:right-[calc(26rem+1.25rem)]' : 'md:right-5'
+          }`}
+        >
+          {/* Sidebar collapsed => var is 0rem, so the composer caps ~1/3 narrower; expanded adds the sidebar width back. */}
+          <div className="mx-auto w-full max-w-[min(1120px,calc(747px+var(--app-sidebar-width,0rem)))]">
+            <div className="relative min-w-0">
+              <div className="relative flex items-center justify-between gap-3 px-3 pt-1.5 pb-2 sm:px-4 sm:pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsComposerOpen((open) => !open)}
+                  className="inline-flex size-7 shrink-0 items-center justify-center rounded-full text-[#627181] transition hover:bg-[#fff1f5] hover:text-[#15202b] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c92f68] md:hidden"
+                  aria-expanded={isComposerOpen}
+                  aria-label={copy.collapseComposerLabel}
+                >
+                  <ChevronDown
+                    className={`size-4 transition-transform ${
+                      isComposerOpen ? '' : 'rotate-180'
+                    }`}
+                    aria-hidden="true"
+                  />
+                </button>
+              </div>
+
+              <div className={isComposerOpen ? 'block' : 'hidden md:block'}>
+                {motionTask ? (
+                  <MotionTaskCard
+                    task={motionTask}
+                    copy={copy}
+                    onDismiss={() => {
+                      setDismissedTaskId(motionTask.id);
+                      setMotionTask(null);
+                      setShowRetry(false);
+                    }}
+                  />
+                ) : null}
+                {imageTask && imageTask.status !== 'success' ? (
+                  <ImageTaskCard
+                    task={imageTask}
+                    copy={copy}
+                    prompt={imageTaskPrompts[imageTask.id] ?? prompt}
+                    onDismiss={() => {
+                      setDismissedTaskId(imageTask.id);
+                      setImageTask(null);
+                      setShowRetry(false);
+                    }}
+                  />
+                ) : null}
+                {showRetry && retryValues ? (
+                  <div className="mx-1 mt-1 mb-2 rounded-[22px] border border-[#d6e0e7] bg-[#f8fafc] p-2 sm:p-3">
+                    <button
+                      className="flex min-h-10 w-full items-center justify-center rounded-xl bg-[#fff0f5] px-3 text-sm font-semibold text-[#8f2348] transition-colors hover:bg-[#ffe1ea] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c92f68] disabled:cursor-wait disabled:opacity-60"
+                      disabled={generationMutation.isPending}
+                      onClick={retryGeneration}
+                      type="button"
+                    >
+                      {copy.retryGenerationLabel}
+                    </button>
+                  </div>
+                ) : null}
+                <ProactivHeroComposer
+                  allowVideoMode={videoModelEnabled}
+                  isGenerating={
+                    generationMutation.isPending ||
+                    Boolean(motionTask && !isTerminalTask(motionTask.status)) ||
+                    Boolean(imageTask && !isTerminalTask(imageTask.status))
+                  }
+                  labels={{
+                    ...composerLabels,
+                    avatar: copy.referenceImageLabel,
+                    product: copy.referenceVideoLabel,
+                  }}
+                  promptValue={prompt}
+                  onPromptChange={(nextPrompt) => {
+                    setPrompt(nextPrompt);
+                    setIsQueued(false);
+                  }}
+                  onGenerate={startGeneration}
+                />
+              </div>
             </div>
           </div>
         </div>
+      </section>
+    </div>
+  );
+}
+
+function ImageTaskCard({
+  task,
+  copy,
+  prompt,
+  onDismiss,
+}: {
+  task: FluxImageEditTask;
+  copy: ProactivVideoStudioCopy;
+  prompt: string;
+  onDismiss: () => void;
+}) {
+  const failed = task.status === 'failed' || task.status === 'canceled';
+
+  return (
+    <div
+      className="relative mx-1 mt-1 mb-2 overflow-hidden rounded-[22px] border border-[#d6e0e7] bg-[#f8fafc] p-3 sm:p-4"
+      role="status"
+      aria-live="polite"
+    >
+      <button
+        type="button"
+        onClick={onDismiss}
+        className="absolute top-3 right-3 inline-flex size-8 items-center justify-center rounded-full border border-[#ead7df] bg-white text-[#627181] transition hover:border-[#efb0c4] hover:bg-[#fff0f5] hover:text-[#8f2348] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c92f68] sm:top-4 sm:right-4"
+        aria-label={copy.dismissGeneratedImageLabel}
+        title={copy.dismissGeneratedImageLabel}
+      >
+        <X className="size-4" strokeWidth={2.5} aria-hidden="true" />
+      </button>
+
+      <div className="grid gap-2.5 md:grid-cols-[minmax(13.5rem,0.34fr)_minmax(0,0.66fr)]">
+        <div className="rounded-[17px] border border-[#dce6ec] bg-white/85 px-3 py-2.5">
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-[10px] font-semibold tracking-[0.14em] text-[#627181] uppercase">
+                {copy.generatedImageLabel}
+              </p>
+              <p className="mt-1 truncate text-sm font-semibold text-[#15202b]">
+                {imageTaskLabel(task.status, copy)}
+              </p>
+            </div>
+            <span className="shrink-0 pr-8 text-xs font-semibold text-[#c92f68] tabular-nums md:pr-0">
+              {task.progress}%
+            </span>
+          </div>
+
+          <div className="mt-2.5 h-1 overflow-hidden rounded-full bg-[#dce7ed]">
+            <div
+              className={`h-full rounded-full transition-[width] duration-500 ${
+                failed ? 'bg-[#d08484]' : 'bg-[#c92f68]'
+              }`}
+              style={{ width: `${Math.max(4, task.progress)}%` }}
+            />
+          </div>
+        </div>
+
+        <p
+          className="line-clamp-3 min-w-0 rounded-[17px] border border-[#f1dbe3] bg-[#fff7f9] px-3 py-2.5 pr-11 text-sm leading-5 text-[#354454]"
+          title={prompt}
+        >
+          {prompt || copy.generatedImageLabel}
+        </p>
       </div>
-    </section>
+
+      {task.errorMessage ? (
+        <p className="mt-3 rounded-xl border border-[#efbec7] bg-[#fff3f4] px-3 py-2 text-xs leading-5 text-[#a34361]">
+          {task.errorMessage}
+        </p>
+      ) : null}
+    </div>
   );
 }
 
@@ -434,14 +1062,14 @@ function MotionTaskCard({
 
   return (
     <div
-      className="relative mx-1 mt-1 mb-2 overflow-hidden rounded-[22px] border border-white/10 bg-[#0e1115] p-3 sm:p-4"
+      className="relative mx-1 mt-1 mb-2 overflow-hidden rounded-[22px] border border-[#d6e0e7] bg-[#f8fafc] p-3 sm:p-4"
       role="status"
       aria-live="polite"
     >
       <button
         type="button"
         onClick={onDismiss}
-        className="absolute top-3 right-3 inline-flex size-8 items-center justify-center rounded-full border border-white/12 bg-white/[0.04] text-white/60 transition hover:border-[#d1fe17]/60 hover:bg-[#d1fe17] hover:text-[#101600] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#d1fe17] sm:top-4 sm:right-4"
+        className="absolute top-3 right-3 inline-flex size-8 items-center justify-center rounded-full border border-[#ead7df] bg-white text-[#627181] transition hover:border-[#efb0c4] hover:bg-[#fff0f5] hover:text-[#8f2348] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c92f68] sm:top-4 sm:right-4"
         aria-label={copy.dismissGeneratedVideoLabel}
         title={copy.dismissGeneratedVideoLabel}
       >
@@ -450,22 +1078,22 @@ function MotionTaskCard({
 
       <div className="flex items-center justify-between gap-4 pr-10">
         <div className="min-w-0">
-          <p className="text-[10px] font-semibold tracking-[0.14em] text-white/50 uppercase">
+          <p className="text-[10px] font-semibold tracking-[0.14em] text-[#627181] uppercase">
             {copy.generatedVideoLabel}
           </p>
-          <p className="mt-1 text-sm font-semibold text-white">
+          <p className="mt-1 text-sm font-semibold text-[#15202b]">
             {failed ? copy.retryGenerationLabel : taskLabel(task.status, copy)}
           </p>
         </div>
-        <span className="text-xs font-semibold text-[#d1fe17] tabular-nums">
+        <span className="text-xs font-semibold text-[#c92f68] tabular-nums">
           {task.progress}%
         </span>
       </div>
 
-      <div className="mt-3 h-1 overflow-hidden rounded-full bg-white/8">
+      <div className="mt-3 h-1 overflow-hidden rounded-full bg-[#dce7ed]">
         <div
           className={`h-full rounded-full transition-[width] duration-500 ${
-            failed ? 'bg-white/35' : 'bg-[#d1fe17]'
+            failed ? 'bg-[#d08484]' : 'bg-[#c92f68]'
           }`}
           style={{ width: `${Math.max(4, task.progress)}%` }}
         />
@@ -515,7 +1143,7 @@ function GeneratedVideoPlayer({
   const [unplayable, setUnplayable] = useState(false);
 
   return (
-    <div className="overflow-hidden rounded-xl border border-white/10 bg-black">
+    <div className="overflow-hidden rounded-xl border border-[#d6e0e7] bg-white">
       {!unplayable ? (
         <video
           key={resultUrl}
@@ -527,10 +1155,10 @@ function GeneratedVideoPlayer({
           className="max-h-[320px] w-full bg-black object-contain"
         />
       ) : null}
-      <div className="flex items-center justify-between gap-2 border-t border-white/10 px-2 py-2">
+      <div className="flex items-center justify-between gap-2 border-t border-[#d6e0e7] px-2 py-2">
         <a
           href={downloadUrl}
-          className="inline-flex min-h-9 items-center gap-1.5 rounded-lg bg-[#d1fe17] px-3 text-xs font-bold text-[#101600] transition hover:brightness-105 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#d1fe17]"
+          className="inline-flex min-h-9 items-center gap-1.5 rounded-lg bg-[#c92f68] px-3 text-xs font-bold text-white transition hover:brightness-105 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c92f68]"
         >
           <Download className="size-3.5" aria-hidden="true" />
           {downloadLabel}
@@ -539,13 +1167,13 @@ function GeneratedVideoPlayer({
           href={resultUrl}
           target="_blank"
           rel="noreferrer"
-          className="inline-flex min-h-9 items-center gap-1.5 rounded-lg px-2 text-xs font-semibold text-white/65 transition hover:bg-white/8 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#d1fe17]"
+          className="inline-flex min-h-9 items-center gap-1.5 rounded-lg px-2 text-xs font-semibold text-[#627181] transition hover:bg-[#fff1f5] hover:text-[#15202b] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c92f68]"
         >
           <ExternalLink className="size-3.5" aria-hidden="true" />
           {openLabel}
         </a>
       </div>
-      <p className="px-3 pb-3 text-[11px] leading-4 text-white/45">
+      <p className="px-3 pb-3 text-[11px] leading-4 text-[#627181]">
         {isArchived ? savedLabel : expirationLabel}
       </p>
     </div>
@@ -590,8 +1218,8 @@ function StudioVideoTile({
       onClick={onSelect}
       aria-pressed={isSelected}
       aria-label={`${videoCase.title}: ${videoCase.description}`}
-      className={`group relative mb-[3px] inline-block w-full break-inside-avoid overflow-hidden bg-[#121418] text-left align-top transition duration-300 outline-none focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[#d1fe17] ${
-        isSelected ? 'ring-2 ring-[#d1fe17] ring-inset' : ''
+      className={`group relative mb-[3px] inline-block w-full break-inside-avoid overflow-hidden bg-[#fff1f5] text-left align-top transition duration-300 outline-none focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[#c92f68] ${
+        isSelected ? 'ring-2 ring-[#c92f68] ring-inset' : ''
       }`}
     >
       <div className={`relative overflow-hidden ${layout}`}>
@@ -622,7 +1250,7 @@ function StudioVideoTile({
           <span className="grid size-7 shrink-0 place-items-center rounded-full border border-white/20 bg-black/30 text-white backdrop-blur-sm">
             {isSelected ? (
               <CircleCheckBig
-                className="size-3.5 text-[#d1fe17]"
+                className="size-3.5 text-[#c92f68]"
                 aria-hidden="true"
               />
             ) : (

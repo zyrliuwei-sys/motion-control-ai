@@ -1,7 +1,6 @@
 /// <reference types="vite/client" />
 import type { ReactNode } from 'react';
 import { QueryClientProvider } from '@tanstack/react-query';
-import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import {
   createRootRoute,
   HeadContent,
@@ -94,8 +93,9 @@ function RootComponent() {
     <QueryClientProvider client={getQueryClient()}>
       <ThemeProvider
         attribute="class"
-        defaultTheme="dark"
+        defaultTheme="light"
         enableSystem={false}
+        forcedTheme="light"
         disableTransitionOnChange
       >
         <Outlet />
@@ -118,7 +118,6 @@ function RootComponent() {
           tawkWidgetId={analytics?.tawkWidgetId || undefined}
         />
       </ThemeProvider>
-      {import.meta.env.DEV && <ReactQueryDevtools initialIsOpen={false} />}
     </QueryClientProvider>
   );
 }

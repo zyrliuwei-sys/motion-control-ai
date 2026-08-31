@@ -11,7 +11,7 @@ import {
 import { useSession } from '@/core/auth/client';
 import { Link } from '@/core/i18n/navigation';
 import { localizeHref } from '@/paraglide/runtime.js';
-import { MotionControlMark } from '@/components/motion-control-mark';
+import { BrandWordmark } from '@/components/brand-wordmark';
 
 export interface ProactivNavLink {
   href: string;
@@ -26,7 +26,6 @@ export interface ProactivNavProps {
   links?: ProactivNavLink[];
   loginLabel?: string;
   loginHref?: string;
-  adminLabel?: string;
   demoLabel?: string;
   demoHref?: string;
 }
@@ -45,7 +44,6 @@ export function ProactivNav({
   links = defaultLinks,
   loginLabel = 'Login',
   loginHref = '/sign-in',
-  adminLabel = 'Admin',
   demoLabel = 'Book a demo',
   demoHref = '/book-demo',
 }: ProactivNavProps) {
@@ -57,19 +55,23 @@ export function ProactivNav({
   const backgroundColor = useTransform(
     scrollY,
     [0, 100],
-    ['rgba(23, 23, 23, 0)', 'rgb(23, 23, 23)']
+    ['rgba(255, 255, 255, 0)', 'rgba(255, 255, 255, 0.94)']
   );
   const insetLineOpacity = useTransform(scrollY, [0, 100], [0, 1]);
 
   const closeMobileMenu = () => setMobileOpen(false);
   const isSignedIn = Boolean(session?.user);
-  const accountHref = isSignedIn ? '/admin' : loginHref;
-  const accountLabel = isSignedIn ? adminLabel : loginLabel;
+  const accountHref = isSignedIn ? '/settings' : loginHref;
+  const accountLabel = isSignedIn ? 'Account settings' : loginLabel;
+  const accountInitial = (session?.user?.name || session?.user?.email || 'U')
+    .trim()
+    .charAt(0)
+    .toLocaleUpperCase();
 
   return (
     <header className="pointer-events-none fixed inset-x-0 top-4 z-50">
       <m.div
-        className="pointer-events-auto relative mx-auto flex w-[95%] max-w-[1280px] items-center justify-between rounded-[6px] px-3 py-2.5 text-white max-lg:w-full lg:px-4"
+        className="pointer-events-auto relative mx-auto flex w-[95%] max-w-[1280px] items-center justify-between rounded-[6px] px-3 py-2.5 text-[#15202b] max-lg:w-full lg:px-4"
         initial={false}
         animate={{ y: 0, opacity: 1 }}
         transition={{
@@ -84,7 +86,7 @@ export function ProactivNav({
       >
         <m.span
           aria-hidden="true"
-          className="pointer-events-none absolute inset-0 rounded-[6px] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.12)]"
+          className="pointer-events-none absolute inset-0 rounded-[6px] shadow-[inset_0_0_0_1px_rgba(21,32,43,0.12)]"
           style={{ opacity: reduceMotion ? 0 : insetLineOpacity }}
         />
 
@@ -98,7 +100,7 @@ export function ProactivNav({
             <Link
               key={`${link.href}-${link.label}`}
               href={link.href}
-              className="rounded-[6px] px-4 py-2 text-sm text-white transition-all duration-200 hover:bg-[#262626] hover:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#39c3ef]"
+              className="rounded-[6px] px-4 py-2 text-sm text-[#15202b] transition-all duration-200 hover:bg-[#fff0f5] hover:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c92f68]"
             >
               {link.label}
             </Link>
@@ -106,18 +108,18 @@ export function ProactivNav({
         </nav>
 
         <div className="relative hidden items-center gap-2 lg:flex">
-          <a
+          <AccountLink
             href={localizeHref(accountHref)}
-            className="rounded-[6px] border border-white/15 bg-white/5 px-4 py-2 text-sm font-medium text-white transition-[background-color,transform] duration-200 hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#39c3ef] active:scale-[0.98]"
-          >
-            {accountLabel}
-          </a>
+            label={accountLabel}
+            signedIn={isSignedIn}
+            initial={accountInitial}
+          />
           <DemoLink href={demoHref} label={demoLabel} />
         </div>
 
         <button
           type="button"
-          className="relative inline-flex size-10 items-center justify-center rounded-[6px] text-white transition-colors hover:bg-[#262626] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#39c3ef] lg:hidden"
+          className="relative inline-flex size-10 items-center justify-center rounded-[6px] text-[#15202b] transition-colors hover:bg-[#fff0f5] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c92f68] lg:hidden"
           aria-label="Open menu"
           aria-expanded={mobileOpen}
           aria-controls="proactiv-mobile-menu"
@@ -131,7 +133,7 @@ export function ProactivNav({
         {mobileOpen && (
           <m.div
             id="proactiv-mobile-menu"
-            className="pointer-events-auto fixed inset-0 z-[60] flex min-h-dvh flex-col bg-[#08090a] px-6 py-5 text-white"
+            className="pointer-events-auto fixed inset-0 z-[60] flex min-h-dvh flex-col bg-[#fff8fa] px-6 py-5 text-[#15202b]"
             initial={reduceMotion ? false : { opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -141,7 +143,7 @@ export function ProactivNav({
               <Brand brand={brand} href={brandHref} onClick={closeMobileMenu} />
               <button
                 type="button"
-                className="inline-flex size-11 items-center justify-center rounded-[6px] transition-colors hover:bg-[#171717] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#39c3ef]"
+                className="inline-flex size-11 items-center justify-center rounded-[6px] transition-colors hover:bg-[#fff0f5] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c92f68]"
                 aria-label="Close menu"
                 onClick={closeMobileMenu}
               >
@@ -166,20 +168,20 @@ export function ProactivNav({
                   <Link
                     href={link.href}
                     onClick={closeMobileMenu}
-                    className="block py-2 text-[26px] leading-tight font-medium text-white transition-opacity hover:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#39c3ef]"
+                    className="block py-2 text-[26px] leading-tight font-medium text-[#15202b] transition-opacity hover:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#c92f68]"
                   >
                     {link.label}
                   </Link>
                 </m.div>
               ))}
               <div className="mt-7 flex flex-wrap items-center gap-3">
-                <a
+                <AccountLink
                   href={localizeHref(accountHref)}
                   onClick={closeMobileMenu}
-                  className="rounded-[6px] border border-white/20 bg-white/5 px-4 py-2.5 text-sm font-medium text-white transition-[background-color,transform] hover:bg-[#171717] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#39c3ef] active:scale-[0.98]"
-                >
-                  {accountLabel}
-                </a>
+                  label={accountLabel}
+                  signedIn={isSignedIn}
+                  initial={accountInitial}
+                />
                 <DemoLink
                   href={demoHref}
                   label={demoLabel}
@@ -191,6 +193,49 @@ export function ProactivNav({
         )}
       </AnimatePresence>
     </header>
+  );
+}
+
+function AccountLink({
+  href,
+  label,
+  signedIn,
+  initial,
+  onClick,
+}: {
+  href: string;
+  label: string;
+  signedIn: boolean;
+  initial: string;
+  onClick?: () => void;
+}) {
+  if (!signedIn) {
+    return (
+      <a
+        href={href}
+        onClick={onClick}
+        className="group inline-flex items-center gap-1.5 rounded-[8px] bg-[#151515] px-3 py-1.5 text-[13px] leading-5 font-medium tracking-[-0.01em] text-white shadow-[0_4px_10px_rgba(21,21,21,0.15)] transition-[background-color,box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:bg-[#292929] hover:shadow-[0_7px_14px_rgba(21,21,21,0.2)] focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-[#151515] active:scale-[0.98]"
+      >
+        {label}
+        <ArrowRight
+          aria-hidden="true"
+          className="size-3.5 transition-transform duration-200 group-hover:translate-x-0.5"
+          strokeWidth={1.8}
+        />
+      </a>
+    );
+  }
+
+  return (
+    <a
+      href={href}
+      onClick={onClick}
+      aria-label={label}
+      title={label}
+      className="inline-flex size-9 items-center justify-center rounded-full bg-[#dc5f8d] text-sm font-semibold text-white shadow-[0_5px_14px_rgba(220,95,141,0.2)] transition-[background-color,box-shadow,transform] duration-200 hover:scale-105 hover:bg-[#ca4c7b] hover:shadow-[0_8px_18px_rgba(220,95,141,0.28)] focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-[#c92f68] active:scale-95"
+    >
+      {initial}
+    </a>
   );
 }
 
@@ -208,10 +253,9 @@ function Brand({
       href={href}
       onClick={onClick}
       aria-label={`${brand} home`}
-      className="relative inline-flex items-center gap-2 rounded-[6px] text-sm font-bold tracking-[-0.02em] text-white focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#39c3ef]"
+      className="relative inline-flex items-center gap-2 rounded-[6px] text-lg font-bold tracking-[-0.02em] text-[#15202b] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#c92f68]"
     >
-      <MotionControlMark aria-hidden="true" className="size-7" />
-      <span className="tracking-[-0.04em]">{brand}</span>
+      <BrandWordmark brand={brand} />
     </Link>
   );
 }
@@ -229,7 +273,7 @@ function DemoLink({
     <Link
       href={href}
       onClick={onClick}
-      className="group hidden items-center gap-1.5 rounded-[6px] bg-[#39c3ef] px-4 py-2 text-sm font-medium text-black transition-transform duration-200 hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white active:scale-[0.98]"
+      className="group hidden items-center gap-1.5 rounded-[6px] bg-[#c92f68] px-4 py-2 text-sm font-medium text-white transition-transform duration-200 hover:-translate-y-0.5 hover:bg-[#a62150] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c92f68] active:scale-[0.98]"
     >
       {label}
       <ArrowRight className="size-3.5 transition-transform duration-200 group-hover:translate-x-0.5" />

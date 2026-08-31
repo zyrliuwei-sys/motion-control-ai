@@ -19,7 +19,7 @@ function HomePage() {
     {
       '@context': 'https://schema.org',
       '@type': 'SoftwareApplication',
-      name: 'Motion Control AI',
+      name: 'uncensored ai',
       url: MOTION_CONTROL_SITE_URL,
       applicationCategory: 'MultimediaApplication',
       operatingSystem: 'Web',

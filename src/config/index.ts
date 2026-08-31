@@ -16,11 +16,11 @@ const publicEnv = (key: string) => metaEnv[key] ?? procEnv[key];
 export const envConfigs: Record<string, string> = {
   // App (public)
   app_url: publicEnv('VITE_APP_URL') ?? 'http://localhost:3000',
-  app_name: publicEnv('VITE_APP_NAME') ?? 'Motion Control AI',
+  app_name: publicEnv('VITE_APP_NAME') ?? 'uncensored ai',
   app_description:
     publicEnv('VITE_APP_DESCRIPTION') ??
-    'Create cinematic, controllable AI video with Motion Control AI',
-  app_logo: publicEnv('VITE_APP_LOGO') ?? '/logo.svg',
+    'Create cinematic, controllable AI video with uncensored ai',
+  app_logo: publicEnv('VITE_APP_LOGO') ?? '',
 
   // Database
   database_url: procEnv.DATABASE_URL ?? '',

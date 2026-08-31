@@ -45,8 +45,8 @@ export function ProactivVideoHistorySidebar({
   return (
     <section aria-label={labels.title}>
       <div className="flex items-center gap-2 px-2.5">
-        <Film className="size-3.5 text-[#d1fe17]" aria-hidden="true" />
-        <h2 className="text-[10px] font-semibold tracking-[0.14em] text-[#8d98a5] uppercase">
+        <Film className="size-3.5 text-[#c92f68]" aria-hidden="true" />
+        <h2 className="text-[10px] font-semibold tracking-[0.14em] text-[#627181] uppercase">
           {labels.title}
         </h2>
       </div>
@@ -56,13 +56,13 @@ export function ProactivVideoHistorySidebar({
           {videos.map((video) => (
             <article
               key={video.id}
-              className="overflow-hidden rounded-xl border border-[#29313b] bg-[#171c23]"
+              className="overflow-hidden rounded-xl border border-[#d6e0e7] bg-white shadow-sm"
             >
               <a
                 href={video.resultUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="group relative block aspect-video overflow-hidden bg-[#090b0e] focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[#d1fe17]"
+                className="group relative block aspect-video overflow-hidden bg-[#fff1f5] focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[#c92f68]"
                 aria-label={labels.open}
               >
                 <video
@@ -79,7 +79,7 @@ export function ProactivVideoHistorySidebar({
               <div className="flex items-center justify-between gap-1.5 px-2 py-1.5">
                 <time
                   dateTime={video.createdAt}
-                  className="min-w-0 truncate text-[10px] font-medium text-[#8893a0]"
+                  className="min-w-0 truncate text-[10px] font-medium text-[#627181]"
                 >
                   {formatCreatedAt(video.createdAt)}
                 </time>
@@ -88,7 +88,7 @@ export function ProactivVideoHistorySidebar({
                     href={video.resultUrl}
                     target="_blank"
                     rel="noreferrer"
-                    className="inline-flex size-7 items-center justify-center rounded-md text-[#aeb8c3] transition hover:bg-white/8 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#d1fe17]"
+                    className="inline-flex size-7 items-center justify-center rounded-md text-[#627181] transition hover:bg-[#fff1f5] hover:text-[#15202b] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c92f68]"
                     aria-label={labels.open}
                     title={labels.open}
                   >
@@ -96,7 +96,7 @@ export function ProactivVideoHistorySidebar({
                   </a>
                   <a
                     href={video.downloadUrl}
-                    className="inline-flex size-7 items-center justify-center rounded-md text-[#d1fe17] transition hover:bg-[#d1fe17]/12 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#d1fe17]"
+                    className="inline-flex size-7 items-center justify-center rounded-md text-[#c92f68] transition hover:bg-[#fff0f5] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c92f68]"
                     aria-label={labels.download}
                     title={labels.download}
                   >
@@ -108,7 +108,7 @@ export function ProactivVideoHistorySidebar({
           ))}
         </div>
       ) : (
-        <p className="mt-2.5 rounded-xl border border-dashed border-[#303945] px-3 py-4 text-xs leading-5 text-[#7f8a96]">
+        <p className="mt-2.5 rounded-xl border border-dashed border-[#c4d3dc] bg-white/60 px-3 py-4 text-xs leading-5 text-[#627181]">
           {labels.empty}
         </p>
       )}

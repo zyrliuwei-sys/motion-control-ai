@@ -1,5 +1,6 @@
 import type { ProactivPriceTier } from '@/types/proactiv';
 
+import { envConfigs } from '@/config';
 import { m } from '@/paraglide/messages.js';
 import { ProactivFaq } from '@/components/proactiv/proactiv-faq';
 import {
@@ -17,6 +18,10 @@ import {
   type ProactivVideoShowcaseCase,
   type ProactivVideoShowcaseFilter,
 } from '@/components/proactiv/proactiv-video-showcase';
+import {
+  ProactivWorkflow,
+  type ProactivWorkflowStep,
+} from '@/components/proactiv/proactiv-workflow';
 
 const splitRows = (value: string) => value.split('\n').filter(Boolean);
 
@@ -57,6 +62,29 @@ const showcasePriority = new Map(
     'retro-dance',
   ].map((name, index) => [`/proactiv/showcase-videos/${name}.mp4`, index])
 );
+
+const showcaseAiImages = [
+  '/imgs/generated/showcase-cool-mountain-1787885973361.png',
+  '/imgs/image/meigen-2008986705962123774-1.jpg',
+  '/imgs/image/meigen-community_298030b1-c8c1-4436-b88f-5ae556af9c6a.png',
+  '/imgs/image/meigen-2075575662316749255-1.jpg',
+  '/imgs/image/meigen-2024104039827578910-1.jpg',
+  '/imgs/image/meigen-2080212481402896518-1.jpg',
+  '/imgs/image/meigen-community_5f68dfb7-b6d5-4734-b887-f5fed7c9d1af.jpg',
+  '/imgs/image/meigen-2032013831548125557.jpg',
+  '/imgs/image/meigen-community_6f65fc5d-7d3a-48d6-908c-2bf947fd1c23.png',
+  '/imgs/image/meigen-community_b827f6c2-5165-428e-9992-61f1de9e8ae3.png',
+  '/imgs/image/meigen-2060729668958097717-1.jpg',
+  '/imgs/image/meigen-community_c18ad1be-f6fb-4e2b-970d-932dff8832b9.png',
+  '/imgs/image/meigen-community_4461cb95-6748-4232-99cc-3d23b67c0b63.png',
+  '/imgs/image/meigen-community_9786c744-2f71-4f16-abeb-fc5aa1cf7d6b.png',
+  '/imgs/image/meigen-community_fb7a6b33-4d3a-459f-87e5-c67f611dd9a2.png',
+  '/imgs/generated/showcase-cool-horse-1787886505859.png',
+  '/imgs/generated/showcase-cool-deer-1787886008380.png',
+  '/imgs/generated/showcase-cool-portrait-1787885969684.png',
+  '/imgs/image/meigen-2069018297228575178-3.jpg',
+  '/imgs/image/meigen-2069018297228575178-2.jpg',
+] as const;
 
 function navigation(): ProactivNavLink[] {
   return m['proactiv.nav']()
@@ -120,7 +148,6 @@ function showcaseCases(): ProactivVideoShowcaseCase[] {
   const records = [
     m['proactiv.showcase.records'](),
     m['proactiv.showcase.extra_records'](),
-    m['proactiv.showcase.supplemental_records'](),
   ].join('\n');
 
   return splitRows(records)
@@ -138,7 +165,11 @@ function showcaseCases(): ProactivVideoShowcaseCase[] {
       (left, right) =>
         (showcasePriority.get(left.src) ?? Number.MAX_SAFE_INTEGER) -
         (showcasePriority.get(right.src) ?? Number.MAX_SAFE_INTEGER)
-    );
+    )
+    .map((videoCase, index) => ({
+      ...videoCase,
+      showcaseImageSrc: showcaseAiImages[index],
+    }));
 }
 
 function showcaseFilters(): ProactivVideoShowcaseFilter[] {
@@ -150,50 +181,82 @@ function showcaseFilters(): ProactivVideoShowcaseFilter[] {
     });
 }
 
+function workflowSteps(): ProactivWorkflowStep[] {
+  return m['proactiv.workflow.records']()
+    .split('~~')
+    .map((item) => {
+      const [number, title, description] = item.split('|');
+      return {
+        description: description ?? '',
+        number: number ?? '',
+        title: title ?? '',
+      };
+    })
+    .filter((step) => step.number && step.title && step.description);
+}
+
 export function ProactivLanding() {
   const demoLabel = m['proactiv.book_demo']();
 
   return (
     <div className="proactiv-site min-h-screen overflow-hidden">
       <ProactivNav
-        brand="Motion Control AI"
+        brand={envConfigs.app_name}
         links={navigation()}
-        loginLabel={m['proactiv.login']()}
+        loginLabel={m['common.nav.get_started']()}
         loginHref="/sign-in"
-        adminLabel={m['admin.back_to_dashboard']()}
         demoLabel={demoLabel}
         demoHref="/book-demo"
       />
       <main>
         <ProactivMarketingHero
+          eyebrow={m['proactiv.hero.eyebrow']()}
           title={m['proactiv.hero.title']()}
           description={m['proactiv.hero.subtitle']()}
+          motionStatement={m['proactiv.hero.motion_statement']().split('||')}
+          openEditorLabel={m['proactiv.hero.composer.open_editor']()}
           composerLabels={{
             addReference: m['proactiv.hero.composer.add_reference'](),
             aspectRatio: m['proactiv.hero.composer.aspect_ratio'](),
             avatar: m['proactiv.hero.composer.avatar'](),
-            batch: m['proactiv.hero.composer.batch'](),
+            duration: m['proactiv.hero.composer.duration'](),
+            durationLoading: m['proactiv.hero.composer.duration_loading'](),
+            durationPending: m['proactiv.hero.composer.duration_pending'](),
+            durationUnavailable:
+              m['proactiv.hero.composer.duration_unavailable'](),
+            durationUnsupported:
+              m['proactiv.hero.composer.duration_unsupported'](),
             generate: m['proactiv.hero.composer.generate'](),
             generated: m['proactiv.hero.composer.generated'](),
             image: m['proactiv.hero.composer.image'](),
+            imageModel: m['proactiv.hero.composer.image_model'](),
             model: m['proactiv.hero.composer.model'](),
             placeholder: m['proactiv.hero.composer.placeholder'](),
             product: m['proactiv.hero.composer.product'](),
             removeAttachment: m['proactiv.hero.composer.remove_attachment'](),
-            style: m['proactiv.hero.composer.style'](),
+            textModel: m['proactiv.hero.composer.text_model'](),
             video: m['proactiv.hero.composer.video'](),
+            videoModel: m['proactiv.hero.composer.video_model'](),
           }}
         />
         <ProactivVideoShowcase
           title={m['proactiv.showcase.title']()}
           description={m['proactiv.showcase.description']()}
-          playLabel={m['proactiv.showcase.play']()}
-          pauseLabel={m['proactiv.showcase.pause']()}
-          muteLabel={m['proactiv.showcase.mute']()}
-          unmuteLabel={m['proactiv.showcase.unmute']()}
           cases={showcaseCases()}
           filters={showcaseFilters()}
+          maxCases={showcaseAiImages.length}
           showAllCategories
+        />
+        <ProactivWorkflow
+          ctaHref="/text-to-image"
+          ctaLabel={m['proactiv.workflow.cta']()}
+          description={m['proactiv.workflow.description']()}
+          eyebrow={m['proactiv.workflow.eyebrow']()}
+          sideDescription={m['proactiv.workflow.side_description']()}
+          sideTitle={m['proactiv.workflow.side_title']()}
+          steps={workflowSteps()}
+          tags={m['proactiv.workflow.tags']().split('~~')}
+          title={m['proactiv.workflow.title']()}
         />
         <ProactivPricing
           title={m['proactiv.pricing.title']()}
@@ -209,7 +272,6 @@ export function ProactivLanding() {
           annualBillingLabel={(price) =>
             m['proactiv.pricing.billed_annually']({ price })
           }
-          logosHeading={m['proactiv.pricing.trusted']()}
           tiers={tiers()}
           getCtaHref={(tier) =>
             tier.cta === demoLabel ? '/book-demo' : '/sign-up'
@@ -218,7 +280,7 @@ export function ProactivLanding() {
         <ProactivFaq title={m['proactiv.faq.title']()} faqs={faqs()} />
       </main>
       <ProactivFooter
-        brand="Motion Control AI"
+        brand={envConfigs.app_name}
         copyright={m['proactiv.footer.copyright']()}
         rights={m['proactiv.footer.rights']()}
         columns={footerColumns()}

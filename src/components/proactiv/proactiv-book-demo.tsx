@@ -1,7 +1,7 @@
 import { ArrowLeft, ArrowRight, type LucideIcon } from 'lucide-react';
 
 import { Link } from '@/core/i18n/navigation';
-import { MotionControlMark } from '@/components/motion-control-mark';
+import { BrandWordmark } from '@/components/brand-wordmark';
 
 export type ProactivDemoFocus = {
   title: string;
@@ -41,12 +41,12 @@ export function ProactivBookDemo({
   previewAlt,
 }: ProactivBookDemoProps) {
   return (
-    <main className="proactiv-site min-h-[100dvh] px-4 py-4 text-white sm:px-6 sm:py-6">
-      <div className="mx-auto flex min-h-[calc(100dvh-2rem)] max-w-[1280px] flex-col rounded-xl border border-white/10 bg-[#0d0f12] p-5 sm:min-h-[calc(100dvh-3rem)] sm:p-8 lg:p-10">
+    <main className="proactiv-site min-h-[100dvh] px-4 py-4 text-[#15202b] sm:px-6 sm:py-6">
+      <div className="mx-auto flex min-h-[calc(100dvh-2rem)] max-w-[1280px] flex-col rounded-xl border border-[#d6e0e7] bg-white p-5 shadow-sm sm:min-h-[calc(100dvh-3rem)] sm:p-8 lg:p-10">
         <div className="flex items-center justify-between gap-4">
           <Link
             href="/"
-            className="group inline-flex items-center gap-2 rounded-[6px] py-2 text-sm text-[#d4d4d4] transition-colors duration-200 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#39c3ef]"
+            className="group inline-flex items-center gap-2 rounded-[6px] py-2 text-sm text-[#627181] transition-colors duration-200 hover:text-[#15202b] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#c92f68]"
           >
             <ArrowLeft
               aria-hidden="true"
@@ -54,9 +54,8 @@ export function ProactivBookDemo({
             />
             {backLabel}
           </Link>
-          <div className="inline-flex items-center gap-2 text-sm font-semibold tracking-[-0.02em] text-white">
-            <MotionControlMark aria-hidden="true" className="size-7" />
-            <span>{brand}</span>
+          <div className="inline-flex items-center gap-2 text-sm font-semibold tracking-[-0.02em] text-[#15202b]">
+            <BrandWordmark brand={brand} />
           </div>
         </div>
 
@@ -65,13 +64,13 @@ export function ProactivBookDemo({
             <h1 className="max-w-lg text-4xl leading-[1.03] font-semibold tracking-[-0.055em] text-balance sm:text-5xl lg:text-6xl">
               {title}
             </h1>
-            <p className="mt-6 max-w-md text-base leading-relaxed text-[#a3a3a3] sm:text-lg">
+            <p className="mt-6 max-w-md text-base leading-relaxed text-[#627181] sm:text-lg">
               {description}
             </p>
 
             <Link
               href={primaryHref}
-              className="group mt-8 inline-flex min-h-11 items-center justify-center gap-2 rounded-[6px] bg-[#39c3ef] px-5 py-3 text-sm font-medium text-[#061014] transition-transform duration-200 hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#39c3ef] active:scale-[0.98]"
+              className="group mt-8 inline-flex min-h-11 items-center justify-center gap-2 rounded-[6px] bg-[#c92f68] px-5 py-3 text-sm font-medium text-white transition-transform duration-200 hover:-translate-y-0.5 hover:bg-[#a62150] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#c92f68] active:scale-[0.98]"
             >
               {primaryLabel}
               <ArrowRight
@@ -81,19 +80,21 @@ export function ProactivBookDemo({
             </Link>
             <Link
               href="/"
-              className="ml-4 inline-flex min-h-11 items-center text-sm text-[#a3a3a3] transition-colors duration-200 hover:text-white focus-visible:rounded-[6px] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#39c3ef]"
+              className="ml-4 inline-flex min-h-11 items-center text-sm text-[#627181] transition-colors duration-200 hover:text-[#15202b] focus-visible:rounded-[6px] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#c92f68]"
             >
               {secondaryLabel}
             </Link>
 
-            <div className="mt-12 border-t border-white/10 pt-6">
-              <h2 className="text-sm font-medium text-white">{focusTitle}</h2>
+            <div className="mt-12 border-t border-[#d6e0e7] pt-6">
+              <h2 className="text-sm font-medium text-[#15202b]">
+                {focusTitle}
+              </h2>
               <ul className="mt-5 space-y-5">
                 {focusItems.map((item) => {
                   const Icon = item.icon;
                   return (
                     <li key={item.title} className="flex gap-4">
-                      <span className="mt-0.5 grid size-8 shrink-0 place-items-center rounded-[6px] border border-[#39c3ef]/25 bg-[#39c3ef]/10 text-[#39c3ef]">
+                      <span className="mt-0.5 grid size-8 shrink-0 place-items-center rounded-[6px] border border-[#c92f68]/25 bg-[#c92f68]/10 text-[#c92f68]">
                         <Icon
                           aria-hidden="true"
                           className="size-4"
@@ -101,10 +102,10 @@ export function ProactivBookDemo({
                         />
                       </span>
                       <span>
-                        <span className="block text-sm font-medium text-white">
+                        <span className="block text-sm font-medium text-[#15202b]">
                           {item.title}
                         </span>
-                        <span className="mt-1 block text-sm leading-relaxed text-[#a3a3a3]">
+                        <span className="mt-1 block text-sm leading-relaxed text-[#627181]">
                           {item.description}
                         </span>
                       </span>
@@ -115,7 +116,7 @@ export function ProactivBookDemo({
             </div>
           </section>
 
-          <section className="relative overflow-hidden rounded-xl border border-white/10 bg-[#17191c] p-2 shadow-[0_30px_80px_rgba(0,0,0,0.24)]">
+          <section className="relative overflow-hidden rounded-xl border border-[#d6e0e7] bg-[#eef4f7] p-2 shadow-[0_20px_50px_rgba(21,32,43,0.12)]">
             <img
               src={previewSrc}
               alt={previewAlt}

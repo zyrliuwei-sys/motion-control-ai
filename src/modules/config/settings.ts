@@ -262,40 +262,6 @@ export function getSettings(): Setting[] {
       group: 'user_role',
       tab: 'general',
     },
-
-    // ─── General / Credits ───────────────────────────────────────────
-    {
-      name: 'initial_credits_enabled',
-      title: 'Grant credits on signup',
-      type: 'switch',
-      group: 'credit',
-      tab: 'general',
-    },
-    {
-      name: 'initial_credits_amount',
-      title: 'Credits amount',
-      type: 'number',
-      placeholder: '100',
-      group: 'credit',
-      tab: 'general',
-    },
-    {
-      name: 'initial_credits_valid_days',
-      title: 'Valid days',
-      type: 'number',
-      placeholder: '365',
-      group: 'credit',
-      tab: 'general',
-    },
-    {
-      name: 'initial_credits_description',
-      title: 'Description',
-      type: 'text',
-      placeholder: 'Welcome bonus',
-      group: 'credit',
-      tab: 'general',
-    },
-
     // ─── Auth / Email ────────────────────────────────────────────────
     {
       name: 'email_auth_enabled',

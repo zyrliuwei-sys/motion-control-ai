@@ -1,5 +1,5 @@
 import { Link } from '@/core/i18n/navigation';
-import { BuiltWithMotionControlAi } from '@/components/built-with-motion-control-ai';
+import { BrandWordmark } from '@/components/brand-wordmark';
 
 export interface SenziaTextToVideoCard {
   title: string;
@@ -224,15 +224,19 @@ export function SenziaTextToVideoContent({
           className={`${sectionInnerClassName} flex flex-col gap-7 sm:flex-row sm:items-end sm:justify-between`}
         >
           <div className="max-w-md">
-            <p className="text-base font-semibold text-[#f4f7fa]">
-              {footerBrand}
-            </p>
+            <BrandWordmark
+              brand={footerBrand}
+              className="text-base text-[#f4f7fa]"
+            />
             <p className="mt-2 text-sm leading-6 text-[#abb4c0]">
               {footerDescription}
             </p>
           </div>
           <div className="flex flex-col gap-4 sm:items-end">
-            <BuiltWithMotionControlAi />
+            <BrandWordmark
+              brand={footerBrand}
+              className="text-sm text-[#f4f7fa]"
+            />
             <p className="text-xs text-[#7f8a96]">{footerCopyright}</p>
           </div>
         </div>

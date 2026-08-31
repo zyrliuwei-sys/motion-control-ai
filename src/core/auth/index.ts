@@ -10,7 +10,6 @@ import { VerifyEmail } from '@/core/email/templates/verify-email';
 import { AUTH_SECRET_PLACEHOLDER, envConfigs } from '@/config';
 import * as schema from '@/config/db/schema';
 import { getAllConfigs } from '@/modules/config/service';
-import { grantForNewUser } from '@/modules/credits/service';
 import { grantRoleForNewUser } from '@/modules/rbac/service';
 import {
   getClientIpFromCtx,
@@ -287,16 +286,6 @@ export function getAuth(configs?: Record<string, string>) {
               });
             } catch (error) {
               console.error('[auth] grant default role failed', error);
-            }
-
-            try {
-              await grantForNewUser({
-                userId: createdUser.id,
-                userEmail: createdUser.email,
-                configs: all,
-              });
-            } catch (error) {
-              console.error('[auth] grant signup credits failed', error);
             }
           },
         },

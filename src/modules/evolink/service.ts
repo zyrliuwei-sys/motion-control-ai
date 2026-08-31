@@ -9,7 +9,7 @@ import {
 import { db } from '@/core/db';
 import type { StorageManager } from '@/core/storage';
 import { aiTask, type AiTask } from '@/config/db/schema';
-import { getUuid } from '@/lib/hash';
+import { motionControlCreditsForSeconds } from '@/lib/retail-pricing';
 
 const MODEL = 'kling-v3-motion-control';
 const TERMINAL_STATUSES = new Set<string>([
@@ -38,6 +38,7 @@ export interface MotionControlTask {
   progress: number;
   resultUrls: string[];
   isArchived: boolean;
+  billedCredits?: number;
   errorMessage?: string;
   createdAt: string;
 }
@@ -47,6 +48,7 @@ type StoredTaskInfo = {
   errorCode?: string;
   errorMessage?: string;
   estimatedTime?: number;
+  outputSeconds?: number;
   progress?: number;
   providerStatus?: string;
 };
@@ -141,6 +143,14 @@ function validateInput(input: MotionControlInput) {
 function toClientTask(task: AiTask): MotionControlTask {
   const info = parseJson<StoredTaskInfo>(task.taskInfo) ?? {};
   const result = persistedVideoResult(task.taskResult);
+  const input = parseJson<Pick<MotionControlInput, 'quality'>>(task.options);
+  const billedCredits =
+    input?.quality && info.outputSeconds
+      ? motionControlCreditsForSeconds({
+          quality: input.quality,
+          outputSeconds: info.outputSeconds,
+        })
+      : undefined;
 
   return {
     id: task.id,
@@ -150,6 +160,7 @@ function toClientTask(task: AiTask): MotionControlTask {
     progress: Math.max(0, Math.min(100, Number(info.progress) || 0)),
     resultUrls: result.urls,
     isArchived: result.isArchived,
+    ...(billedCredits === undefined ? {} : { billedCredits }),
     ...(info.errorMessage ? { errorMessage: info.errorMessage } : {}),
     createdAt: task.createdAt.toISOString(),
   };
@@ -163,10 +174,15 @@ function taskInfoFromResult(result: {
   };
   taskResult?: {
     progress?: unknown;
-    task_info?: { can_cancel?: unknown; estimated_time?: unknown };
+    task_info?: {
+      can_cancel?: unknown;
+      estimated_time?: unknown;
+      video_duration?: unknown;
+    };
   };
 }): StoredTaskInfo {
   const remote = result.taskResult;
+  const outputSeconds = Number(remote?.task_info?.video_duration);
   return {
     providerStatus: result.taskInfo?.status,
     errorCode: result.taskInfo?.errorCode,
@@ -174,34 +190,40 @@ function taskInfoFromResult(result: {
     progress: Number(remote?.progress) || 0,
     canCancel: Boolean(remote?.task_info?.can_cancel),
     estimatedTime: Number(remote?.task_info?.estimated_time) || undefined,
+    outputSeconds:
+      Number.isFinite(outputSeconds) && outputSeconds > 0
+        ? outputSeconds
+        : undefined,
   };
 }
 
-/** Create an EvoLink Kling 3.0 motion-control task and persist its remote ID. */
-export async function createMotionControlTask(params: {
+/** Submit a pre-authorized EvoLink Kling 3.0 motion-control task. */
+export async function submitMotionControlTask(params: {
+  taskId: string;
   userId: string;
   apiKey: string;
   input: MotionControlInput;
 }): Promise<MotionControlTask> {
-  const { userId, apiKey, input } = params;
+  const { taskId, userId, apiKey, input } = params;
   validateInput(input);
 
   const [localTask] = await db()
-    .insert(aiTask)
-    .values({
-      id: getUuid(),
-      userId,
-      mediaType: AIMediaType.VIDEO,
-      provider: 'evolink',
-      model: MODEL,
-      prompt: input.prompt || '',
-      options: JSON.stringify(input),
-      status: AITaskStatus.PENDING,
-      costCredits: 0,
-    })
-    .returning();
+    .select()
+    .from(aiTask)
+    .where(
+      and(
+        eq(aiTask.id, taskId),
+        eq(aiTask.userId, userId),
+        eq(aiTask.provider, 'evolink'),
+        isNull(aiTask.deletedAt)
+      )
+    )
+    .limit(1);
 
-  if (!localTask) throw new Error('Unable to create local video task');
+  if (!localTask) throw new Error('Video task not found');
+  if (localTask.status !== AITaskStatus.PENDING) {
+    throw new Error('Video task has already been submitted');
+  }
 
   try {
     const provider = new EvolinkProvider({ apiKey });

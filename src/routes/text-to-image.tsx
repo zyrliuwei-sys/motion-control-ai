@@ -5,22 +5,22 @@ import { m } from '@/paraglide/messages.js';
 import { getLocale } from '@/paraglide/runtime.js';
 import { TextToVideo } from '@/blocks/text-to-video';
 
-const textToVideoSearchSchema = z.object({
+const textToImageSearchSchema = z.object({
   prompt: z.string().max(4000).optional(),
 });
 
-function TextToVideoRoute() {
+function TextToImageRoute() {
   const { prompt } = Route.useSearch();
-  return <TextToVideo initialPrompt={prompt} />;
+  return <TextToVideo initialPrompt={prompt} showTemplateFeed={false} />;
 }
 
-export const Route = createFileRoute('/text-to-video')({
-  validateSearch: textToVideoSearchSchema,
+export const Route = createFileRoute('/text-to-image')({
+  validateSearch: textToImageSearchSchema,
   loader: () => {
     const locale = getLocale();
     return {
-      description: m['proactiv.video.meta_description']({}, { locale }),
-      title: m['proactiv.video.meta_title']({}, { locale }),
+      description: m['image_generator.meta_description']({}, { locale }),
+      title: m['image_generator.meta_title']({}, { locale }),
     };
   },
   head: ({ loaderData }) => ({
@@ -31,5 +31,5 @@ export const Route = createFileRoute('/text-to-video')({
         ]
       : [],
   }),
-  component: TextToVideoRoute,
+  component: TextToImageRoute,
 });

@@ -1,7 +1,6 @@
 import { Link } from '@/core/i18n/navigation';
 import { cn } from '@/lib/utils';
-import { BuiltWithMotionControlAi } from '@/components/built-with-motion-control-ai';
-import { MotionControlMark } from '@/components/motion-control-mark';
+import { BrandWordmark } from '@/components/brand-wordmark';
 
 export interface ProactivFooterLink {
   label: string;
@@ -42,7 +41,7 @@ export function ProactivFooter({
   return (
     <footer
       className={cn(
-        'border-t border-[#171717] bg-[#08090a] px-8 pt-20 pb-32 text-white',
+        'border-t border-[#ead7df] bg-[#fff1f5] px-8 pt-20 pb-32 text-[#15202b]',
         className
       )}
     >
@@ -51,16 +50,14 @@ export function ProactivFooter({
           <Link
             href={brandHref}
             aria-label={`${brand} home`}
-            className="inline-flex items-center gap-2 rounded-[6px] text-sm font-bold tracking-[-0.02em] text-white focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#39c3ef]"
+            className="inline-flex items-center gap-2 rounded-[6px] text-base font-bold tracking-[-0.02em] text-[#15202b] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#c92f68]"
           >
-            <MotionControlMark aria-hidden="true" className="size-7" />
-            <span className="tracking-[-0.04em]">{brand}</span>
+            <BrandWordmark brand={brand} />
           </Link>
 
-          <div className="mt-5 flex flex-wrap items-center gap-x-3 gap-y-3 text-[#a3a3a3]">
+          <div className="mt-5 flex flex-wrap items-center gap-x-3 gap-y-3 text-[#627181]">
             <span className="text-xs">{copyright}</span>
             <span className="text-sm">{rights}</span>
-            <BuiltWithMotionControlAi className="border-[#303030] bg-[#171717] text-xs text-[#d4d4d4] hover:border-[#525252] hover:bg-[#262626]" />
           </div>
         </div>
 
@@ -70,7 +67,7 @@ export function ProactivFooter({
         >
           {columns.map((column) => (
             <div key={column.title}>
-              <p className="text-xs font-medium text-white sm:text-sm">
+              <p className="text-xs font-medium text-[#15202b] sm:text-sm">
                 {column.title}
               </p>
               <ul className="mt-4 space-y-3">
@@ -81,14 +78,14 @@ export function ProactivFooter({
                         href={link.href}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-xs text-[#a3a3a3] transition-colors duration-200 hover:text-white focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-[#39c3ef] sm:text-sm"
+                        className="text-xs text-[#627181] transition-colors duration-200 hover:text-[#15202b] focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-[#c92f68] sm:text-sm"
                       >
                         {link.label}
                       </a>
                     ) : (
                       <Link
                         href={link.href}
-                        className="text-xs text-[#a3a3a3] transition-colors duration-200 hover:text-white focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-[#39c3ef] sm:text-sm"
+                        className="text-xs text-[#627181] transition-colors duration-200 hover:text-[#15202b] focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-[#c92f68] sm:text-sm"
                       >
                         {link.label}
                       </Link>
