@@ -1,6 +1,6 @@
 import { useState, type ComponentType, type SVGProps } from 'react';
 import { useMutation } from '@tanstack/react-query';
-import { CircleCheck, Sparkles } from 'lucide-react';
+import { CircleCheck } from 'lucide-react';
 import { motion, useReducedMotion } from 'motion/react';
 
 import { apiPost } from '@/lib/api-client';
@@ -198,7 +198,7 @@ export function PricingTable({
                 )}
               </div>
 
-              <div className="mt-6 min-h-[148px]">
+              <div className="mt-6 min-h-[104px]">
                 <div className="flex items-end gap-1.5">
                   <motion.span
                     aria-live="polite"
@@ -229,17 +229,13 @@ export function PricingTable({
                   </p>
                 )}
                 {typeof plan.credits === 'number' && (
-                  <div className="border-primary/25 bg-primary/8 text-foreground mt-4 inline-flex min-h-9 items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-medium">
-                    <Sparkles
-                      aria-hidden="true"
-                      className="text-primary size-3.5 shrink-0"
-                    />
+                  <p className="text-foreground mt-4 text-sm font-medium">
                     <span className="tabular-nums">
                       {m['landing.pricing.credits_after_payment']({
                         credits: plan.credits.toLocaleString('en-US'),
                       })}
                     </span>
-                  </div>
+                  </p>
                 )}
               </div>
 
@@ -262,7 +258,7 @@ export function PricingTable({
                   : plan.buttonText || m['common.pricing.get_started']()}
               </Button>
 
-              <ul className="mt-8 space-y-3 border-t pt-6">
+              <ul className="mt-8 space-y-3 pt-6">
                 {plan.features.map((feature, featureIndex) => {
                   const label =
                     typeof feature === 'string' ? feature : feature.label;

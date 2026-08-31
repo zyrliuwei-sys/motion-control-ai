@@ -1,10 +1,7 @@
-import { createFileRoute, redirect } from '@tanstack/react-router';
+import { createFileRoute } from '@tanstack/react-router';
+
+import { Pricing } from '@/blocks/pricing';
 
 export const Route = createFileRoute('/pricing')({
-  beforeLoad: () => {
-    throw redirect({
-      to: '/',
-      hash: 'pricing',
-    });
-  },
+  component: Pricing,
 });

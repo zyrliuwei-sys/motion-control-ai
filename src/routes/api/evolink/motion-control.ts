@@ -74,7 +74,7 @@ async function configuredApiKey() {
   const apiKey = (await getAllConfigs()).evolink_api_key?.trim();
   if (!apiKey) {
     throw new Error(
-      'EvoLink API Key is not configured. Add it in Admin → Settings → AI → EvoLink.'
+      'The AI image service API key is not configured. Add it in Admin → Settings → AI → AI image service.'
     );
   }
   return apiKey;

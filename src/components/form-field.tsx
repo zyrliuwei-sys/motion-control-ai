@@ -25,6 +25,8 @@ export function TextField({
   autoComplete,
   required,
   disabled,
+  inputClassName,
+  labelClassName,
 }: {
   field: AnyFieldApi;
   label: string;
@@ -33,12 +35,16 @@ export function TextField({
   autoComplete?: string;
   required?: boolean;
   disabled?: boolean;
+  inputClassName?: string;
+  labelClassName?: string;
 }) {
   const error = fieldError(field);
 
   return (
     <Field>
-      <FieldLabel htmlFor={field.name}>{label}</FieldLabel>
+      <FieldLabel htmlFor={field.name} className={labelClassName}>
+        {label}
+      </FieldLabel>
       <Input
         id={field.name}
         name={field.name}
@@ -51,6 +57,7 @@ export function TextField({
         required={required}
         disabled={disabled}
         aria-invalid={error ? true : undefined}
+        className={inputClassName}
       />
       {error && <p className="text-destructive text-sm">{error}</p>}
     </Field>

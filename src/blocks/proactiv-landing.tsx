@@ -1,6 +1,7 @@
 import type { ProactivPriceTier } from '@/types/proactiv';
 
 import { envConfigs } from '@/config';
+import { grokPricingPlans } from '@/lib/grok-pricing-plans';
 import { m } from '@/paraglide/messages.js';
 import { ProactivFaq } from '@/components/proactiv/proactiv-faq';
 import {
@@ -86,6 +87,18 @@ const showcaseAiImages = [
   '/imgs/image/meigen-2069018297228575178-2.jpg',
 ] as const;
 
+const workflowGalleryImages = [
+  '/imgs/generated/workflow-gallery-mountain-1788172411584.png',
+  '/imgs/generated/workflow-gallery-portrait-1788172415506.png',
+  '/imgs/generated/workflow-gallery-stag-1788172460025.png',
+] as const;
+
+const workflowStepImages = [
+  '/imgs/generated/workflow-no-card-1788172520001.png',
+  '/imgs/generated/workflow-no-trial-1788172520002.png',
+  '/imgs/generated/workflow-no-meter-1788172520003.png',
+] as const;
+
 function navigation(): ProactivNavLink[] {
   return m['proactiv.nav']()
     .split('~~')
@@ -96,23 +109,27 @@ function navigation(): ProactivNavLink[] {
 }
 
 function tiers(): ProactivPriceTier[] {
-  return splitRows(m['proactiv.pricing.tiers']()).map((row) => {
-    const [
-      title,
-      description,
-      monthlyPrice,
-      yearlyPrice,
-      oneTimePrice,
-      cta,
-      featured,
-      items,
-    ] = row.split('||');
+  const billingByTier = [
+    grokPricingPlans.essentials,
+    grokPricingPlans.studio,
+    grokPricingPlans.production,
+  ] as const;
+
+  return splitRows(m['proactiv.pricing.tiers']()).map((row, index) => {
+    const [title, description, cta, featured, items] = row.split('||');
+    const billing = billingByTier[index];
     return {
       title: title ?? '',
       description: description ?? '',
-      monthlyPrice: monthlyPrice ? Number(monthlyPrice) : null,
-      yearlyPrice: yearlyPrice ? Number(yearlyPrice) : null,
-      oneTimePrice: oneTimePrice ? Number(oneTimePrice) : null,
+      monthlyPrice: billing ? billing.monthly.priceInCents / 100 : null,
+      monthlyCredits: billing?.monthly.credits ?? null,
+      monthlyProductId: billing?.monthly.productId,
+      yearlyPrice: billing ? billing.yearly.priceInCents / 100 : null,
+      yearlyCredits: billing?.yearly.credits ?? null,
+      yearlyProductId: billing?.yearly.productId,
+      oneTimePrice: billing ? billing.oneTime.priceInCents / 100 : null,
+      oneTimeCredits: billing?.oneTime.credits ?? null,
+      oneTimeProductId: billing?.oneTime.productId,
       cta: cta ?? '',
       featured: featured === 'true',
       features: items?.split('~~').filter(Boolean) ?? [],
@@ -121,7 +138,7 @@ function tiers(): ProactivPriceTier[] {
 }
 
 function faqs() {
-  return splitRows(m['proactiv.faq.records']()).map((row) => {
+  return splitRows(m['proactiv.pricing.faq_records']()).map((row) => {
     const [question, answer] = row.split('||');
     return { question: question ?? '', answer: answer ?? '' };
   });
@@ -184,10 +201,11 @@ function showcaseFilters(): ProactivVideoShowcaseFilter[] {
 function workflowSteps(): ProactivWorkflowStep[] {
   return m['proactiv.workflow.records']()
     .split('~~')
-    .map((item) => {
+    .map((item, index) => {
       const [number, title, description] = item.split('|');
       return {
         description: description ?? '',
+        imageSrc: workflowStepImages[index],
         number: number ?? '',
         title: title ?? '',
       };
@@ -205,10 +223,10 @@ export function ProactivLanding() {
         links={navigation()}
         loginLabel={m['common.nav.get_started']()}
         loginHref="/sign-in"
-        demoLabel={demoLabel}
-        demoHref="/book-demo"
+        settingsLabel={m['common.nav.settings']()}
+        signOutLabel={m['common.sign.sign_out_title']()}
       />
-      <main>
+      <main className="pt-24">
         <ProactivMarketingHero
           eyebrow={m['proactiv.hero.eyebrow']()}
           title={m['proactiv.hero.title']()}
@@ -234,6 +252,7 @@ export function ProactivLanding() {
             placeholder: m['proactiv.hero.composer.placeholder'](),
             product: m['proactiv.hero.composer.product'](),
             removeAttachment: m['proactiv.hero.composer.remove_attachment'](),
+            resolution: m['proactiv.hero.composer.resolution'](),
             textModel: m['proactiv.hero.composer.text_model'](),
             video: m['proactiv.hero.composer.video'](),
             videoModel: m['proactiv.hero.composer.video_model'](),
@@ -252,7 +271,10 @@ export function ProactivLanding() {
           ctaLabel={m['proactiv.workflow.cta']()}
           description={m['proactiv.workflow.description']()}
           eyebrow={m['proactiv.workflow.eyebrow']()}
+          galleryCaption={m['proactiv.workflow.gallery_caption']()}
+          galleryPrompt={m['proactiv.workflow.gallery_prompt']()}
           sideDescription={m['proactiv.workflow.side_description']()}
+          sideImages={workflowGalleryImages}
           sideTitle={m['proactiv.workflow.side_title']()}
           steps={workflowSteps()}
           tags={m['proactiv.workflow.tags']().split('~~')}
@@ -269,6 +291,7 @@ export function ProactivLanding() {
           creditsAfterPaymentLabel={m[
             'proactiv.pricing.credits_after_payment'
           ]()}
+          processingCtaLabel={m['common.pricing.processing']()}
           annualBillingLabel={(price) =>
             m['proactiv.pricing.billed_annually']({ price })
           }

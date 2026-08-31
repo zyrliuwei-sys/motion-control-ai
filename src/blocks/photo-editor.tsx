@@ -96,6 +96,15 @@ function editorCopy(): ProactivPhotoEditorCopy {
     signInRequiredMessage: m['proactiv.photo_editor.sign_in_required'](),
     sourceLabel: m['proactiv.photo_editor.source'](),
     textDescription: m['proactiv.photo_editor.text_description'](),
+    textDialogAddLabel: m['proactiv.photo_editor.text_dialog_add'](),
+    textDialogCancelLabel: m['proactiv.photo_editor.text_dialog_cancel'](),
+    textDialogConfirmLabel: m['proactiv.photo_editor.text_dialog_confirm'](),
+    textDialogDescription: m['proactiv.photo_editor.text_dialog_description'](),
+    textDialogFieldLabel: m['proactiv.photo_editor.text_dialog_field'](),
+    textDialogPlaceholder: m['proactiv.photo_editor.text_dialog_placeholder'](),
+    textDialogTitle: m['proactiv.photo_editor.text_dialog_title'](),
+    textInstruction: (values) =>
+      m['proactiv.photo_editor.text_instruction'](values),
     textModeLabel: m['proactiv.photo_editor.text_mode'](),
     textOutputFormatLabel: m['proactiv.photo_editor.text_output_format'](),
     textPromptLabel: m['proactiv.photo_editor.text_prompt'](),
@@ -104,7 +113,7 @@ function editorCopy(): ProactivPhotoEditorCopy {
   };
 }
 
-/** Localized page composition for FLUX.2 image editing. */
+/** Localized page composition for Grok Imagine Image 2.0 editing. */
 export function PhotoEditor({
   initialMode,
   initialPrompt,
@@ -119,6 +128,8 @@ export function PhotoEditor({
       languageLabel={m['proactiv.video.language']()}
       demoLabel={m['proactiv.book_demo']()}
       demoHref="/book-demo"
+      pricingLabel={m['landing.pricing.title']()}
+      pricingHref="/pricing"
       collapseSidebarLabel={m['proactiv.sidebar.collapse']()}
       expandSidebarLabel={m['proactiv.sidebar.expand']()}
       navGroups={navGroups()}

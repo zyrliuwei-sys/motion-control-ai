@@ -33,12 +33,13 @@ export function ProactivMarketingHero({
     generate: 'Generate',
     generated: 'Ready',
     image: 'Image',
-    imageModel: 'FLUX.2 Edit',
-    model: 'Motion Studio',
+    imageModel: 'Grok Imagine 2.0 · Edit',
+    model: 'Grok Imagine Image 2.0',
     placeholder: 'Describe the scene you imagine...',
     product: 'Product',
     removeAttachment: 'Remove attachment',
-    textModel: 'FLUX.2 Image',
+    resolution: 'Clarity',
+    textModel: 'Grok Imagine 2.0 · Text',
     video: 'Video',
     videoModel: 'Motion Studio Video',
   },
@@ -49,12 +50,13 @@ export function ProactivMarketingHero({
     <section className="relative bg-[#fff8fa] text-[#15202b]">
       <ProactivHeroStream
         eyebrow={eyebrow}
+        className="h-[86dvh] min-h-[600px]"
         title={title}
         description={description}
         motionStatement={motionStatement}
       />
-      <div className="relative bg-[#fff8fa] px-4 py-10 sm:px-6 sm:py-14">
-        <div className="mx-auto flex w-full max-w-[1260px] justify-center">
+      <div className="relative bg-[#fff8fa] px-4 py-8 sm:px-6 sm:py-10">
+        <div className="mx-auto flex w-full max-w-[1440px] justify-center">
           <ProactivHeroComposer
             allowVideoMode={false}
             compactAction

@@ -28,7 +28,7 @@ const socialNetworks: Array<{
   color: string;
   label: string;
 }> = [
-  { Icon: Instagram, color: '#f06f9e', label: 'Instagram' },
+  { Icon: Instagram, color: '#52525b', label: 'Instagram' },
   { Icon: Music2, color: '#e9f5ff', label: 'TikTok' },
   { Icon: Twitch, color: '#ad8cff', label: 'Twitch' },
   { Icon: Facebook, color: '#6ca8ff', label: 'Facebook' },
@@ -94,13 +94,13 @@ function FeatureBadge() {
         <div className="relative z-10 flex h-full w-full items-center justify-center overflow-hidden rounded-[5px] bg-[#121416]">
           <Bolt
             aria-hidden="true"
-            className="h-6 w-6 fill-[#ff8a5b] text-[#ff8a5b]"
+            className="h-6 w-6 fill-[#18181b] text-[#18181b]"
           />
-          <span className="absolute bottom-0 left-1/2 h-px w-3/5 -translate-x-1/2 bg-gradient-to-r from-transparent via-[#ff8a5b] to-transparent" />
+          <span className="absolute bottom-0 left-1/2 h-px w-3/5 -translate-x-1/2 bg-gradient-to-r from-transparent via-[#18181b] to-transparent" />
         </div>
         <span
           aria-hidden="true"
-          className="absolute inset-x-0 bottom-0 z-20 mx-auto h-2 w-3/5 bg-[#ff8a5b] opacity-45 blur-md"
+          className="absolute inset-x-0 bottom-0 z-20 mx-auto h-2 w-3/5 bg-[#18181b] opacity-20 blur-md"
         />
       </div>
     </div>
@@ -253,13 +253,13 @@ function AnalyticsVisual() {
       >
         <defs>
           <linearGradient id="proactiv-chart-fill" x1="0" x2="0" y1="0" y2="1">
-            <stop stopColor="#ff8a5b" stopOpacity="0.2" />
-            <stop offset="1" stopColor="#ff8a5b" stopOpacity="0" />
+            <stop stopColor="#18181b" stopOpacity="0.2" />
+            <stop offset="1" stopColor="#18181b" stopOpacity="0" />
           </linearGradient>
           <linearGradient id="proactiv-chart-line" x1="0" x2="1" y1="0" y2="0">
-            <stop stopColor="#ff8a5b" stopOpacity="0" />
-            <stop offset="0.42" stopColor="#ff8a5b" stopOpacity="0.85" />
-            <stop offset="1" stopColor="#ffcc74" stopOpacity="0.15" />
+            <stop stopColor="#18181b" stopOpacity="0" />
+            <stop offset="0.42" stopColor="#18181b" stopOpacity="0.85" />
+            <stop offset="1" stopColor="#a1a1aa" stopOpacity="0.15" />
           </linearGradient>
         </defs>
         <path
@@ -281,7 +281,7 @@ function AnalyticsVisual() {
 const aiMarks: Array<{ Icon: LucideIcon; color: string; size: string }> = [
   { Icon: Sparkles, color: '#e1a46e', size: 'h-9 w-9' },
   { Icon: Bot, color: '#b1a1ff', size: 'h-12 w-12' },
-  { Icon: BrainCircuit, color: '#ff8a5b', size: 'h-16 w-16' },
+  { Icon: BrainCircuit, color: '#18181b', size: 'h-16 w-16' },
   { Icon: Network, color: '#6aabff', size: 'h-12 w-12' },
   { Icon: Sparkles, color: '#e8be78', size: 'h-9 w-9' },
 ];
@@ -321,13 +321,13 @@ function CollaborationVisual() {
             key={label}
             className={`p-campaign-label relative flex w-fit items-center gap-2 rounded-lg border border-neutral-600 bg-white/[0.025] py-2 pr-3 pl-2.5 text-[11px] text-neutral-400 shadow-[0_0_8px_rgba(248,248,248,0.18)_inset] transition duration-200 ${className} ${
               label === 'Email Campaign'
-                ? 'group-hover:border-[#ff8a5b]/70 group-hover:text-[#ffc2a8] group-hover:shadow-[0_0_14px_rgba(255,138,91,0.20)_inset]'
+                ? 'group-hover:border-[#18181b]/45 group-hover:text-[#18181b] group-hover:shadow-[0_0_14px_rgba(24,24,27,0.12)_inset]'
                 : ''
             }`}
           >
             <Icon
               aria-hidden="true"
-              className="h-3.5 w-3.5 text-neutral-500 transition-colors group-hover:text-[#ff8a5b]"
+              className="h-3.5 w-3.5 text-neutral-500 transition-colors group-hover:text-[#18181b]"
             />
             {label}
           </div>
@@ -335,9 +335,9 @@ function CollaborationVisual() {
       </div>
       <MousePointer2
         aria-hidden="true"
-        className="absolute top-[37%] left-[63%] z-20 h-4 w-4 fill-[#08141a] text-[#ff8a5b] transition-all duration-200 group-hover:top-[32%] group-hover:left-[54%]"
+        className="absolute top-[37%] left-[63%] z-20 h-4 w-4 fill-[#18181b] text-[#18181b] transition-all duration-200 group-hover:top-[32%] group-hover:left-[54%]"
       />
-      <span className="absolute top-[47%] left-[68%] z-20 text-[10px] whitespace-nowrap text-neutral-500 transition-all duration-200 group-hover:left-[58%] group-hover:text-[#ffc2a8]">
+      <span className="absolute top-[47%] left-[68%] z-20 text-[10px] whitespace-nowrap text-neutral-500 transition-all duration-200 group-hover:left-[58%] group-hover:text-[#18181b]">
         Manu Arora
       </span>
       <span className="absolute bottom-[15%] left-[15%] z-20 text-[10px] whitespace-nowrap text-neutral-600 transition-all duration-200 group-hover:bottom-[23%] group-hover:left-[32%] group-hover:text-white">
@@ -423,7 +423,7 @@ function FeatureAnimationStyles() {
         width: 6px;
         height: 6px;
         border-radius: 999px;
-        background: #ff8a5b;
+        background: #18181b;
         box-shadow: 0 0 12px 3px rgba(57, 195, 239, 0.7);
       }
       .proactiv-features .p-social-route-one {
@@ -472,7 +472,7 @@ function FeatureAnimationStyles() {
         top: 12%;
         bottom: 12%;
         width: 1px;
-        background: linear-gradient(to bottom, transparent, #ff8a5b, transparent);
+        background: linear-gradient(to bottom, transparent, #18181b, transparent);
         box-shadow: 0 0 18px 2px rgba(57, 195, 239, 0.55);
         animation: proactiv-ai-scan 5.75s ease-in-out infinite;
       }

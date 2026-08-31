@@ -174,8 +174,8 @@ export function getSettingGroups(): SettingGroup[] {
     { name: 'fal', title: 'Fal', description: 'Fal AI API', tab: 'ai' },
     {
       name: 'evolink',
-      title: 'EvoLink',
-      description: 'EvoLink unified AI API',
+      title: 'AI image service',
+      description: 'Image and video generation API settings',
       tab: 'ai',
     },
 

@@ -33,6 +33,7 @@ export interface ProactivHeroComposerLabels {
   placeholder: string;
   product: string;
   removeAttachment: string;
+  resolution: string;
   textModel: string;
   video: string;
   videoModel: string;
@@ -52,6 +53,7 @@ export interface ProactivGenerationValues {
   mode: 'edit' | 'text' | 'video';
   prompt: string;
   references: ProactivGenerationReference[];
+  resolution: '1K' | '2K';
   style: string;
 }
 
@@ -62,6 +64,7 @@ export interface ProactivHeroComposerProps {
   compactAction?: boolean;
   isGenerating?: boolean;
   labels: ProactivHeroComposerLabels;
+  maxImageReferences?: number;
   onPromptChange?: (prompt: string) => void;
   onGenerate?: (values: ProactivGenerationValues) => void;
   promptValue?: string;
@@ -70,16 +73,45 @@ export interface ProactivHeroComposerProps {
 }
 
 const aspectRatioOptions = [
-  { value: '21:9', previewClassName: 'h-2 w-7' },
-  { value: '16:9', previewClassName: 'h-2.5 w-6' },
-  { value: '4:3', previewClassName: 'h-3.5 w-5' },
-  { value: '1:1', previewClassName: 'size-4.5' },
-  { value: '3:4', previewClassName: 'h-5 w-4' },
-  { value: '9:16', previewClassName: 'h-5.5 w-3' },
-  { value: 'adaptive', previewClassName: 'size-5' },
+  {
+    value: '21:9',
+    previewClassName: 'h-2 w-7',
+    triggerPreviewClassName: 'h-1.5 w-5',
+  },
+  {
+    value: '16:9',
+    previewClassName: 'h-2.5 w-6',
+    triggerPreviewClassName: 'h-2 w-4.5',
+  },
+  {
+    value: '4:3',
+    previewClassName: 'h-3.5 w-5',
+    triggerPreviewClassName: 'h-2.5 w-3.5',
+  },
+  {
+    value: '1:1',
+    previewClassName: 'size-4.5',
+    triggerPreviewClassName: 'size-3.5',
+  },
+  {
+    value: '3:4',
+    previewClassName: 'h-5 w-4',
+    triggerPreviewClassName: 'h-4 w-3',
+  },
+  {
+    value: '9:16',
+    previewClassName: 'h-5.5 w-3',
+    triggerPreviewClassName: 'h-4.5 w-2.5',
+  },
+  {
+    value: 'adaptive',
+    previewClassName: 'size-5',
+    triggerPreviewClassName: 'size-3.5',
+  },
 ] as const;
+const resolutionOptions = ['1K', '2K'] as const;
 const defaultAspectRatio = '9:16';
-const maximumImageReferenceCount = 10;
+const defaultMaximumImageReferenceCount = 3;
 const minimumMotionVideoDuration = 3;
 const maximumMotionVideoDuration = 10;
 type ReferenceSlot = 'avatar' | 'product' | null;
@@ -106,6 +138,7 @@ export function ProactivHeroComposer({
   compactAction = false,
   isGenerating = false,
   labels,
+  maxImageReferences = defaultMaximumImageReferenceCount,
   onPromptChange,
   onGenerate,
   promptValue,
@@ -119,6 +152,7 @@ export function ProactivHeroComposer({
   const [uncontrolledPrompt, setUncontrolledPrompt] = useState('');
   const style = 'Closeup';
   const [aspectRatio, setAspectRatio] = useState(defaultAspectRatio);
+  const [resolution, setResolution] = useState<'1K' | '2K'>('1K');
   const batchSize = 1;
   const [references, setReferences] = useState<ReferenceAttachment[]>([]);
   const [referenceSlot, setReferenceSlot] = useState<ReferenceSlot>(null);
@@ -140,7 +174,7 @@ export function ProactivHeroComposer({
     (reference) => reference.type === 'image'
   );
   const hasReachedImageReferenceLimit =
-    mode === 'edit' && imageReferences.length >= maximumImageReferenceCount;
+    mode === 'edit' && imageReferences.length >= maxImageReferences;
   const hasRequiredReferences =
     mode === 'edit'
       ? prompt.trim().length > 0 && imageReferences.length > 0
@@ -162,6 +196,17 @@ export function ProactivHeroComposer({
       Number(allowImageMode) +
       Number(allowVideoMode) >
     1;
+  const modelOptions = [
+    ...(allowTextToImageMode
+      ? [{ label: labels.textModel, value: 'text' as const }]
+      : []),
+    ...(allowImageMode
+      ? [{ label: labels.imageModel, value: 'edit' as const }]
+      : []),
+    ...(allowVideoMode
+      ? [{ label: labels.videoModel, value: 'video' as const }]
+      : []),
+  ];
 
   const durationText =
     motionVideoDurationState === 'loading'
@@ -355,7 +400,7 @@ export function ProactivHeroComposer({
       }
       const availableImageSlots = Math.max(
         0,
-        maximumImageReferenceCount -
+        maxImageReferences -
           retained.filter((reference) => reference.type === 'image').length
       );
       const accepted =
@@ -389,6 +434,7 @@ export function ProactivHeroComposer({
       style,
       aspectRatio,
       batchSize,
+      resolution,
     });
   };
 
@@ -408,12 +454,16 @@ export function ProactivHeroComposer({
           <div
             className={`bg-[#fff1f5] ${
               compactAction
-                ? 'min-h-[84px] rounded-[20px] p-2.5 sm:p-3'
+                ? 'min-h-[128px] rounded-[20px] p-3 sm:p-4'
                 : 'min-h-[104px] rounded-[22px] p-3'
             }`}
           >
             <div className="flex min-w-0 flex-col gap-2.5 sm:flex-row">
-              <div className="flex min-h-20 min-w-0 flex-1 flex-col">
+              <div
+                className={`flex min-w-0 flex-1 flex-col ${
+                  compactAction ? 'min-h-24' : 'min-h-20'
+                }`}
+              >
                 <label className="sr-only" htmlFor="hero-marketing-prompt">
                   {labels.placeholder}
                 </label>
@@ -451,7 +501,7 @@ export function ProactivHeroComposer({
                         aria-label={labels.addReference}
                         title={
                           references.length
-                            ? `${labels.addReference} (${imageReferences.length}/${maximumImageReferenceCount})`
+                            ? `${labels.addReference} (${imageReferences.length}/${maxImageReferences})`
                             : labels.addReference
                         }
                       >
@@ -493,7 +543,7 @@ export function ProactivHeroComposer({
                       setHasRequestedGeneration(false);
                     }}
                     placeholder={labels.placeholder}
-                    className={`block w-full flex-1 resize-none bg-transparent py-1 pr-1 pl-14 text-[#15202b] outline-none placeholder:text-[#7b8995] ${
+                    className={`block w-full flex-1 resize-none bg-transparent py-1 pr-1 pl-[4.5rem] text-[#15202b] outline-none placeholder:text-[#7b8995] ${
                       compactAction
                         ? 'min-h-10 text-sm leading-5 sm:text-base'
                         : 'min-h-24 text-sm leading-5'
@@ -503,65 +553,33 @@ export function ProactivHeroComposer({
 
                 <div className="mt-2.5 flex min-w-0 items-center gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                   {hasMultipleModels ? (
-                    <label className="inline-flex h-7 shrink-0 items-center rounded-lg bg-[#fff5f8] px-2 text-xs font-medium text-[#4b5b68] transition-colors hover:bg-[#fde3ec]">
-                      <span className="sr-only">{labels.model}</span>
-                      <select
-                        value={mode}
-                        onChange={(event) =>
-                          updateMode(
-                            event.target.value as 'edit' | 'text' | 'video'
-                          )
-                        }
-                        aria-label={labels.model}
-                        className="max-w-32 bg-transparent text-xs text-[#15202b] outline-none"
-                      >
-                        {allowTextToImageMode ? (
-                          <option
-                            value="text"
-                            className="bg-white text-[#15202b]"
-                          >
-                            {labels.textModel}
-                          </option>
-                        ) : null}
-                        {allowImageMode ? (
-                          <option
-                            value="edit"
-                            className="bg-white text-[#15202b]"
-                          >
-                            {labels.imageModel}
-                          </option>
-                        ) : null}
-                        {allowVideoMode ? (
-                          <option
-                            value="video"
-                            className="bg-white text-[#15202b]"
-                          >
-                            {labels.videoModel}
-                          </option>
-                        ) : null}
-                      </select>
-                    </label>
+                    <ModelPicker
+                      label={labels.model}
+                      options={modelOptions}
+                      value={mode}
+                      onChange={updateMode}
+                    />
                   ) : (
-                    <span
-                      className="inline-flex h-7 shrink-0 items-center rounded-lg bg-[#fff5f8] px-2 text-xs font-medium text-[#4b5b68]"
-                      aria-label={labels.model}
-                    >
-                      {allowTextToImageMode
-                        ? labels.textModel
-                        : allowImageMode
-                          ? labels.imageModel
-                          : labels.videoModel}
-                    </span>
+                    <ModelBadge
+                      label={labels.model}
+                      value={modelOptions[0]?.label ?? labels.model}
+                    />
                   )}
 
                   {mode !== 'video' ? (
-                    <AspectRatioPicker
-                      label={labels.aspectRatio}
-                      value={aspectRatio}
-                      onChange={(nextRatio) => {
+                    <ImageSettingsPicker
+                      aspectRatio={aspectRatio}
+                      aspectRatioLabel={labels.aspectRatio}
+                      onAspectRatioChange={(nextRatio) => {
                         setAspectRatio(nextRatio);
                         setHasRequestedGeneration(false);
                       }}
+                      onResolutionChange={(nextResolution) => {
+                        setResolution(nextResolution);
+                        setHasRequestedGeneration(false);
+                      }}
+                      resolution={resolution}
+                      resolutionLabel={labels.resolution}
                     />
                   ) : null}
 
@@ -651,30 +669,111 @@ export function ProactivHeroComposer({
   );
 }
 
-function AspectRatioPicker({
+function ModelPicker({
   label,
-  value,
   onChange,
+  options,
+  value,
 }: {
   label: string;
-  value: string;
-  onChange: (value: string) => void;
+  onChange: (value: 'edit' | 'text' | 'video') => void;
+  options: { label: string; value: 'edit' | 'text' | 'video' }[];
+  value: 'edit' | 'text' | 'video';
 }) {
-  const selectedOption =
-    aspectRatioOptions.find((option) => option.value === value) ??
-    aspectRatioOptions[5];
+  const selected =
+    options.find((option) => option.value === value) ?? options[0];
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
         aria-label={label}
-        className="inline-flex h-7 shrink-0 items-center gap-1.5 rounded-lg bg-[#fff1f5] px-2 text-xs font-medium text-[#4b5b68] transition-colors hover:bg-[#fde3ec] hover:text-[#15202b] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c92f68]"
+        className="group/model inline-flex h-8 shrink-0 items-center gap-1.5 rounded-xl border border-[#d7dde2] bg-white px-2 text-xs font-semibold text-[#354454] shadow-[0_2px_8px_rgba(21,32,43,0.06)] transition-[background-color,border-color,box-shadow,color] hover:border-[#b9c5cf] hover:bg-[#f3f5f6] hover:text-[#15202b] hover:shadow-[0_5px_13px_rgba(21,32,43,0.1)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#627181]"
       >
-        <span
-          className={`block rounded-[3px] border border-current ${selectedOption.previewClassName}`}
+        <span className="max-w-[12.5rem] truncate leading-none">
+          {selected?.label}
+        </span>
+        <ChevronDown
+          className="size-3.5 shrink-0 text-[#8a9aa6] transition-transform duration-150 group-hover/model:text-[#4b5b68] group-data-popup-open/model:rotate-180"
           aria-hidden="true"
         />
-        <span>{value}</span>
+      </DropdownMenuTrigger>
+
+      <DropdownMenuContent
+        side="top"
+        align="start"
+        sideOffset={10}
+        className="w-[min(19rem,calc(100vw-2rem))] min-w-[min(19rem,calc(100vw-2rem))] rounded-xl border border-[#d7dde2] bg-[#fbfcfd] p-1.5 text-[#15202b] shadow-[0_18px_48px_rgba(21,32,43,0.16)]"
+      >
+        <p className="px-2.5 pt-1.5 pb-2 text-[10px] font-semibold tracking-[0.16em] text-[#627181] uppercase">
+          {label}
+        </p>
+        <DropdownMenuRadioGroup
+          value={value}
+          onValueChange={(nextValue) =>
+            onChange(nextValue as 'edit' | 'text' | 'video')
+          }
+          className="grid gap-1"
+        >
+          {options.map((option) => (
+            <DropdownMenuRadioItem
+              key={option.value}
+              value={option.value}
+              label={option.label}
+              closeOnClick
+              className="group/model-option flex min-h-11 items-center rounded-lg border border-transparent px-2.5 py-2 text-xs font-semibold text-[#627181] transition-[background-color,border-color,color] duration-150 hover:border-[#d7dde2] hover:bg-[#f3f5f6] hover:text-[#15202b] focus:border-[#b9c5cf] focus:bg-[#eef1f3] focus:text-[#15202b] data-checked:border-[#8ba0ac] data-checked:bg-[#eef1f3] data-checked:text-[#15202b] [&_[data-slot=dropdown-menu-radio-item-indicator]]:right-2 [&_[data-slot=dropdown-menu-radio-item-indicator]]:text-[#15202b]"
+            >
+              <span className="min-w-0 truncate">{option.label}</span>
+            </DropdownMenuRadioItem>
+          ))}
+        </DropdownMenuRadioGroup>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+function ModelBadge({ label, value }: { label: string; value: string }) {
+  return (
+    <span
+      aria-label={label}
+      className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-xl border border-[#d7dde2] bg-white px-2 text-xs font-semibold text-[#354454] shadow-[0_2px_8px_rgba(21,32,43,0.06)]"
+    >
+      <span className="max-w-[12.5rem] truncate leading-none">{value}</span>
+    </span>
+  );
+}
+
+function ImageSettingsPicker({
+  aspectRatio,
+  aspectRatioLabel,
+  onAspectRatioChange,
+  onResolutionChange,
+  resolution,
+  resolutionLabel,
+}: {
+  aspectRatio: string;
+  aspectRatioLabel: string;
+  onAspectRatioChange: (value: string) => void;
+  onResolutionChange: (value: (typeof resolutionOptions)[number]) => void;
+  resolution: (typeof resolutionOptions)[number];
+  resolutionLabel: string;
+}) {
+  const selectedOption =
+    aspectRatioOptions.find((option) => option.value === aspectRatio) ??
+    aspectRatioOptions[5];
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        aria-label={`${aspectRatioLabel}: ${aspectRatio}. ${resolutionLabel}: ${resolution}`}
+        className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg border border-[#d7dde2] bg-white px-2 text-xs font-medium text-[#4b5b68] shadow-sm transition-colors hover:bg-[#f3f5f6] hover:text-[#15202b] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#627181]"
+      >
+        <span
+          className={`block rounded-[3px] border border-current ${selectedOption.triggerPreviewClassName}`}
+          aria-hidden="true"
+        />
+        <span>{aspectRatio}</span>
+        <span className="h-3.5 w-px bg-[#d7dde2]" aria-hidden="true" />
+        <span>{resolution}</span>
         <ChevronDown className="size-3.5 text-[#627181]" aria-hidden="true" />
       </DropdownMenuTrigger>
 
@@ -682,39 +781,70 @@ function AspectRatioPicker({
         side="top"
         align="start"
         sideOffset={10}
-        className="w-[292px] min-w-[292px] rounded-xl border border-[#ead7df] bg-[#fffafd] p-1.5 text-[#15202b] shadow-[0_18px_48px_rgba(66,20,37,0.16)]"
+        className="w-[min(460px,calc(100vw-2rem))] min-w-[min(320px,calc(100vw-2rem))] rounded-[22px] border border-[#d7dde2] bg-white p-3 text-[#15202b] shadow-[0_18px_48px_rgba(21,32,43,0.18)]"
       >
-        <p className="px-2.5 pt-1.5 pb-2 text-[10px] font-semibold tracking-[0.16em] text-[#627181] uppercase">
-          {label}
+        <p className="px-1 pt-0.5 pb-2.5 text-[10px] font-semibold tracking-[0.16em] text-[#627181] uppercase">
+          {aspectRatioLabel}
         </p>
         <DropdownMenuRadioGroup
-          value={value}
-          onValueChange={(nextValue) => onChange(String(nextValue))}
-          className="grid grid-cols-2 gap-1"
+          value={aspectRatio}
+          onValueChange={(nextValue) => onAspectRatioChange(String(nextValue))}
+          className="grid grid-cols-3 gap-1 sm:grid-cols-4"
         >
           {aspectRatioOptions.map((option) => {
-            const selected = value === option.value;
+            const selected = aspectRatio === option.value;
             return (
               <DropdownMenuRadioItem
                 key={option.value}
                 value={option.value}
                 label={option.value}
-                closeOnClick
-                className="group/ratio flex h-11 items-center gap-2.5 rounded-lg border border-transparent px-2.5 py-1.5 text-xs font-medium text-[#627181] transition-[background-color,border-color,color] duration-150 hover:border-[#efbed0] hover:bg-[#fff7fa] hover:text-[#15202b] focus:border-[#efb0c4] focus:bg-[#fff1f5] focus:text-[#15202b] data-checked:border-[#efb0c4] data-checked:bg-[#fff0f5] data-checked:text-[#8f2348] [&_[data-slot=dropdown-menu-radio-item-indicator]]:right-2 [&_[data-slot=dropdown-menu-radio-item-indicator]]:text-[#c92f68]"
+                closeOnClick={false}
+                className="group/ratio flex h-12 flex-col justify-center gap-1 rounded-xl border border-transparent px-2 py-1.5 text-xs font-medium text-[#627181] transition-[background-color,border-color,color] duration-150 hover:bg-[#f3f5f6] hover:text-[#15202b] focus:bg-[#e9eef1] focus:text-[#15202b] data-checked:bg-[#e9eef1] data-checked:text-[#15202b] [&_[data-slot=dropdown-menu-radio-item-indicator]]:hidden"
               >
                 <span
-                  className={`block shrink-0 rounded-[2px] border-[1.5px] transition-colors ${option.previewClassName} ${
-                    selected
-                      ? 'border-[#c92f68] text-[#c92f68]'
-                      : 'border-[#8ba0ac] text-[#8ba0ac] group-hover/ratio:border-[#c92f68] group-hover/ratio:text-[#c92f68]'
-                  }`}
+                  className="grid size-7 shrink-0 place-items-center"
                   aria-hidden="true"
-                />
+                >
+                  <span
+                    className={`block rounded-[2px] border-[1.5px] transition-colors ${option.previewClassName} ${
+                      selected
+                        ? 'border-[#15202b] text-[#15202b]'
+                        : 'border-[#8ba0ac] text-[#8ba0ac] group-hover/ratio:border-[#4b5b68] group-hover/ratio:text-[#4b5b68]'
+                    }`}
+                  />
+                </span>
                 <span className="tabular-nums">{option.value}</span>
               </DropdownMenuRadioItem>
             );
           })}
         </DropdownMenuRadioGroup>
+
+        <div className="mt-3 border-t border-[#e4e8eb] pt-3">
+          <p className="px-1 pb-2 text-[10px] font-semibold tracking-[0.16em] text-[#627181] uppercase">
+            {resolutionLabel}
+          </p>
+          <DropdownMenuRadioGroup
+            value={resolution}
+            onValueChange={(nextValue) =>
+              onResolutionChange(
+                nextValue as (typeof resolutionOptions)[number]
+              )
+            }
+            className="flex rounded-2xl bg-[#eff1f3] p-1"
+          >
+            {resolutionOptions.map((option) => (
+              <DropdownMenuRadioItem
+                key={option}
+                value={option}
+                label={option}
+                closeOnClick={false}
+                className="flex h-10 flex-1 justify-center rounded-xl px-2 text-xs font-semibold text-[#627181] transition-[background-color,color,box-shadow] hover:text-[#15202b] focus:bg-white focus:text-[#15202b] data-checked:bg-white data-checked:text-[#15202b] data-checked:shadow-[0_3px_8px_rgba(21,32,43,0.12)] [&_[data-slot=dropdown-menu-radio-item-indicator]]:hidden"
+              >
+                {option}
+              </DropdownMenuRadioItem>
+            ))}
+          </DropdownMenuRadioGroup>
+        </div>
       </DropdownMenuContent>
     </DropdownMenu>
   );

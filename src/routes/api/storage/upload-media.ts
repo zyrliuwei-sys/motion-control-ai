@@ -62,15 +62,13 @@ async function POST({ request }: { request: Request }) {
     const configs = await getAllConfigs();
     if (!configs.r2_domain || !isPublicHttpsUrl(configs.r2_domain)) {
       return respErr(
-        'Configure a public HTTPS R2 domain in Admin → Settings → Storage before using EvoLink motion control.'
+        'Configure a public HTTPS R2 domain in Admin → Settings → Storage before generating images or video.'
       );
     }
 
     const storage = await getStorage();
     if (!storage) {
-      return respErr(
-        'Configure R2 storage before using EvoLink motion control.'
-      );
+      return respErr('Configure R2 storage before generating images or video.');
     }
 
     const images: string[] = [];
