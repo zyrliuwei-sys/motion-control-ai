@@ -80,6 +80,9 @@ export const envConfigs: Record<string, string> = {
   // to them would let the admin "Test" silently pass on the machine's own key.
   replicate_api_token: procEnv.REPLICATE_API_TOKEN ?? '',
 
+  // SEO — can also be managed through Admin → Settings → SEO.
+  indexnow_key: procEnv.INDEXNOW_KEY ?? '',
+
   // Locale (public)
   locale: publicEnv('VITE_DEFAULT_LOCALE') ?? 'en',
 };

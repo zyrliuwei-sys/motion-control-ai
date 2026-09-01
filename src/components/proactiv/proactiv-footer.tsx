@@ -47,7 +47,7 @@ export function ProactivFooter({
         className
       )}
     >
-      <div className="relative z-10 mx-auto flex max-w-[1600px] flex-col items-start gap-12 text-sm text-[#71717a] lg:flex-row lg:justify-center lg:gap-64">
+      <div className="relative z-10 mx-auto flex max-w-[1600px] flex-col items-start gap-12 text-sm text-[#71717a] lg:flex-row lg:justify-center lg:gap-96">
         <div className="max-w-xs">
           <Link
             href={brandHref}
@@ -64,7 +64,7 @@ export function ProactivFooter({
 
         <nav
           aria-label="Footer navigation"
-          className="grid w-full grid-cols-2 gap-x-8 gap-y-10 sm:max-w-2xl lg:w-auto lg:gap-x-32"
+          className="grid w-full grid-cols-2 gap-x-8 gap-y-10 sm:max-w-2xl lg:w-auto lg:gap-x-16"
         >
           {columns.map((column) => (
             <div key={column.title}>

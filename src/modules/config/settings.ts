@@ -38,6 +38,7 @@ export function getSettingTabs(): SettingTab[] {
     { name: 'storage', title: 'Storage' },
     { name: 'ai', title: 'AI' },
     { name: 'analytics', title: 'Analytics' },
+    { name: 'seo', title: 'SEO' },
     { name: 'ads', title: 'Ads' },
     { name: 'customer_service', title: 'Customer Service' },
     { name: 'custom', title: 'Custom' },
@@ -191,6 +192,15 @@ export function getSettingGroups(): SettingGroup[] {
       title: 'Plausible',
       description: 'Inject plausible.js for self-hosted or cloud Plausible',
       tab: 'analytics',
+    },
+
+    // SEO
+    {
+      name: 'indexnow',
+      title: 'IndexNow',
+      description:
+        'Notify participating search engines when public pages are updated',
+      tab: 'seo',
     },
 
     // Ads
@@ -835,6 +845,17 @@ export function getSettings(): Setting[] {
       tip: 'Paste the complete site-specific script URL from Plausible, or leave blank to use the legacy cloud script',
       group: 'plausible',
       tab: 'analytics',
+    },
+
+    // ─── SEO / IndexNow ──────────────────────────────────────────────
+    {
+      name: 'indexnow_key',
+      title: 'IndexNow Key',
+      type: 'password',
+      placeholder: 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx',
+      tip: 'Generate a key in Bing Webmaster Tools, then save before submitting URLs.',
+      group: 'indexnow',
+      tab: 'seo',
     },
 
     // ─── Ads / Google AdSense ────────────────────────────────────────

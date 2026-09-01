@@ -1,7 +1,14 @@
 import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { createFileRoute } from '@tanstack/react-router';
-import { ChevronDown, FlaskConical, Minus, Plus, Save } from 'lucide-react';
+import {
+  ChevronDown,
+  FlaskConical,
+  Minus,
+  Plus,
+  Save,
+  Send,
+} from 'lucide-react';
 import { toast } from 'sonner';
 
 import { tDynamic } from '@/core/i18n/dynamic';
@@ -122,6 +129,21 @@ function AdminSettingsPage() {
     },
     onError: (err: any) => {
       toast.error(err?.message || m['admin.settings.save_error']());
+    },
+  });
+
+  const indexNowMutation = useMutation({
+    mutationFn: () =>
+      apiPost<{ submitted: number; status: number }>('/api/admin/indexnow', {}),
+    onSuccess: (data) => {
+      toast.success(
+        m['admin.settings.indexnow.submit_success']({
+          count: data.submitted,
+        })
+      );
+    },
+    onError: (err: any) => {
+      toast.error(err?.message || m['admin.settings.indexnow.submit_error']());
     },
   });
 
@@ -291,6 +313,25 @@ function AdminSettingsPage() {
                       onChange={(v) => handleChange(setting.name, v)}
                     />
                   ))}
+                  {group.name === 'indexnow' ? (
+                    <div className="border-border flex flex-wrap items-center justify-between gap-3 border-t pt-4">
+                      <p className="text-muted-foreground max-w-xl text-sm">
+                        {m['admin.settings.indexnow.submit_description']()}
+                      </p>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="gap-2"
+                        disabled={indexNowMutation.isPending}
+                        onClick={() => indexNowMutation.mutate()}
+                      >
+                        <Send className="size-4" />
+                        {indexNowMutation.isPending
+                          ? m['admin.settings.indexnow.submitting']()
+                          : m['admin.settings.indexnow.submit']()}
+                      </Button>
+                    </div>
+                  ) : null}
                 </CardContent>
               )}
             </Card>
