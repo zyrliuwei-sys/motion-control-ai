@@ -43,11 +43,18 @@ type LoaderData = {
   structuredData?: Record<string, unknown>;
 };
 
+type StaticPageRouteOptions = {
+  socialImage?: string;
+};
+
 // Shared route options for static MDX pages. Each page gets its own
 // explicit route file (e.g. privacy-policy.tsx) so static segments
 // always outrank dynamic ones — add a new page by creating the MDX
 // content plus a thin route file using this factory.
-export function staticPageRouteOptions(slug: string) {
+export function staticPageRouteOptions(
+  slug: string,
+  { socialImage }: StaticPageRouteOptions = {}
+) {
   return {
     loader: (): LoaderData => {
       const locale = getLocale();
@@ -70,6 +77,19 @@ export function staticPageRouteOptions(slug: string) {
         meta: [
           { title: meta.title },
           { name: 'description', content: meta.description },
+          ...(socialImage
+            ? [
+                { name: 'robots', content: 'index,follow' },
+                { property: 'og:title', content: meta.title },
+                { property: 'og:description', content: meta.description },
+                { property: 'og:url', content: canonical },
+                { property: 'og:image', content: socialImage },
+                { name: 'twitter:card', content: 'summary_large_image' },
+                { name: 'twitter:title', content: meta.title },
+                { name: 'twitter:description', content: meta.description },
+                { name: 'twitter:image', content: socialImage },
+              ]
+            : []),
           ...(structuredData ? [{ 'script:ld+json': structuredData }] : []),
         ],
         links: [
