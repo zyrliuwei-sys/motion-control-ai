@@ -1,4 +1,4 @@
-import { MOTION_CONTROL_SITE_URL } from '@/lib/motion-control-seo';
+import { SITE_URL } from '@/lib/motion-control-seo';
 
 type PageKind = 'home' | 'aiMotionControl';
 
@@ -322,7 +322,7 @@ function ArrowIcon() {
 }
 
 function JsonLd({ content }: { content: PageContent }) {
-  const canonicalUrl = `${MOTION_CONTROL_SITE_URL}${content.kind === 'home' ? '' : '/ai-motion-control'}`;
+  const canonicalUrl = `${SITE_URL}${content.kind === 'home' ? '' : '/ai-motion-control'}`;
   const schema = [
     {
       '@context': 'https://schema.org',

@@ -1,11 +1,12 @@
 import { createFileRoute } from '@tanstack/react-router';
 
 import {
-  MOTION_CONTROL_SITE_URL,
-  motionControlSeo,
+  DEFAULT_SOCIAL_IMAGE_URL,
+  SITE_URL,
+  siteSeo,
 } from '@/lib/motion-control-seo';
 
-const canonicalUrl = `${MOTION_CONTROL_SITE_URL}/ai-motion-control`;
+const canonicalUrl = `${SITE_URL}/ai-motion-control`;
 
 function AiMotionControlPage() {
   return null;
@@ -14,35 +15,35 @@ function AiMotionControlPage() {
 export const Route = createFileRoute('/ai-motion-control')({
   head: () => ({
     meta: [
-      { title: motionControlSeo.aiMotionControl.title },
+      { title: siteSeo.aiMotionControl.title },
       {
         name: 'description',
-        content: motionControlSeo.aiMotionControl.description,
+        content: siteSeo.aiMotionControl.description,
       },
       { name: 'robots', content: 'index,follow' },
       { property: 'og:type', content: 'website' },
-      { property: 'og:title', content: motionControlSeo.aiMotionControl.title },
+      { property: 'og:title', content: siteSeo.aiMotionControl.title },
       {
         property: 'og:description',
-        content: motionControlSeo.aiMotionControl.description,
+        content: siteSeo.aiMotionControl.description,
       },
       { property: 'og:url', content: canonicalUrl },
       {
         property: 'og:image',
-        content: `${MOTION_CONTROL_SITE_URL}/proactiv/showcase-videos/neon-dancer.jpg`,
+        content: DEFAULT_SOCIAL_IMAGE_URL,
       },
       { name: 'twitter:card', content: 'summary_large_image' },
       {
         name: 'twitter:title',
-        content: motionControlSeo.aiMotionControl.title,
+        content: siteSeo.aiMotionControl.title,
       },
       {
         name: 'twitter:description',
-        content: motionControlSeo.aiMotionControl.description,
+        content: siteSeo.aiMotionControl.description,
       },
       {
         name: 'twitter:image',
-        content: `${MOTION_CONTROL_SITE_URL}/proactiv/showcase-videos/neon-dancer.jpg`,
+        content: DEFAULT_SOCIAL_IMAGE_URL,
       },
     ],
     links: [

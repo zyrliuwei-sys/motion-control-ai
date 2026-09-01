@@ -1,8 +1,9 @@
 import { createFileRoute } from '@tanstack/react-router';
 
 import {
-  MOTION_CONTROL_SITE_URL,
-  motionControlSeo,
+  DEFAULT_SOCIAL_IMAGE_URL,
+  SITE_URL,
+  siteSeo,
 } from '@/lib/motion-control-seo';
 import { m } from '@/paraglide/messages.js';
 import { ProactivLanding } from '@/blocks/proactiv-landing';
@@ -20,7 +21,7 @@ function HomePage() {
       '@context': 'https://schema.org',
       '@type': 'SoftwareApplication',
       name: 'uncensored ai',
-      url: MOTION_CONTROL_SITE_URL,
+      url: SITE_URL,
       applicationCategory: 'MultimediaApplication',
       operatingSystem: 'Web',
       offers: {
@@ -57,34 +58,34 @@ function HomePage() {
 export const Route = createFileRoute('/')({
   head: () => ({
     meta: [
-      { title: motionControlSeo.home.title },
-      { name: 'description', content: motionControlSeo.home.description },
+      { title: siteSeo.home.title },
+      { name: 'description', content: siteSeo.home.description },
       { name: 'robots', content: 'index,follow' },
       { property: 'og:type', content: 'website' },
-      { property: 'og:title', content: motionControlSeo.home.title },
+      { property: 'og:title', content: siteSeo.home.title },
       {
         property: 'og:description',
-        content: motionControlSeo.home.description,
+        content: siteSeo.home.description,
       },
-      { property: 'og:url', content: MOTION_CONTROL_SITE_URL },
+      { property: 'og:url', content: SITE_URL },
       {
         property: 'og:image',
-        content: `${MOTION_CONTROL_SITE_URL}/proactiv/showcase-videos/neon-dancer.jpg`,
+        content: DEFAULT_SOCIAL_IMAGE_URL,
       },
       { name: 'twitter:card', content: 'summary_large_image' },
-      { name: 'twitter:title', content: motionControlSeo.home.title },
+      { name: 'twitter:title', content: siteSeo.home.title },
       {
         name: 'twitter:description',
-        content: motionControlSeo.home.description,
+        content: siteSeo.home.description,
       },
       {
         name: 'twitter:image',
-        content: `${MOTION_CONTROL_SITE_URL}/proactiv/showcase-videos/neon-dancer.jpg`,
+        content: DEFAULT_SOCIAL_IMAGE_URL,
       },
     ],
     links: [
-      { rel: 'canonical', href: MOTION_CONTROL_SITE_URL },
-      { rel: 'alternate', hrefLang: 'en', href: MOTION_CONTROL_SITE_URL },
+      { rel: 'canonical', href: SITE_URL },
+      { rel: 'alternate', hrefLang: 'en', href: SITE_URL },
     ],
   }),
   component: HomePage,

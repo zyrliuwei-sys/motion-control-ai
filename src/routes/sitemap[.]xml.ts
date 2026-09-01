@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router';
 
-import { MOTION_CONTROL_SITE_URL } from '@/lib/motion-control-seo';
+import { SITE_URL } from '@/lib/motion-control-seo';
 import { baseLocale, locales, localizeUrl } from '@/paraglide/runtime.js';
 
 const STATIC_PATHS = [
@@ -19,7 +19,7 @@ type Entry = {
 };
 
 function urlFor(path: string, locale: string): string {
-  return localizeUrl(`${MOTION_CONTROL_SITE_URL}${path || '/'}`, {
+  return localizeUrl(`${SITE_URL}${path || '/'}`, {
     locale: locale as (typeof locales)[number],
   }).href;
 }
