@@ -17,13 +17,17 @@ import {
 import { toast } from 'sonner';
 
 import { useSession } from '@/core/auth/client';
-import { Link, useRouter } from '@/core/i18n/navigation';
+import { useRouter } from '@/core/i18n/navigation';
 import { apiGet, apiPost, apiUpload } from '@/lib/api-client';
 import {
   ProactivHeroComposer,
   type ProactivGenerationValues,
   type ProactivHeroComposerLabels,
 } from '@/components/proactiv/proactiv-hero-composer';
+import {
+  ProactivImagePromptGuideSummary,
+  type ProactivImagePromptGuideSummaryProps,
+} from '@/components/proactiv/proactiv-image-prompt-guide-summary';
 import type { ProactivVideoShowcaseCase } from '@/components/proactiv/proactiv-video-showcase';
 import {
   Tooltip,
@@ -85,8 +89,7 @@ export interface ProactivVideoStudioToolIntro {
   description: string;
   examplePrompts: readonly string[];
   eyebrow: string;
-  guideHref: string;
-  guideLabel: string;
+  guideSummary: ProactivImagePromptGuideSummaryProps;
   title: string;
 }
 
@@ -1128,12 +1131,7 @@ export function ProactivVideoStudio({
                   ))}
                 </div>
 
-                <Link
-                  href={toolIntro.guideHref}
-                  className="mt-6 inline-flex text-sm font-semibold text-[#15202b] underline decoration-[#d6e0e7] underline-offset-4 transition-colors hover:text-[#8f2348] hover:decoration-[#c92f68] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#c92f68]"
-                >
-                  {toolIntro.guideLabel}
-                </Link>
+                <ProactivImagePromptGuideSummary {...toolIntro.guideSummary} />
               </div>
             </div>
           ) : null}

@@ -1,5 +1,6 @@
 import { envConfigs } from '@/config';
 import { m } from '@/paraglide/messages.js';
+import type { ProactivImagePromptGuideSummaryProps } from '@/components/proactiv/proactiv-image-prompt-guide-summary';
 import type { ProactivVideoShowcaseCase } from '@/components/proactiv/proactiv-video-showcase';
 import { ProactivVideoStudio } from '@/components/proactiv/proactiv-video-studio';
 import {
@@ -92,6 +93,41 @@ function studioCases(): ProactivVideoShowcaseCase[] {
   return [...feedCases, ...feedCases];
 }
 
+function summaryItems(value: string) {
+  return value
+    .split('\n')
+    .filter(Boolean)
+    .map((record) => {
+      const [title, description] = record.split('||');
+      return { description: description ?? '', title: title ?? '' };
+    });
+}
+
+function promptGuideSummary(): ProactivImagePromptGuideSummaryProps {
+  return {
+    definition: m['proactiv.image_studio.guide.definition']()
+      .split('\n')
+      .filter(Boolean),
+    features: summaryItems(m['proactiv.image_studio.guide.features.records']()),
+    featuresTitle: m['proactiv.image_studio.guide.features.title'](),
+    faqTitle: m['proactiv.image_studio.guide.faq.title'](),
+    faqs: summaryItems(m['proactiv.image_studio.guide.faq.records']()).map(
+      ({ description, title }) => ({ answer: description, question: title })
+    ),
+    guideHref: '/ai-image-prompt-guide',
+    guideLinkLabel: m['proactiv.image_studio.guide.link_label'](),
+    howItWorksTitle: m['proactiv.image_studio.guide.how_it_works.title'](),
+    steps: summaryItems(
+      m['proactiv.image_studio.guide.how_it_works.records']()
+    ),
+    useCases: summaryItems(
+      m['proactiv.image_studio.guide.use_cases.records']()
+    ),
+    useCasesTitle: m['proactiv.image_studio.guide.use_cases.title'](),
+    whatIsTitle: m['proactiv.image_studio.guide.what_is.title'](),
+  };
+}
+
 /** Localized content wiring for the immersive text-to-video workspace. */
 export function TextToVideo({
   initialPrompt,
@@ -101,6 +137,19 @@ export function TextToVideo({
   showTemplateFeed?: boolean;
 }) {
   const cases = studioCases();
+  const guideSummary = promptGuideSummary();
+  const guideFaqStructuredData = {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: guideSummary.faqs.map((faq) => ({
+      '@type': 'Question',
+      name: faq.question,
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: faq.answer,
+      },
+    })),
+  };
 
   return (
     <SenziaAppShell
@@ -113,6 +162,15 @@ export function TextToVideo({
       expandSidebarLabel={m['proactiv.sidebar.expand']()}
       navGroups={navGroups()}
     >
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(guideFaqStructuredData).replace(
+            /</g,
+            '\\u003c'
+          ),
+        }}
+      />
       <ProactivVideoStudio
         cases={cases}
         initialPrompt={initialPrompt}
@@ -123,8 +181,7 @@ export function TextToVideo({
           examplePrompts: m['proactiv.image_studio.intro.examples']()
             .split('\n')
             .filter(Boolean),
-          guideHref: '/ai-image-prompt-guide',
-          guideLabel: m['proactiv.image_studio.intro.guide_label'](),
+          guideSummary,
           title: m['proactiv.image_studio.intro.title'](),
         }}
         composerLabels={{
