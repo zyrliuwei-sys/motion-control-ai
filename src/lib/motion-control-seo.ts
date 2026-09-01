@@ -1,6 +1,8 @@
-export const MOTION_CONTROL_SITE_URL = 'https://www.motioncontrol-ai.net';
+export const SITE_URL = 'https://www.uncensoredaieditor.com';
 
-export const motionControlSeo = {
+export const DEFAULT_SOCIAL_IMAGE_URL = `${SITE_URL}/proactiv/showcase-videos/neon-dancer.jpg`;
+
+export const siteSeo = {
   home: {
     title: 'Free Uncensored AI Image Editor – Create Any Image Instantly',
     description:
