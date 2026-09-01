@@ -50,7 +50,7 @@ export function ProactivMarketingHero({
     <section className="relative bg-[#fff8fa] text-[#15202b]">
       <ProactivHeroStream
         eyebrow={eyebrow}
-        className="h-[86dvh] min-h-[600px]"
+        className="h-[86dvh] min-h-[600px] [&>div:last-child>h2]:!leading-[1.04]"
         title={title}
         description={description}
         motionStatement={motionStatement}

@@ -389,6 +389,9 @@ export function ProactivVideoStudio({
   // The preview is a transient detail panel. Closing its current image should
   // reclaim the workspace rather than leaving an empty panel behind.
   const isPreviewPanelOpen = Boolean(selectedImagePreview);
+  // History remains available independently of the transient preview panel, so
+  // previously generated images stay above the composer after a preview closes.
+  const hasImageHistory = chatTurns.length > 0;
 
   // Keep the latest chat turn in view.
   useEffect(() => {
@@ -679,9 +682,9 @@ export function ProactivVideoStudio({
                 className="aspect-square w-full max-w-[20rem] rounded-[26px] object-cover shadow-[0_16px_38px_rgba(21,32,43,0.14)]"
               />
             </div>
-          ) : isPreviewPanelOpen ? (
+          ) : hasImageHistory ? (
             <div
-              className="relative mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 pt-8 pb-[180px] sm:px-6 sm:pb-[204px] md:pb-[224px]"
+              className="relative mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 pt-8 pb-[180px] sm:px-6 sm:pb-[204px] md:pb-[224px]"
               style={{ paddingBottom: feedBottomPadding }}
             >
               {chatTurns.map((turn) => (
@@ -880,8 +883,8 @@ export function ProactivVideoStudio({
             isPreviewPanelOpen ? 'md:right-[calc(26rem+1.25rem)]' : 'md:right-5'
           }`}
         >
-          {/* Keep the composer focused: it expands with the sidebar but remains comfortably narrower than the feed. */}
-          <div className="mx-auto w-full max-w-[min(880px,calc(620px+var(--app-sidebar-width,0rem)))]">
+          {/* The composer receives the space released when the sidebar collapses. */}
+          <div className="mx-auto w-full max-w-[min(1240px,calc(1024px+14rem-var(--app-sidebar-width,0rem)))]">
             <div className="relative min-w-0">
               <div className="relative flex items-center justify-between gap-3 px-3 pt-1.5 pb-2 sm:px-4 sm:pt-2">
                 <button
