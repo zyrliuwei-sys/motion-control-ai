@@ -25,6 +25,14 @@ export interface EvolinkMotionControlOptions {
   watermarkEnabled?: boolean;
 }
 
+export interface EvolinkImageGenerationOptions {
+  imageUrls?: string[];
+  n?: number;
+  quality?: 'low' | 'medium';
+  resolution?: '1K' | '2K';
+  size?: string;
+}
+
 type EvolinkTaskResponse = {
   data?: unknown;
   id?: string;
@@ -120,6 +128,33 @@ export function extractEvolinkVideoUrls(payload: unknown): string[] {
   return [...urls];
 }
 
+/** Extract generated image URLs from EvoLink image task responses. */
+export function extractEvolinkImageUrls(payload: unknown): string[] {
+  const urls = new Set<string>();
+  const visit = (value: unknown, depth = 0) => {
+    if (depth > 4 || value === null || value === undefined) return;
+    if (isHttpUrl(value)) {
+      urls.add(value);
+      return;
+    }
+    if (Array.isArray(value)) {
+      value.forEach((item) => visit(item, depth + 1));
+      return;
+    }
+    if (!isRecord(value)) return;
+
+    for (const key of ['url', 'image_url', 'imageUrl']) {
+      visit(value[key], depth + 1);
+    }
+    for (const key of ['results', 'result_data', 'images', 'data']) {
+      visit(value[key], depth + 1);
+    }
+  };
+
+  visit(payload);
+  return [...urls];
+}
+
 /** EvoLink's async video API, currently used for Kling motion control. */
 export class EvolinkProvider implements AIProvider {
   readonly name = 'evolink';
@@ -148,7 +183,7 @@ export class EvolinkProvider implements AIProvider {
 
     const message =
       data.error?.message || `Request failed (${response.status})`;
-    throw new Error(`EvoLink: ${message}`);
+    throw new Error(`AI generation service: ${message}`);
   }
 
   private mapStatus(status?: string): AITaskStatus {
@@ -184,13 +219,26 @@ export class EvolinkProvider implements AIProvider {
     };
   }
 
+  private imageTaskInfo(data: EvolinkTaskResponse): AITaskInfo {
+    const images = extractEvolinkImageUrls(data).map((imageUrl) => ({
+      imageUrl,
+    }));
+
+    return {
+      status: data.status || data.task_status || data.state,
+      images: images.length ? images : undefined,
+      errorCode: data.error?.code,
+      errorMessage: data.error?.message,
+    };
+  }
+
   async generate({
     params,
   }: {
     params: AIGenerateParams;
   }): Promise<AITaskResult> {
     if (params.mediaType !== AIMediaType.VIDEO) {
-      throw new Error('EvoLink motion control only supports video generation');
+      throw new Error('This motion workflow only supports video generation');
     }
 
     const options = params.options as EvolinkMotionControlOptions | undefined;
@@ -229,7 +277,9 @@ export class EvolinkProvider implements AIProvider {
     const data = await this.readResponse(response);
 
     if (!data.id) {
-      throw new Error('EvoLink: task creation returned no task ID');
+      throw new Error(
+        'AI generation service: task creation returned no task ID'
+      );
     }
 
     return {
@@ -240,8 +290,49 @@ export class EvolinkProvider implements AIProvider {
     };
   }
 
+  /** Submit an asynchronous image-generation task through EvoLink. */
+  async generateImage(params: {
+    callbackUrl?: string;
+    model: string;
+    options?: EvolinkImageGenerationOptions;
+    prompt: string;
+  }): Promise<AITaskResult> {
+    const options = params.options;
+    const response = await fetch(`${EVOLINK_API_BASE_URL}/images/generations`, {
+      method: 'POST',
+      headers: this.headers(),
+      body: JSON.stringify({
+        model: params.model,
+        prompt: params.prompt,
+        ...(options?.imageUrls?.length
+          ? { image_urls: options.imageUrls }
+          : {}),
+        ...(options?.size && options.size !== 'auto'
+          ? { size: options.size }
+          : {}),
+        ...(options?.resolution ? { resolution: options.resolution } : {}),
+        ...(options?.quality ? { quality: options.quality } : {}),
+        ...(options?.n === undefined ? {} : { n: options.n }),
+        ...(params.callbackUrl ? { callback_url: params.callbackUrl } : {}),
+      }),
+    });
+    const data = await this.readResponse(response);
+
+    if (!data.id) {
+      throw new Error('AI image service: task creation returned no task ID');
+    }
+
+    return {
+      taskId: data.id,
+      taskStatus: this.mapStatus(data.status || data.task_status || data.state),
+      taskInfo: this.imageTaskInfo(data),
+      taskResult: data,
+    };
+  }
+
   async query({
     taskId,
+    mediaType,
   }: {
     taskId: string;
     mediaType?: string;
@@ -256,7 +347,10 @@ export class EvolinkProvider implements AIProvider {
     return {
       taskId: data.id || taskId,
       taskStatus: this.mapStatus(data.status || data.task_status || data.state),
-      taskInfo: this.taskInfo(data),
+      taskInfo:
+        mediaType === AIMediaType.IMAGE
+          ? this.imageTaskInfo(data)
+          : this.taskInfo(data),
       taskResult: data,
     };
   }

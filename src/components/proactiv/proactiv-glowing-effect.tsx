@@ -66,7 +66,7 @@ export function GlowingEffect({
   }, [disabled, inactiveZone]);
 
   const size = Math.max(90, proximity + spread * 3);
-  const spotlight = `radial-gradient(${size}% circle at ${pointer.x}% ${pointer.y}%, rgba(255, 255, 255, 0.98) 0%, rgba(255, 161, 197, 0.9) 15%, rgba(201, 47, 104, 0.88) 33%, rgba(201, 47, 104, 0) 66%)`;
+  const spotlight = `radial-gradient(${size}% circle at ${pointer.x}% ${pointer.y}%, rgba(255, 255, 255, 0.98) 0%, rgba(212, 212, 216, 0.72) 15%, rgba(24, 24, 27, 0.34) 33%, rgba(24, 24, 27, 0) 66%)`;
   const maskStyle: CSSProperties = {
     WebkitMask:
       'linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0)',

@@ -8,7 +8,6 @@
  * import it without pulling provider SDKs.
  */
 
-import { FalProvider } from '@/core/ai/fal';
 import { ReplicateProvider } from '@/core/ai/replicate';
 import { AIMediaType } from '@/core/ai/types';
 import { ResendProvider } from '@/core/email/resend';
@@ -442,7 +441,7 @@ async function testEvoLink(
   const reply = String(data?.content?.[0]?.text ?? '').trim();
   return {
     success: true,
-    message: 'EvoLink accepted the request',
+    message: 'The AI image service accepted the request',
     details: {
       Model: data?.model || inputs.model,
       Reply: reply.slice(0, 200) || '(empty)',
@@ -523,23 +522,12 @@ async function testReplicate(
 }
 
 async function testFal(
-  inputs: Record<string, string>,
-  configs: Record<string, string>
+  _inputs: Record<string, string>,
+  _configs: Record<string, string>
 ): Promise<TestResult> {
-  const missing = need(configs, ['fal_api_key']);
-  if (missing) return { success: false, message: missing };
-
-  const provider = new FalProvider({ apiKey: configs.fal_api_key });
-  const result = await provider.generate({
-    params: {
-      mediaType: AIMediaType.IMAGE,
-      model: inputs.model,
-      prompt: inputs.prompt,
-    },
-  });
   return {
-    success: true,
-    message: 'Fal accepted the request',
-    details: { 'Task ID': result.taskId, Status: result.taskStatus },
+    success: false,
+    message:
+      'This legacy provider is disabled. Use the AI image service instead.',
   };
 }

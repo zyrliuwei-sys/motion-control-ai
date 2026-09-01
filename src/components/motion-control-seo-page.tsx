@@ -364,7 +364,7 @@ export function MotionControlSeoPage({ kind }: { kind: PageKind }) {
   const isHome = kind === 'home';
 
   return (
-    <div className="min-h-screen overflow-hidden bg-[#080b0d] text-stone-100 selection:bg-lime-300 selection:text-black">
+    <div className="motion-control-seo min-h-screen overflow-hidden bg-[#080b0d] text-stone-100 selection:bg-lime-300 selection:text-black">
       <header className="relative z-20 border-b border-white/10 bg-[#080b0d]/90 backdrop-blur-xl">
         <nav
           aria-label="Primary navigation"

@@ -109,6 +109,8 @@ export function TextToVideo({
       languageLabel={m['proactiv.video.language']()}
       demoLabel={m['proactiv.book_demo']()}
       demoHref="/book-demo"
+      pricingLabel={m['landing.pricing.title']()}
+      pricingHref="/pricing"
       collapseSidebarLabel={m['proactiv.sidebar.collapse']()}
       expandSidebarLabel={m['proactiv.sidebar.expand']()}
       navGroups={navGroups()}
@@ -136,6 +138,7 @@ export function TextToVideo({
           placeholder: m['proactiv.hero.composer.placeholder'](),
           product: m['proactiv.hero.composer.product'](),
           removeAttachment: m['proactiv.hero.composer.remove_attachment'](),
+          resolution: m['proactiv.hero.composer.resolution'](),
           textModel: m['proactiv.hero.composer.text_model'](),
           video: m['proactiv.hero.composer.video'](),
           videoModel: m['proactiv.hero.composer.video_model'](),

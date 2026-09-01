@@ -258,7 +258,7 @@ export async function submitMotionControlTask(params: {
     });
   } catch (error) {
     const message =
-      error instanceof Error ? error.message : 'EvoLink task failed';
+      error instanceof Error ? error.message : 'AI generation task failed';
     await db()
       .update(aiTask)
       .set({

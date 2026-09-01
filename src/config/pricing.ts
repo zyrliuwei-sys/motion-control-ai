@@ -9,7 +9,7 @@
  */
 
 import { PaymentInterval, PaymentType } from '@/core/payment/types';
-import { creditsForPriceInCents } from '@/lib/retail-pricing';
+import { grokPricingPlans } from '@/lib/grok-pricing-plans';
 
 export type PricingPlanInfo = {
   name: string;
@@ -31,88 +31,98 @@ export type PricingProduct = {
 };
 
 /**
- * Default demo catalog. Replace with your real products when launching.
+ * Grok Imagine Image 2.0 catalog. Credit amounts use the same unit as the
+ * EvoLink API; the image-generation route deducts the published API credit
+ * cost at a 7× retail multiplier.
  * Keys MUST match what the pricing UI sends as product_id.
  */
 export const pricingCatalog: Record<string, PricingProduct> = {
   starter_monthly: {
     productId: 'starter_monthly',
-    productName: 'Essentials',
-    planName: 'Essentials',
-    description: 'Essentials Monthly',
+    productName: 'Essentials Monthly',
+    planName: 'Essentials Monthly',
+    description: 'Monthly AI image credits',
     type: PaymentType.SUBSCRIPTION,
-    priceInCents: 2900,
+    priceInCents: grokPricingPlans.essentials.monthly.priceInCents,
     currency: 'usd',
-    credits: creditsForPriceInCents(2900),
+    credits: grokPricingPlans.essentials.monthly.credits,
     plan: {
-      name: 'Essentials',
+      name: 'Essentials Monthly',
       interval: PaymentInterval.MONTH,
       intervalCount: 1,
     },
   },
   pro_monthly: {
     productId: 'pro_monthly',
-    productName: 'Studio',
-    planName: 'Studio',
-    description: 'Studio Monthly',
+    productName: 'Studio Monthly',
+    planName: 'Studio Monthly',
+    description: 'Monthly AI image credits',
     type: PaymentType.SUBSCRIPTION,
-    priceInCents: 9900,
+    priceInCents: grokPricingPlans.studio.monthly.priceInCents,
     currency: 'usd',
-    credits: creditsForPriceInCents(9900),
-    plan: { name: 'Studio', interval: PaymentInterval.MONTH, intervalCount: 1 },
+    credits: grokPricingPlans.studio.monthly.credits,
+    plan: {
+      name: 'Studio Monthly',
+      interval: PaymentInterval.MONTH,
+      intervalCount: 1,
+    },
   },
   enterprise_monthly: {
     productId: 'enterprise_monthly',
-    productName: 'Production',
-    planName: 'Production',
-    description: 'Production Monthly',
+    productName: 'Production Monthly',
+    planName: 'Production Monthly',
+    description: 'Monthly AI image credits',
     type: PaymentType.SUBSCRIPTION,
-    priceInCents: 29900,
+    priceInCents: grokPricingPlans.production.monthly.priceInCents,
     currency: 'usd',
-    credits: creditsForPriceInCents(29900),
+    credits: grokPricingPlans.production.monthly.credits,
     plan: {
-      name: 'Production',
+      name: 'Production Monthly',
       interval: PaymentInterval.MONTH,
       intervalCount: 1,
     },
   },
   starter_yearly: {
     productId: 'starter_yearly',
-    productName: 'Essentials',
-    planName: 'Essentials',
-    description: 'Essentials Yearly',
+    productName: 'Essentials Annual',
+    planName: 'Essentials Annual',
+    description: 'Annual AI image credits',
     type: PaymentType.SUBSCRIPTION,
-    priceInCents: 27800,
+    priceInCents: grokPricingPlans.essentials.yearly.priceInCents,
     currency: 'usd',
-    credits: creditsForPriceInCents(27800),
+    credits: grokPricingPlans.essentials.yearly.credits,
     plan: {
-      name: 'Essentials',
+      name: 'Essentials Annual',
       interval: PaymentInterval.YEAR,
       intervalCount: 1,
     },
   },
   pro_yearly: {
     productId: 'pro_yearly',
-    productName: 'Studio',
-    planName: 'Studio',
-    description: 'Studio Yearly',
+    productName: 'Studio Annual',
+    planName: 'Studio Annual',
+    description: 'Annual AI image credits',
     type: PaymentType.SUBSCRIPTION,
-    priceInCents: 95000,
+    priceInCents: grokPricingPlans.studio.yearly.priceInCents,
     currency: 'usd',
-    credits: creditsForPriceInCents(95000),
-    plan: { name: 'Studio', interval: PaymentInterval.YEAR, intervalCount: 1 },
+    credits: grokPricingPlans.studio.yearly.credits,
+    plan: {
+      name: 'Studio Annual',
+      interval: PaymentInterval.YEAR,
+      intervalCount: 1,
+    },
   },
   enterprise_yearly: {
     productId: 'enterprise_yearly',
-    productName: 'Production',
-    planName: 'Production',
-    description: 'Production Yearly',
+    productName: 'Production Annual',
+    planName: 'Production Annual',
+    description: 'Annual AI image credits',
     type: PaymentType.SUBSCRIPTION,
-    priceInCents: 287000,
+    priceInCents: grokPricingPlans.production.yearly.priceInCents,
     currency: 'usd',
-    credits: creditsForPriceInCents(287000),
+    credits: grokPricingPlans.production.yearly.credits,
     plan: {
-      name: 'Production',
+      name: 'Production Annual',
       interval: PaymentInterval.YEAR,
       intervalCount: 1,
     },
@@ -121,31 +131,31 @@ export const pricingCatalog: Record<string, PricingProduct> = {
     productId: 'starter_lifetime',
     productName: 'Essentials Credit Pack',
     planName: 'Essentials Credit Pack',
-    description: 'Essentials One-time Credit Pack',
+    description: 'One-time AI image credits',
     type: PaymentType.ONE_TIME,
-    priceInCents: 1000,
+    priceInCents: grokPricingPlans.essentials.oneTime.priceInCents,
     currency: 'usd',
-    credits: creditsForPriceInCents(1000),
+    credits: grokPricingPlans.essentials.oneTime.credits,
   },
   pro_lifetime: {
     productId: 'pro_lifetime',
     productName: 'Studio Credit Pack',
     planName: 'Studio Credit Pack',
-    description: 'Studio One-time Credit Pack',
+    description: 'One-time AI image credits',
     type: PaymentType.ONE_TIME,
-    priceInCents: 3000,
+    priceInCents: grokPricingPlans.studio.oneTime.priceInCents,
     currency: 'usd',
-    credits: creditsForPriceInCents(3000),
+    credits: grokPricingPlans.studio.oneTime.credits,
   },
   enterprise_lifetime: {
     productId: 'enterprise_lifetime',
     productName: 'Production Credit Pack',
     planName: 'Production Credit Pack',
-    description: 'Production One-time Credit Pack',
+    description: 'One-time AI image credits',
     type: PaymentType.ONE_TIME,
-    priceInCents: 10000,
+    priceInCents: grokPricingPlans.production.oneTime.priceInCents,
     currency: 'usd',
-    credits: creditsForPriceInCents(10000),
+    credits: grokPricingPlans.production.oneTime.credits,
   },
 };
 

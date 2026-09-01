@@ -51,7 +51,7 @@ export function ProactivCta({
 
           <Link
             href={ctaHref}
-            className="group inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-[6px] bg-[#ff8a5b] px-5 py-3 text-base font-medium text-[#32100d] transition-transform duration-200 hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#ff8a5b] active:scale-[0.98]"
+            className="group inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-[6px] bg-[#18181b] px-5 py-3 text-base font-medium text-white transition-transform duration-200 hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#18181b] active:scale-[0.98]"
           >
             {ctaLabel}
             <ArrowRight
@@ -140,7 +140,7 @@ function CssMacbook({ alt, imageSrc }: { alt: string; imageSrc: string }) {
       <button
         aria-label="Reveal Proactiv dashboard preview"
         aria-pressed={isOpen}
-        className="proactiv-cta-laptop absolute top-0 left-1/2 h-[544px] w-[512px] origin-top -translate-x-1/2 scale-[0.45] cursor-pointer appearance-none border-0 bg-transparent p-0 text-left outline-none focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#ff8a5b] sm:scale-[0.7] md:scale-100"
+        className="proactiv-cta-laptop absolute top-0 left-1/2 h-[544px] w-[512px] origin-top -translate-x-1/2 scale-[0.45] cursor-pointer appearance-none border-0 bg-transparent p-0 text-left outline-none focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#18181b] sm:scale-[0.7] md:scale-100"
         data-open={isOpen}
         onClick={() => setIsOpen((open) => !open)}
         type="button"

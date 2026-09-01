@@ -51,7 +51,7 @@ export function ProactivVideoShowcase({
   return (
     <section
       id="showcase"
-      className="scroll-mt-24 bg-[#fff8fa] py-16 text-[#15202b] sm:py-20"
+      className="scroll-mt-24 bg-white py-16 text-[#18181b] sm:py-20"
       aria-labelledby="showcase-heading"
     >
       <div className="mx-auto w-full max-w-[1180px] px-5 sm:px-7 lg:px-8">
@@ -83,10 +83,10 @@ export function ProactivVideoShowcase({
                   role="tab"
                   aria-selected={isActive}
                   onClick={() => setActiveFilter(filter.id)}
-                  className={`inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full border px-3.5 text-xs font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c92f68] ${
+                  className={`inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full border px-3.5 text-xs font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#18181b] ${
                     isActive
-                      ? 'border-[#c92f68] bg-[#c92f68] text-white'
-                      : 'border-[#ead7df] bg-white text-[#627181] hover:border-[#efb0c4] hover:text-[#15202b]'
+                      ? 'border-[#18181b] bg-[#18181b] text-white'
+                      : 'border-zinc-200 bg-white text-[#52525b] hover:border-zinc-300 hover:text-[#18181b]'
                   }`}
                 >
                   {filter.label}
@@ -96,7 +96,7 @@ export function ProactivVideoShowcase({
           </div>
         ) : null}
 
-        <div className="relative mt-9 overflow-hidden rounded-[1.75rem] border border-[#eadde2] bg-white/45 p-2 shadow-[0_24px_70px_rgba(82,44,59,0.08)] ring-1 ring-white/70 sm:p-3">
+        <div className="relative mt-9 overflow-hidden rounded-[1.75rem] border border-zinc-200 bg-white/45 p-2 shadow-[0_24px_70px_rgba(24,24,27,0.08)] ring-1 ring-white/70 sm:p-3">
           <ThreeDMarquee images={marqueeImages} />
         </div>
       </div>

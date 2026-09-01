@@ -28,6 +28,7 @@ const streamImages: readonly HomeHeroLandingImage[] = [
 
 export interface ProactivHeroStreamProps {
   eyebrow?: string;
+  className?: string;
   title: string;
   description: string;
   motionStatement?: readonly string[];
@@ -35,6 +36,7 @@ export interface ProactivHeroStreamProps {
 
 export function ProactivHeroStream({
   eyebrow,
+  className,
   title,
   description,
   motionStatement,
@@ -46,6 +48,7 @@ export function ProactivHeroStream({
       description={description}
       motionStatement={motionStatement}
       images={streamImages}
+      className={className}
     />
   );
 }

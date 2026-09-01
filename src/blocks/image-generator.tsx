@@ -16,12 +16,25 @@ import {
   type ImageGenerationTask,
 } from '@/components/image-generator-kit';
 
-const TEXT_TO_IMAGE_API = '/api/fal/flux-2';
-const IMAGE_EDIT_API = '/api/fal/flux-2-edit';
+const GROK_IMAGINE_IMAGE_API = '/api/evolink/grok-imagine-image';
+const GROK_IMAGINE_ASPECT_RATIOS = [
+  '',
+  '1:1',
+  '4:3',
+  '3:4',
+  '3:2',
+  '2:3',
+  '16:9',
+  '9:16',
+  '2:1',
+  '1:2',
+  '19.5:9',
+  '9:19.5',
+  '20:9',
+  '9:20',
+] as const;
 
-type ImageApiBase = typeof TEXT_TO_IMAGE_API | typeof IMAGE_EDIT_API;
-
-type FalFluxTask = {
+type GrokImagineImageTask = {
   createdAt: string;
   errorMessage?: string;
   id: string;
@@ -30,24 +43,14 @@ type FalFluxTask = {
   status: string;
 };
 
-type WorkspaceTask = ImageGenerationTask & {
-  apiBase: ImageApiBase;
-};
+type WorkspaceTask = ImageGenerationTask;
 
 function imageSizeForRatio(aspectRatio: string) {
-  switch (aspectRatio) {
-    case '1:1':
-      return 'square_hd' as const;
-    case '4:5':
-    case '3:4':
-      return 'portrait_4_3' as const;
-    case '9:16':
-      return 'portrait_16_9' as const;
-    case '16:9':
-      return 'landscape_16_9' as const;
-    default:
-      return 'landscape_4_3' as const;
-  }
+  return GROK_IMAGINE_ASPECT_RATIOS.includes(
+    aspectRatio as (typeof GROK_IMAGINE_ASPECT_RATIOS)[number]
+  )
+    ? aspectRatio || 'auto'
+    : 'auto';
 }
 
 function workspaceStatus(status: string): ImageGenerationStatus {
@@ -57,17 +60,15 @@ function workspaceStatus(status: string): ImageGenerationStatus {
   return 'queued';
 }
 
-function displayModel(task: FalFluxTask) {
-  return task.model === 'fal-ai/flux-2' ? 'FLUX.2' : 'FLUX.2 Edit';
+function displayModel(_task: GrokImagineImageTask) {
+  return 'Uncensored AI Image';
 }
 
 function toWorkspaceTask(
-  task: FalFluxTask,
-  prompt: string,
-  apiBase: ImageApiBase
+  task: GrokImagineImageTask,
+  prompt: string
 ): WorkspaceTask {
   return {
-    apiBase,
     createdAt: task.createdAt,
     error: task.errorMessage,
     id: task.id,
@@ -137,7 +138,7 @@ function promptForGeneration(input: ImageGenerationInput) {
 /**
  * Localized composition and API adapter for the copy-ready image workspace.
  * The workspace remains package-owned; this file translates its input into the
- * project's existing FLUX.2 and storage endpoints.
+ * project's EvoLink Grok Imagine Image 2.0 and storage endpoints.
  */
 export function ImageGenerator({
   initialPrompt = '',
@@ -153,13 +154,12 @@ export function ImageGenerator({
       enabled: Boolean(session?.user),
       queryFn: async () =>
         toWorkspaceTask(
-          await apiGet<FalFluxTask>(
-            `${task.apiBase}?taskId=${encodeURIComponent(task.id)}`
+          await apiGet<GrokImagineImageTask>(
+            `${GROK_IMAGINE_IMAGE_API}?taskId=${encodeURIComponent(task.id)}`
           ),
-          task.prompt,
-          task.apiBase
+          task.prompt
         ),
-      queryKey: ['image-generator-task', task.apiBase, task.id],
+      queryKey: ['image-generator-task', 'grok-imagine-image', task.id],
       refetchInterval: (query) =>
         isTerminal(query.state.data?.status ?? task.status) ? false : 3_000,
     })),
@@ -171,24 +171,20 @@ export function ImageGenerator({
   });
 
   const onGenerate = async (input: ImageGenerationInput) => {
-    const apiBase: ImageApiBase = input.references.length
-      ? IMAGE_EDIT_API
-      : TEXT_TO_IMAGE_API;
     const prompt = promptForGeneration(input);
     const request = {
-      imageSize: imageSizeForRatio(input.aspectRatio),
-      numImages: input.imageCount,
-      outputFormat: 'png' as const,
+      imageUrls: await uploadReferences(input),
+      n: input.imageCount,
+      quality: 'medium' as const,
       prompt,
+      resolution: '1K' as const,
+      size: imageSizeForRatio(input.aspectRatio),
     };
-    const task =
-      apiBase === IMAGE_EDIT_API
-        ? await apiPost<FalFluxTask>(apiBase, {
-            ...request,
-            imageUrls: await uploadReferences(input),
-          })
-        : await apiPost<FalFluxTask>(apiBase, request);
-    const workspaceTask = toWorkspaceTask(task, prompt, apiBase);
+    const task = await apiPost<GrokImagineImageTask>(
+      GROK_IMAGINE_IMAGE_API,
+      request
+    );
+    const workspaceTask = toWorkspaceTask(task, prompt);
 
     setTasks((current) => [
       workspaceTask,
@@ -198,19 +194,17 @@ export function ImageGenerator({
   };
 
   const onDownload = (image: GeneratedImage, task: ImageGenerationTask) => {
-    const workspaceTask = task as WorkspaceTask;
     const imageIndex = Math.max(
       0,
       task.images?.findIndex((entry) => entry.id === image.id) ?? 0
     );
-    const apiBase = workspaceTask.apiBase ?? TEXT_TO_IMAGE_API;
     const link = document.createElement('a');
-    link.href = `${apiBase}?taskId=${encodeURIComponent(task.id)}&download=1&index=${imageIndex}`;
+    link.href = `${GROK_IMAGINE_IMAGE_API}?taskId=${encodeURIComponent(task.id)}&download=1&index=${imageIndex}`;
     link.click();
   };
 
   return (
-    <section className="min-h-screen bg-[#eef3f9] px-3 py-3 text-neutral-950 sm:px-5 sm:py-5 dark:bg-[#06070a] dark:text-white">
+    <section className="min-h-screen bg-white px-3 py-3 text-neutral-950 sm:px-5 sm:py-5 dark:bg-[#06070a] dark:text-white">
       <ImageGeneratorWorkspace
         brand={<BrandWordmark brand={envConfigs.app_name} />}
         className="mx-auto max-w-[1440px]"
@@ -238,7 +232,8 @@ export function ImageGenerator({
         defaultAspectRatio="16:9"
         initialPrompt={initialPrompt}
         isAuthenticated={Boolean(session?.user)}
-        models={['FLUX.2']}
+        maxReferences={3}
+        models={['Uncensored AI Image']}
         myImages={myImages}
         navItems={[
           {
@@ -259,6 +254,7 @@ export function ImageGenerator({
             `/sign-in?callbackUrl=${encodeURIComponent('/image-generator')}`
           )
         }
+        supportedAspectRatios={GROK_IMAGINE_ASPECT_RATIOS}
       />
     </section>
   );

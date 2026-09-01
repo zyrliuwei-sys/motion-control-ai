@@ -19,7 +19,7 @@ export const envConfigs: Record<string, string> = {
   app_name: publicEnv('VITE_APP_NAME') ?? 'uncensored ai',
   app_description:
     publicEnv('VITE_APP_DESCRIPTION') ??
-    'Create cinematic, controllable AI video with uncensored ai',
+    'Uncensored AI is an AI image generation platform with unlimited image generation, image understanding and reasoning, and the latest AI video generation.',
   app_logo: publicEnv('VITE_APP_LOGO') ?? '',
 
   // Database

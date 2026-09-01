@@ -25,7 +25,7 @@ function HomePage() {
       operatingSystem: 'Web',
       offers: {
         '@type': 'Offer',
-        price: '0',
+        price: '10',
         priceCurrency: 'USD',
       },
     },

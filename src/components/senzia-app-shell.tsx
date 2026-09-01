@@ -1,7 +1,9 @@
 import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
 import {
+  ArrowUpRight,
   Clapperboard,
   Compass,
+  CreditCard,
   Grid2X2,
   House,
   Image,
@@ -34,6 +36,8 @@ export interface SenziaAppShellProps {
   languageLabel: string;
   demoLabel: string;
   demoHref: string;
+  pricingLabel: string;
+  pricingHref: string;
   collapseSidebarLabel: string;
   expandSidebarLabel: string;
   navGroups: SenziaNavGroup[];
@@ -53,6 +57,8 @@ export function SenziaAppShell({
   languageLabel,
   demoLabel,
   demoHref,
+  pricingLabel,
+  pricingHref,
   collapseSidebarLabel,
   expandSidebarLabel,
   navGroups,
@@ -79,7 +85,7 @@ export function SenziaAppShell({
   };
 
   return (
-    <div className="min-h-dvh w-full overflow-x-hidden bg-[#fff8fa] text-[#15202b]">
+    <div className="proactiv-site min-h-dvh w-full overflow-x-hidden bg-[#fff8fa] text-[#15202b]">
       <header className="flex h-12 items-center justify-between border-b border-[#d6e0e7] bg-white px-3 sm:px-5">
         <Link
           href={brandHref}
@@ -155,6 +161,32 @@ export function SenziaAppShell({
                 </section>
               ))}
             </nav>
+          </div>
+          <div
+            className={`absolute right-3 bottom-3 left-3 w-[200px] transition-[opacity,transform] duration-200 ease-out ${
+              isSidebarOpen
+                ? 'translate-y-0 opacity-100'
+                : 'pointer-events-none translate-y-2 opacity-0'
+            }`}
+          >
+            <Link
+              href={pricingHref}
+              className="group relative flex min-h-12 items-center gap-2.5 overflow-hidden rounded-xl bg-[#15202b] px-3 text-sm font-semibold text-white shadow-[0_10px_22px_rgba(21,32,43,0.18)] transition duration-200 hover:-translate-y-0.5 hover:bg-[#263644] hover:shadow-[0_14px_28px_rgba(21,32,43,0.24)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c92f68] active:translate-y-0"
+            >
+              <span
+                aria-hidden="true"
+                className="absolute -top-8 -right-5 size-20 rounded-full bg-white/10 blur-xl transition-transform duration-300 group-hover:scale-125"
+              />
+              <CreditCard
+                className="relative size-4 shrink-0"
+                aria-hidden="true"
+              />
+              <span className="relative flex-1">{pricingLabel}</span>
+              <ArrowUpRight
+                className="relative size-4 shrink-0 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
+                aria-hidden="true"
+              />
+            </Link>
           </div>
         </aside>
 

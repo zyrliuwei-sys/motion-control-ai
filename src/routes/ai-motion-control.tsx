@@ -4,12 +4,11 @@ import {
   MOTION_CONTROL_SITE_URL,
   motionControlSeo,
 } from '@/lib/motion-control-seo';
-import { MotionControlSeoPage } from '@/components/motion-control-seo-page';
 
 const canonicalUrl = `${MOTION_CONTROL_SITE_URL}/ai-motion-control`;
 
 function AiMotionControlPage() {
-  return <MotionControlSeoPage kind="aiMotionControl" />;
+  return null;
 }
 
 export const Route = createFileRoute('/ai-motion-control')({

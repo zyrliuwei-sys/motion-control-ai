@@ -85,7 +85,9 @@ const galleryLayouts = [
   'aspect-[2/3]',
   'aspect-[4/5]',
 ] as const;
-const maximumImageReferenceCount = 10;
+const maximumImageReferenceCount = 3;
+const GROK_IMAGINE_IMAGE_API = '/api/evolink/grok-imagine-image';
+const GENERATING_IMAGE_PREVIEW_SRC = '/imgs/generated/image-1787716408940.png';
 
 interface MotionControlTask {
   id: string;
@@ -98,7 +100,7 @@ interface MotionControlTask {
   errorMessage?: string;
 }
 
-interface FluxImageEditTask {
+interface GrokImagineImageTask {
   id: string;
   model: string;
   status: string;
@@ -134,17 +136,17 @@ interface StudioChatTurn {
 }
 
 type GenerationTask =
-  | { kind: 'image'; task: FluxImageEditTask }
+  | { kind: 'image'; task: GrokImagineImageTask }
   | { kind: 'video'; task: MotionControlTask };
 
-const falImageSizeByAspectRatio: Record<string, string | undefined> = {
-  '21:9': 'landscape_16_9',
-  '16:9': 'landscape_16_9',
-  '4:3': 'landscape_4_3',
-  '1:1': 'square_hd',
-  '3:4': 'portrait_4_3',
-  '9:16': 'portrait_16_9',
-  adaptive: undefined,
+const grokImageSizeByAspectRatio: Record<string, string> = {
+  '21:9': '20:9',
+  '16:9': '16:9',
+  '4:3': '4:3',
+  '1:1': '1:1',
+  '3:4': '3:4',
+  '9:16': '9:16',
+  adaptive: 'auto',
 };
 
 function isTerminalTask(status: string) {
@@ -162,20 +164,6 @@ function taskLabel(status: string, copy: ProactivVideoStudioCopy) {
       return copy.taskProcessingLabel;
     default:
       return copy.taskPendingLabel;
-  }
-}
-
-function imageTaskLabel(status: string, copy: ProactivVideoStudioCopy) {
-  switch (status) {
-    case 'success':
-      return copy.imageTaskCompletedLabel;
-    case 'failed':
-    case 'canceled':
-      return copy.imageTaskFailedLabel;
-    case 'processing':
-      return copy.imageTaskProcessingLabel;
-    default:
-      return copy.imageTaskPendingLabel;
   }
 }
 
@@ -197,37 +185,27 @@ async function createMotionControlTask(payload: {
   return apiPost<MotionControlTask>('/api/evolink/motion-control', payload);
 }
 
-async function createFluxImageEditTask(payload: {
+async function createGrokImagineImageTask(payload: {
   prompt: string;
-  imageUrls: string[];
-  imageSize?: string;
-  numImages: number;
-}): Promise<FluxImageEditTask> {
-  return apiPost<FluxImageEditTask>('/api/fal/flux-2-edit', payload);
-}
-
-async function createFluxTextToImageTask(payload: {
-  prompt: string;
-  imageSize?: string;
-  numImages: number;
-}): Promise<FluxImageEditTask> {
-  return apiPost<FluxImageEditTask>('/api/fal/flux-2', payload);
-}
-
-function imageTaskApiBase(task: Pick<FluxImageEditTask, 'model'> | null) {
-  return task?.model === 'fal-ai/flux-2'
-    ? '/api/fal/flux-2'
-    : '/api/fal/flux-2-edit';
+  imageUrls?: string[];
+  n: number;
+  resolution: '1K' | '2K';
+  size: string;
+}): Promise<GrokImagineImageTask> {
+  return apiPost<GrokImagineImageTask>(GROK_IMAGINE_IMAGE_API, {
+    ...payload,
+    quality: 'medium',
+  });
 }
 
 function generatedImagePreviews(
-  task: FluxImageEditTask,
+  task: GrokImagineImageTask,
   prompt: string
 ): GeneratedImagePreview[] {
   const createdAt = new Date().toISOString();
   return task.resultUrls.map((url, index) => ({
     createdAt,
-    downloadUrl: `${imageTaskApiBase(task)}?taskId=${encodeURIComponent(task.id)}&download=1&index=${index}`,
+    downloadUrl: `${GROK_IMAGINE_IMAGE_API}?taskId=${encodeURIComponent(task.id)}&download=1&index=${index}`,
     id: `${task.id}-${index}`,
     prompt,
     url,
@@ -276,7 +254,7 @@ export function ProactivVideoStudio({
   const feedBottomPadding =
     composerInset > 0 ? `${composerInset + 28}px` : undefined;
   const [motionTask, setMotionTask] = useState<MotionControlTask | null>(null);
-  const [imageTask, setImageTask] = useState<FluxImageEditTask | null>(null);
+  const [imageTask, setImageTask] = useState<GrokImagineImageTask | null>(null);
   const [imageTaskPrompts, setImageTaskPrompts] = useState<
     Record<string, string>
   >({});
@@ -324,10 +302,10 @@ export function ProactivVideoStudio({
   });
 
   const imageTaskQuery = useQuery({
-    queryKey: ['fal-flux-2-image', imageTaskApiBase(imageTask), imageTask?.id],
+    queryKey: ['evolink-grok-imagine-image', imageTask?.id],
     queryFn: () =>
-      apiGet<FluxImageEditTask>(
-        `${imageTaskApiBase(imageTask)}?taskId=${encodeURIComponent(imageTask!.id)}`
+      apiGet<GrokImagineImageTask>(
+        `${GROK_IMAGINE_IMAGE_API}?taskId=${encodeURIComponent(imageTask!.id)}`
       ),
     enabled: Boolean(imageTask && !isTerminalTask(imageTask.status)),
     refetchInterval: (query) =>
@@ -344,7 +322,7 @@ export function ProactivVideoStudio({
   });
 
   const savedImagesQuery = useQuery({
-    queryKey: ['fal-image-history'],
+    queryKey: ['evolink-image-history'],
     queryFn: () => apiGet<SavedGeneratedImage[]>('/api/ai-tasks/images'),
     enabled: Boolean(session?.user),
     staleTime: 15_000,
@@ -405,13 +383,21 @@ export function ProactivVideoStudio({
 
   // The right-hand preview panel docks over 26rem on md+; the docked composer
   // shifts left of it instead of covering it.
-  const isPreviewPanelOpen = chatTurns.length > 0 || Boolean(pendingPrompt);
+  const isImageGenerationActive =
+    Boolean(pendingPrompt) ||
+    Boolean(imageTask && !isTerminalTask(imageTask.status));
+  // The preview is a transient detail panel. Closing its current image should
+  // reclaim the workspace rather than leaving an empty panel behind.
+  const isPreviewPanelOpen = Boolean(selectedImagePreview);
+  // History remains available independently of the transient preview panel, so
+  // previously generated images stay above the composer after a preview closes.
+  const hasImageHistory = chatTurns.length > 0;
 
   // Keep the latest chat turn in view.
   useEffect(() => {
-    if (!chatTurns.length && !pendingPrompt) return;
+    if (!chatTurns.length && !isImageGenerationActive) return;
     threadEndRef.current?.scrollIntoView({ block: 'end' });
-  }, [chatTurns, pendingPrompt]);
+  }, [chatTurns, isImageGenerationActive]);
 
   useEffect(() => {
     if (!videoModelEnabled) return;
@@ -442,7 +428,9 @@ export function ProactivVideoStudio({
     }
     if (imageTaskQuery.data.status === 'success') {
       setShowRetry(false);
-      void queryClient.invalidateQueries({ queryKey: ['fal-image-history'] });
+      void queryClient.invalidateQueries({
+        queryKey: ['evolink-image-history'],
+      });
     } else if (['failed', 'canceled'].includes(imageTaskQuery.data.status)) {
       setShowRetry(true);
     }
@@ -498,10 +486,11 @@ export function ProactivVideoStudio({
           throw new Error(copy.imageUploadsRequiredMessage);
         }
 
-        const task = await createFluxTextToImageTask({
+        const task = await createGrokImagineImageTask({
           prompt: promptWithStyle(values),
-          imageSize: falImageSizeByAspectRatio[values.aspectRatio],
-          numImages: values.batchSize,
+          n: values.batchSize,
+          resolution: values.resolution,
+          size: grokImageSizeByAspectRatio[values.aspectRatio] ?? 'auto',
         });
         return { kind: 'image', task };
       }
@@ -526,11 +515,12 @@ export function ProactivVideoStudio({
           throw new Error(copy.imageUploadsRequiredMessage);
         }
 
-        const task = await createFluxImageEditTask({
+        const task = await createGrokImagineImageTask({
           prompt: promptWithStyle(values),
           imageUrls: uploaded.images.slice(0, maximumImageReferenceCount),
-          imageSize: falImageSizeByAspectRatio[values.aspectRatio],
-          numImages: values.batchSize,
+          n: values.batchSize,
+          resolution: values.resolution,
+          size: grokImageSizeByAspectRatio[values.aspectRatio] ?? 'auto',
         });
         return { kind: 'image', task };
       }
@@ -636,6 +626,7 @@ export function ProactivVideoStudio({
       mode: 'text',
       prompt: turn.prompt,
       references: [],
+      resolution: retryValues?.resolution ?? '1K',
       style: '',
     });
   }
@@ -676,9 +667,24 @@ export function ProactivVideoStudio({
             backdrop scroll here while the sidebar, preview panel and composer
             stay fixed. Flat #fff8fa backdrop — same tone as the landing page. */}
         <div className="relative h-full min-w-0 flex-1 overflow-y-auto">
-          {isPreviewPanelOpen ? (
+          {isImageGenerationActive ? (
             <div
-              className="relative mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 pt-8 pb-[180px] sm:px-6 sm:pb-[204px] md:pb-[224px]"
+              className="relative mx-auto flex w-full flex-1 items-center justify-center px-4 py-8"
+              style={{ paddingBottom: feedBottomPadding }}
+              role="status"
+              aria-live="polite"
+            >
+              <span className="sr-only">{copy.imageTaskProcessingLabel}</span>
+              <img
+                alt=""
+                aria-hidden="true"
+                src={GENERATING_IMAGE_PREVIEW_SRC}
+                className="aspect-square w-full max-w-[20rem] rounded-[26px] object-cover shadow-[0_16px_38px_rgba(21,32,43,0.14)]"
+              />
+            </div>
+          ) : hasImageHistory ? (
+            <div
+              className="relative mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 pt-8 pb-[180px] sm:px-6 sm:pb-[204px] md:pb-[224px]"
               style={{ paddingBottom: feedBottomPadding }}
             >
               {chatTurns.map((turn) => (
@@ -724,22 +730,6 @@ export function ProactivVideoStudio({
                   </div>
                 </article>
               ))}
-              {pendingPrompt ? (
-                <article className="flex flex-col gap-3.5">
-                  <div className="flex justify-end">
-                    <p className="ml-auto max-w-[75%] rounded-[22px] rounded-br-md bg-[#fde3ec] px-4 py-2.5 text-sm leading-6 break-words whitespace-pre-wrap text-[#15202b] md:max-w-[32rem]">
-                      {displayPrompt(pendingPrompt)}
-                    </p>
-                  </div>
-                  <div className="inline-flex items-center gap-2 self-start rounded-xl border border-[#d6e0e7] bg-white px-3 py-2 text-xs font-medium text-[#627181] shadow-sm">
-                    <LoaderCircle
-                      className="size-3.5 animate-spin text-[#c92f68]"
-                      aria-hidden="true"
-                    />
-                    {copy.taskProcessingLabel}
-                  </div>
-                </article>
-              ) : null}
               <div ref={threadEndRef} aria-hidden="true" />
             </div>
           ) : showTemplateFeed ? (
@@ -842,7 +832,7 @@ export function ProactivVideoStudio({
                   />
                 </div>
                 <div className="shrink-0 border-t border-[#d6e0e7] px-4 py-3">
-                  {composerImageThumbnails.length > 1 ? (
+                  {composerImageThumbnails.length > 0 ? (
                     <div className="flex gap-2 overflow-x-auto pb-0.5 [scrollbar-width:thin]">
                       {composerImageThumbnails.map((image) => {
                         const selected = image.id === selectedImagePreview.id;
@@ -893,8 +883,8 @@ export function ProactivVideoStudio({
             isPreviewPanelOpen ? 'md:right-[calc(26rem+1.25rem)]' : 'md:right-5'
           }`}
         >
-          {/* Sidebar collapsed => var is 0rem, so the composer caps ~1/3 narrower; expanded adds the sidebar width back. */}
-          <div className="mx-auto w-full max-w-[min(1120px,calc(747px+var(--app-sidebar-width,0rem)))]">
+          {/* The composer receives the space released when the sidebar collapses. */}
+          <div className="mx-auto w-full max-w-[min(1240px,calc(1024px+14rem-var(--app-sidebar-width,0rem)))]">
             <div className="relative min-w-0">
               <div className="relative flex items-center justify-between gap-3 px-3 pt-1.5 pb-2 sm:px-4 sm:pt-2">
                 <button
@@ -925,18 +915,6 @@ export function ProactivVideoStudio({
                     }}
                   />
                 ) : null}
-                {imageTask && imageTask.status !== 'success' ? (
-                  <ImageTaskCard
-                    task={imageTask}
-                    copy={copy}
-                    prompt={imageTaskPrompts[imageTask.id] ?? prompt}
-                    onDismiss={() => {
-                      setDismissedTaskId(imageTask.id);
-                      setImageTask(null);
-                      setShowRetry(false);
-                    }}
-                  />
-                ) : null}
                 {showRetry && retryValues ? (
                   <div className="mx-1 mt-1 mb-2 rounded-[22px] border border-[#d6e0e7] bg-[#f8fafc] p-2 sm:p-3">
                     <button
@@ -961,6 +939,7 @@ export function ProactivVideoStudio({
                     avatar: copy.referenceImageLabel,
                     product: copy.referenceVideoLabel,
                   }}
+                  maxImageReferences={maximumImageReferenceCount}
                   promptValue={prompt}
                   onPromptChange={(nextPrompt) => {
                     setPrompt(nextPrompt);
@@ -973,78 +952,6 @@ export function ProactivVideoStudio({
           </div>
         </div>
       </section>
-    </div>
-  );
-}
-
-function ImageTaskCard({
-  task,
-  copy,
-  prompt,
-  onDismiss,
-}: {
-  task: FluxImageEditTask;
-  copy: ProactivVideoStudioCopy;
-  prompt: string;
-  onDismiss: () => void;
-}) {
-  const failed = task.status === 'failed' || task.status === 'canceled';
-
-  return (
-    <div
-      className="relative mx-1 mt-1 mb-2 overflow-hidden rounded-[22px] border border-[#d6e0e7] bg-[#f8fafc] p-3 sm:p-4"
-      role="status"
-      aria-live="polite"
-    >
-      <button
-        type="button"
-        onClick={onDismiss}
-        className="absolute top-3 right-3 inline-flex size-8 items-center justify-center rounded-full border border-[#ead7df] bg-white text-[#627181] transition hover:border-[#efb0c4] hover:bg-[#fff0f5] hover:text-[#8f2348] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c92f68] sm:top-4 sm:right-4"
-        aria-label={copy.dismissGeneratedImageLabel}
-        title={copy.dismissGeneratedImageLabel}
-      >
-        <X className="size-4" strokeWidth={2.5} aria-hidden="true" />
-      </button>
-
-      <div className="grid gap-2.5 md:grid-cols-[minmax(13.5rem,0.34fr)_minmax(0,0.66fr)]">
-        <div className="rounded-[17px] border border-[#dce6ec] bg-white/85 px-3 py-2.5">
-          <div className="flex items-center justify-between gap-3">
-            <div className="min-w-0">
-              <p className="text-[10px] font-semibold tracking-[0.14em] text-[#627181] uppercase">
-                {copy.generatedImageLabel}
-              </p>
-              <p className="mt-1 truncate text-sm font-semibold text-[#15202b]">
-                {imageTaskLabel(task.status, copy)}
-              </p>
-            </div>
-            <span className="shrink-0 pr-8 text-xs font-semibold text-[#c92f68] tabular-nums md:pr-0">
-              {task.progress}%
-            </span>
-          </div>
-
-          <div className="mt-2.5 h-1 overflow-hidden rounded-full bg-[#dce7ed]">
-            <div
-              className={`h-full rounded-full transition-[width] duration-500 ${
-                failed ? 'bg-[#d08484]' : 'bg-[#c92f68]'
-              }`}
-              style={{ width: `${Math.max(4, task.progress)}%` }}
-            />
-          </div>
-        </div>
-
-        <p
-          className="line-clamp-3 min-w-0 rounded-[17px] border border-[#f1dbe3] bg-[#fff7f9] px-3 py-2.5 pr-11 text-sm leading-5 text-[#354454]"
-          title={prompt}
-        >
-          {prompt || copy.generatedImageLabel}
-        </p>
-      </div>
-
-      {task.errorMessage ? (
-        <p className="mt-3 rounded-xl border border-[#efbec7] bg-[#fff3f4] px-3 py-2 text-xs leading-5 text-[#a34361]">
-          {task.errorMessage}
-        </p>
-      ) : null}
     </div>
   );
 }

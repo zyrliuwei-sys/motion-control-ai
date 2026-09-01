@@ -1,19 +1,17 @@
 import { createFileRoute } from '@tanstack/react-router';
 
+import { extractEvolinkImageUrls } from '@/core/ai';
 import { getAuth } from '@/core/auth';
 import type { AiTask } from '@/config/db/schema';
 import { getTasks } from '@/modules/ai-tasks/service';
+import { EVOLINK_GROK_IMAGINE_IMAGE_MODEL } from '@/modules/evolink-grok-image/service';
 import { respData, respErr } from '@/lib/resp';
 
-type FalImageResult = {
-  images?: Array<{ url?: unknown }>;
-};
-
-function parseResult(value: string | null): FalImageResult | undefined {
+function parseResult(value: string | null): unknown {
   if (!value) return undefined;
 
   try {
-    return JSON.parse(value) as FalImageResult;
+    return JSON.parse(value) as unknown;
   } catch {
     return undefined;
   }
@@ -40,21 +38,14 @@ function isPublicHttpsUrl(value: string) {
 }
 
 function imageUrls(taskResult: string | null) {
-  const result = parseResult(taskResult);
-  if (!Array.isArray(result?.images)) return [];
-
-  return result.images.flatMap((image) =>
-    typeof image.url === 'string' && isPublicHttpsUrl(image.url)
-      ? [image.url]
-      : []
+  return extractEvolinkImageUrls(parseResult(taskResult)).filter(
+    isPublicHttpsUrl
   );
 }
 
 /** Same route the studio polls, so history images download with a forced
  * Content-Disposition instead of the cross-origin `download` hint. */
-function downloadPath(model: string) {
-  return model === 'fal-ai/flux-2' ? '/api/fal/flux-2' : '/api/fal/flux-2-edit';
-}
+const downloadPath = '/api/evolink/grok-imagine-image';
 
 async function GET({ request }: { request: Request }) {
   try {
@@ -65,16 +56,17 @@ async function GET({ request }: { request: Request }) {
     const tasks = await getTasks({
       limit: 32,
       mediaType: 'image',
-      provider: 'fal',
+      provider: 'evolink',
       status: 'success',
       userId: session.user.id,
     });
 
     const images = tasks
+      .filter((task: AiTask) => task.model === EVOLINK_GROK_IMAGINE_IMAGE_MODEL)
       .flatMap((task: AiTask) =>
         imageUrls(task.taskResult).map((url, index) => ({
           createdAt: task.createdAt.toISOString(),
-          downloadUrl: `${downloadPath(task.model)}?taskId=${encodeURIComponent(
+          downloadUrl: `${downloadPath}?taskId=${encodeURIComponent(
             task.id
           )}&download=1&index=${index}`,
           id: `${task.id}-${index}`,

@@ -6,6 +6,7 @@ import {
   ImagePlus,
   LoaderCircle,
   Sparkles,
+  Type,
   X,
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -13,6 +14,14 @@ import { toast } from 'sonner';
 import { useSession } from '@/core/auth/client';
 import { Link } from '@/core/i18n/navigation';
 import { apiGet, apiPost, apiUpload } from '@/lib/api-client';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 export interface ProactivPhotoEditorCopy {
   addImagesLabel: string;
@@ -46,6 +55,14 @@ export interface ProactivPhotoEditorCopy {
   signInRequiredMessage: string;
   sourceLabel: string;
   textDescription: string;
+  textDialogAddLabel: string;
+  textDialogCancelLabel: string;
+  textDialogConfirmLabel: string;
+  textDialogDescription: string;
+  textDialogFieldLabel: string;
+  textDialogPlaceholder: string;
+  textDialogTitle: string;
+  textInstruction: (values: { text: string }) => string;
   textModeLabel: string;
   textOutputFormatLabel: string;
   textPromptLabel: string;
@@ -53,9 +70,10 @@ export interface ProactivPhotoEditorCopy {
   title: string;
 }
 
-type FalFlux2Task = {
+type GrokImagineImageTask = {
   errorMessage?: string;
   id: string;
+  mode: GenerationMode;
   model: string;
   progress: number;
   resultUrls: string[];
@@ -69,14 +87,10 @@ type SavedTask = {
   mode: GenerationMode;
 };
 
-const FAL_TEXT_TO_IMAGE_MODEL = 'fal-ai/flux-2';
+const GROK_IMAGINE_IMAGE_API = '/api/evolink/grok-imagine-image';
 
-function apiBaseForMode(mode: GenerationMode) {
-  return mode === 'text' ? '/api/fal/flux-2' : '/api/fal/flux-2-edit';
-}
-
-function taskMode(task: Pick<FalFlux2Task, 'model'>): GenerationMode {
-  return task.model === FAL_TEXT_TO_IMAGE_MODEL ? 'text' : 'edit';
+function taskMode(task: Pick<GrokImagineImageTask, 'mode'>): GenerationMode {
+  return task.mode;
 }
 
 type LocalImage = {
@@ -86,18 +100,18 @@ type LocalImage = {
 };
 
 const imageSizes = [
-  { value: 'square_hd', label: '1:1' },
-  { value: 'portrait_4_3', label: '3:4' },
-  { value: 'portrait_16_9', label: '9:16' },
-  { value: 'landscape_4_3', label: '4:3' },
-  { value: 'landscape_16_9', label: '16:9' },
+  { value: '1:1', label: '1:1' },
+  { value: '3:4', label: '3:4' },
+  { value: '9:16', label: '9:16' },
+  { value: '4:3', label: '4:3' },
+  { value: '16:9', label: '16:9' },
 ] as const;
 
 function isTerminalTask(status: string) {
   return ['success', 'failed', 'canceled'].includes(status);
 }
 
-function taskLabel(task: FalFlux2Task, copy: ProactivPhotoEditorCopy) {
+function taskLabel(task: GrokImagineImageTask, copy: ProactivPhotoEditorCopy) {
   const isTextTask = taskMode(task) === 'text';
 
   switch (task.status) {
@@ -114,8 +128,8 @@ function taskLabel(task: FalFlux2Task, copy: ProactivPhotoEditorCopy) {
 }
 
 /**
- * A focused FLUX.2 image editing surface. It uploads the user's references to
- * the configured public storage first, then sends only their URLs to Fal.
+ * A focused Grok Imagine Image 2.0 surface. It uploads the user's references
+ * to configured public storage first, then sends only their URLs to EvoLink.
  */
 export function ProactivPhotoEditor({
   copy,
@@ -132,12 +146,27 @@ export function ProactivPhotoEditor({
   const imagesRef = useRef<LocalImage[]>([]);
   const [images, setImages] = useState<LocalImage[]>([]);
   const [prompt, setPrompt] = useState(initialPrompt);
+  const [textDialogOpen, setTextDialogOpen] = useState(false);
+  const [textToAdd, setTextToAdd] = useState('');
   const [mode, setMode] = useState<GenerationMode>(initialMode);
   const [imageSize, setImageSize] =
-    useState<(typeof imageSizes)[number]['value']>('landscape_4_3');
-  const [task, setTask] = useState<FalFlux2Task | null>(null);
+    useState<(typeof imageSizes)[number]['value']>('4:3');
+  const [task, setTask] = useState<GrokImagineImageTask | null>(null);
   const [savedTask, setSavedTask] = useState<SavedTask | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+
+  const appendTextToPrompt = () => {
+    const text = textToAdd.trim();
+    if (!text) return;
+
+    setPrompt((current) =>
+      [current.trimEnd(), copy.textInstruction({ text })]
+        .filter(Boolean)
+        .join('\n\n')
+    );
+    setTextToAdd('');
+    setTextDialogOpen(false);
+  };
 
   useEffect(() => {
     imagesRef.current = images;
@@ -161,7 +190,9 @@ export function ProactivPhotoEditor({
   );
 
   useEffect(() => {
-    const saved = window.localStorage.getItem('fal-flux-2-last-task');
+    const saved = window.localStorage.getItem(
+      'evolink-grok-imagine-image-last-task'
+    );
     if (saved) {
       try {
         const parsed = JSON.parse(saved) as SavedTask;
@@ -169,36 +200,27 @@ export function ProactivPhotoEditor({
           setSavedTask(parsed);
           return;
         }
-      } catch {
-        // Fall through to the legacy edit-task entry.
-      }
+      } catch {}
     }
-
-    const legacyTaskId = window.localStorage.getItem(
-      'fal-flux-2-edit-last-task'
-    );
-    if (legacyTaskId) setSavedTask({ id: legacyTaskId, mode: 'edit' });
   }, []);
 
   const activeTaskId = task?.id ?? savedTask?.id;
-  const activeTaskMode = task ? taskMode(task) : (savedTask?.mode ?? mode);
-  const activeTaskApiBase = apiBaseForMode(activeTaskMode);
-  const saveTask = (nextTask: FalFlux2Task) => {
+  const saveTask = (nextTask: GrokImagineImageTask) => {
     const nextSavedTask = { id: nextTask.id, mode: taskMode(nextTask) };
     setTask(nextTask);
     setSavedTask(nextSavedTask);
     window.localStorage.setItem(
-      'fal-flux-2-last-task',
+      'evolink-grok-imagine-image-last-task',
       JSON.stringify(nextSavedTask)
     );
   };
-  const downloadUrl = (nextTask: FalFlux2Task, index: number) =>
-    `${apiBaseForMode(taskMode(nextTask))}?taskId=${encodeURIComponent(nextTask.id)}&download=1&index=${index}`;
+  const downloadUrl = (nextTask: GrokImagineImageTask, index: number) =>
+    `${GROK_IMAGINE_IMAGE_API}?taskId=${encodeURIComponent(nextTask.id)}&download=1&index=${index}`;
   const taskQuery = useQuery({
-    queryKey: ['fal-flux-2-image', activeTaskApiBase, activeTaskId],
+    queryKey: ['evolink-grok-imagine-image', activeTaskId],
     queryFn: () =>
-      apiGet<FalFlux2Task>(
-        `${activeTaskApiBase}?taskId=${encodeURIComponent(activeTaskId!)}`
+      apiGet<GrokImagineImageTask>(
+        `${GROK_IMAGINE_IMAGE_API}?taskId=${encodeURIComponent(activeTaskId!)}`
       ),
     enabled: Boolean(activeTaskId && session?.user),
     refetchInterval: (query) =>
@@ -214,7 +236,7 @@ export function ProactivPhotoEditor({
 
   useEffect(() => {
     if (taskQuery.data?.status !== 'success') return;
-    void queryClient.invalidateQueries({ queryKey: ['fal-image-history'] });
+    void queryClient.invalidateQueries({ queryKey: ['evolink-image-history'] });
   }, [queryClient, taskQuery.data?.id, taskQuery.data?.status]);
 
   const editMutation = useMutation({
@@ -222,10 +244,12 @@ export function ProactivPhotoEditor({
       if (!session?.user) throw new Error(copy.signInRequiredMessage);
       if (!prompt.trim()) throw new Error(copy.promptRequiredMessage);
       if (mode === 'text') {
-        return apiPost<FalFlux2Task>('/api/fal/flux-2', {
+        return apiPost<GrokImagineImageTask>(GROK_IMAGINE_IMAGE_API, {
+          n: 1,
           prompt: prompt.trim(),
-          imageSize,
-          outputFormat: 'png',
+          quality: 'medium',
+          resolution: '1K',
+          size: imageSize,
         });
       }
       if (!images.length) throw new Error(copy.imagesRequiredMessage);
@@ -240,11 +264,13 @@ export function ProactivPhotoEditor({
       );
       if (!uploaded.images.length) throw new Error(copy.imagesRequiredMessage);
 
-      return apiPost<FalFlux2Task>('/api/fal/flux-2-edit', {
+      return apiPost<GrokImagineImageTask>(GROK_IMAGINE_IMAGE_API, {
         prompt: prompt.trim(),
-        imageUrls: uploaded.images.slice(0, 4),
-        imageSize,
-        outputFormat: 'png',
+        imageUrls: uploaded.images.slice(0, 3),
+        n: 1,
+        quality: 'medium',
+        resolution: '1K',
+        size: imageSize,
       });
     },
     onSuccess: (nextTask) => {
@@ -257,7 +283,7 @@ export function ProactivPhotoEditor({
     const candidates = Array.from(fileList).filter((file) =>
       file.type.startsWith('image/')
     );
-    const available = Math.max(0, 4 - images.length);
+    const available = Math.max(0, 3 - images.length);
     const accepted = candidates.slice(0, available);
     if (!accepted.length) return;
 
@@ -313,7 +339,7 @@ export function ProactivPhotoEditor({
           <div>
             <div className="flex items-center gap-2 text-[10px] font-bold tracking-[0.18em] text-[#c92f68] uppercase">
               <Sparkles className="size-3.5" aria-hidden="true" />
-              FLUX.2 [dev]
+              UNCENSORED AI IMAGE
             </div>
             <h1 className="mt-1.5 text-2xl font-semibold tracking-[-0.05em] sm:text-3xl">
               {copy.title}
@@ -429,7 +455,7 @@ export function ProactivPhotoEditor({
                         </button>
                       </figure>
                     ))}
-                    {images.length < 4 ? (
+                    {images.length < 3 ? (
                       <button
                         type="button"
                         onClick={() => fileInputRef.current?.click()}
@@ -472,6 +498,16 @@ export function ProactivPhotoEditor({
                   }
                   className="mt-2 block w-full resize-y rounded-2xl border border-[#ead7df] bg-white px-3.5 py-3 text-sm leading-6 text-[#15202b] transition outline-none placeholder:text-[#8a9aa6] focus:border-[#c92f68] focus:ring-4 focus:ring-[#c92f68]/10"
                 />
+                <div className="mt-2 flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() => setTextDialogOpen(true)}
+                    className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-[#efb0c4] bg-white px-4 text-xs font-bold text-[#8f2348] transition hover:border-[#c92f68] hover:bg-[#fff0f5] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c92f68]"
+                  >
+                    <Type className="size-4" aria-hidden="true" />
+                    {copy.textDialogAddLabel}
+                  </button>
+                </div>
               </label>
 
               <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-[#edd4de] pt-4">
@@ -554,7 +590,7 @@ export function ProactivPhotoEditor({
               <div className="flex items-center justify-between gap-3">
                 <h2 className="text-sm font-bold text-white">{outputLabel}</h2>
                 {task ? (
-                  <span className="rounded-full border border-white/10 bg-white/10 px-2.5 py-1 text-[10px] font-bold tracking-[0.08em] text-[#f9c0d4] uppercase">
+                  <span className="rounded-full border border-white/10 bg-white/10 px-2.5 py-1 text-[10px] font-bold tracking-[0.08em] text-[#d4d4d8] uppercase">
                     {taskLabel(task, copy)}
                   </span>
                 ) : null}
@@ -586,14 +622,14 @@ export function ProactivPhotoEditor({
                     <div
                       className={`h-full rounded-full transition-[width] duration-500 ${
                         task.status === 'failed' || task.status === 'canceled'
-                          ? 'bg-[#e88989]'
-                          : 'bg-[#ef78a4]'
+                          ? 'bg-[#a1a1aa]'
+                          : 'bg-[#71717a]'
                       }`}
                       style={{ width: `${Math.max(4, task.progress)}%` }}
                     />
                   </div>
                   {task.errorMessage ? (
-                    <p className="mt-4 rounded-xl border border-[#ef8d9e]/30 bg-[#ef5350]/10 p-3 text-xs leading-5 text-[#ffd4dc]">
+                    <p className="mt-4 rounded-xl border border-white/15 bg-white/5 p-3 text-xs leading-5 text-[#e4e4e7]">
                       {task.errorMessage}
                     </p>
                   ) : null}
@@ -651,6 +687,56 @@ export function ProactivPhotoEditor({
           </aside>
         </div>
       </div>
+
+      <Dialog open={textDialogOpen} onOpenChange={setTextDialogOpen}>
+        <DialogContent className="border-[#ead7df] bg-[#fffafd] p-0 sm:max-w-md">
+          <DialogHeader className="border-b border-[#edd4de] px-5 pt-5 pb-4">
+            <DialogTitle className="flex items-center gap-2 text-[#15202b]">
+              <span className="grid size-8 place-items-center rounded-lg bg-[#fde3ec] text-[#c92f68]">
+                <Type className="size-4" aria-hidden="true" />
+              </span>
+              {copy.textDialogTitle}
+            </DialogTitle>
+            <DialogDescription className="pt-1 text-xs leading-5 text-[#627181]">
+              {copy.textDialogDescription}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="px-5 py-4">
+            <label className="block">
+              <span className="text-xs font-bold text-[#15202b]">
+                {copy.textDialogFieldLabel}
+              </span>
+              <textarea
+                autoFocus
+                value={textToAdd}
+                rows={4}
+                maxLength={500}
+                onChange={(event) => setTextToAdd(event.target.value)}
+                placeholder={copy.textDialogPlaceholder}
+                className="mt-2 block w-full resize-y rounded-xl border border-[#ead7df] bg-white px-3 py-2.5 text-sm leading-6 text-[#15202b] outline-none placeholder:text-[#8a9aa6] focus:border-[#c92f68] focus:ring-4 focus:ring-[#c92f68]/10"
+              />
+            </label>
+          </div>
+          <DialogFooter className="mx-0 mb-0 rounded-b-xl border-[#edd4de] bg-[#fff7f9] px-5 py-3">
+            <button
+              type="button"
+              onClick={() => setTextDialogOpen(false)}
+              className="inline-flex min-h-9 items-center justify-center rounded-lg px-3 text-xs font-bold text-[#627181] transition hover:bg-white hover:text-[#15202b] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c92f68]"
+            >
+              {copy.textDialogCancelLabel}
+            </button>
+            <button
+              type="button"
+              disabled={!textToAdd.trim()}
+              onClick={appendTextToPrompt}
+              className="inline-flex min-h-9 items-center justify-center gap-1.5 rounded-lg bg-[#c92f68] px-3.5 text-xs font-bold text-white shadow-[inset_0_-2px_0_#9f1f50] transition hover:brightness-105 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c92f68] disabled:pointer-events-none disabled:opacity-45"
+            >
+              <Type className="size-3.5" aria-hidden="true" />
+              {copy.textDialogConfirmLabel}
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </section>
   );
 }

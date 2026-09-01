@@ -23,8 +23,14 @@ export type ProactivPriceTier = {
   title: string;
   description: string;
   monthlyPrice: number | null;
+  monthlyCredits: number | null;
+  monthlyProductId?: string;
   yearlyPrice: number | null;
+  yearlyCredits: number | null;
+  yearlyProductId?: string;
   oneTimePrice: number | null;
+  oneTimeCredits: number | null;
+  oneTimeProductId?: string;
   cta: string;
   features: string[];
   featured?: boolean;

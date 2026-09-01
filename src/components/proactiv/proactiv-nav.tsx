@@ -1,17 +1,19 @@
 import { useState } from 'react';
-import { ArrowRight, Menu, X } from 'lucide-react';
-import {
-  AnimatePresence,
-  m,
-  useReducedMotion,
-  useScroll,
-  useTransform,
-} from 'motion/react';
+import { ArrowRight, LogOut, Menu, Settings, X } from 'lucide-react';
+import { AnimatePresence, m, useReducedMotion } from 'motion/react';
 
-import { useSession } from '@/core/auth/client';
-import { Link } from '@/core/i18n/navigation';
+import { signOut, useSession } from '@/core/auth/client';
+import { Link, useRouter } from '@/core/i18n/navigation';
 import { localizeHref } from '@/paraglide/runtime.js';
 import { BrandWordmark } from '@/components/brand-wordmark';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 export interface ProactivNavLink {
   href: string;
@@ -26,8 +28,8 @@ export interface ProactivNavProps {
   links?: ProactivNavLink[];
   loginLabel?: string;
   loginHref?: string;
-  demoLabel?: string;
-  demoHref?: string;
+  settingsLabel?: string;
+  signOutLabel?: string;
 }
 
 const defaultLinks: ProactivNavLink[] = [
@@ -44,20 +46,12 @@ export function ProactivNav({
   links = defaultLinks,
   loginLabel = 'Login',
   loginHref = '/sign-in',
-  demoLabel = 'Book a demo',
-  demoHref = '/book-demo',
+  settingsLabel = 'Settings',
+  signOutLabel = 'Sign out',
 }: ProactivNavProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const { data: session } = useSession();
   const reduceMotion = useReducedMotion() ?? false;
-  const { scrollY } = useScroll();
-  const compactScale = useTransform(scrollY, [0, 100], [1, 0.8]);
-  const backgroundColor = useTransform(
-    scrollY,
-    [0, 100],
-    ['rgba(255, 255, 255, 0)', 'rgba(255, 255, 255, 0.94)']
-  );
-  const insetLineOpacity = useTransform(scrollY, [0, 100], [0, 1]);
 
   const closeMobileMenu = () => setMobileOpen(false);
   const isSignedIn = Boolean(session?.user);
@@ -69,129 +63,106 @@ export function ProactivNav({
     .toLocaleUpperCase();
 
   return (
-    <header className="pointer-events-none fixed inset-x-0 top-4 z-50">
-      <m.div
-        className="pointer-events-auto relative mx-auto flex w-[95%] max-w-[1280px] items-center justify-between rounded-[6px] px-3 py-2.5 text-[#15202b] max-lg:w-full lg:px-4"
-        initial={false}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{
-          duration: reduceMotion ? 0 : 0.8,
-          ease: [0.6, 0.05, 0.1, 0.9],
-        }}
-        style={{
-          backgroundColor,
-          scale: reduceMotion ? 1 : compactScale,
-          transformOrigin: 'top center',
-        }}
-      >
-        <m.span
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-0 rounded-[6px] shadow-[inset_0_0_0_1px_rgba(21,32,43,0.12)]"
-          style={{ opacity: reduceMotion ? 0 : insetLineOpacity }}
-        />
-
-        <Brand brand={brand} href={brandHref} />
-
-        <nav
-          aria-label="Main navigation"
-          className="relative hidden items-center gap-1 lg:flex"
-        >
-          {links.map((link) => (
-            <Link
-              key={`${link.href}-${link.label}`}
-              href={link.href}
-              className="rounded-[6px] px-4 py-2 text-sm text-[#15202b] transition-all duration-200 hover:bg-[#fff0f5] hover:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c92f68]"
-            >
-              {link.label}
-            </Link>
-          ))}
-        </nav>
-
-        <div className="relative hidden items-center gap-2 lg:flex">
-          <AccountLink
-            href={localizeHref(accountHref)}
-            label={accountLabel}
-            signedIn={isSignedIn}
-            initial={accountInitial}
-          />
-          <DemoLink href={demoHref} label={demoLabel} />
-        </div>
-
-        <button
-          type="button"
-          className="relative inline-flex size-10 items-center justify-center rounded-[6px] text-[#15202b] transition-colors hover:bg-[#fff0f5] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c92f68] lg:hidden"
-          aria-label="Open menu"
-          aria-expanded={mobileOpen}
-          aria-controls="proactiv-mobile-menu"
-          onClick={() => setMobileOpen(true)}
-        >
-          <Menu className="size-5" strokeWidth={1.8} />
-        </button>
-      </m.div>
-
-      <AnimatePresence>
-        {mobileOpen && (
-          <m.div
-            id="proactiv-mobile-menu"
-            className="pointer-events-auto fixed inset-0 z-[60] flex min-h-dvh flex-col bg-[#fff8fa] px-6 py-5 text-[#15202b]"
-            initial={reduceMotion ? false : { opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: reduceMotion ? 0 : 0.2 }}
-          >
-            <div className="flex items-center justify-between">
-              <Brand brand={brand} href={brandHref} onClick={closeMobileMenu} />
-              <button
-                type="button"
-                className="inline-flex size-11 items-center justify-center rounded-[6px] transition-colors hover:bg-[#fff0f5] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c92f68]"
-                aria-label="Close menu"
-                onClick={closeMobileMenu}
-              >
-                <X className="size-6" strokeWidth={1.7} />
-              </button>
-            </div>
+    <header className="pointer-events-none fixed inset-x-0 top-4 z-[80] px-2 sm:px-4">
+      <div className="pointer-events-auto mx-auto w-full max-w-5xl">
+        <div className="overflow-hidden rounded-2xl border border-black/[0.06] bg-white/95 text-[#18181b] shadow-[0_18px_45px_rgba(24,24,27,0.10),0_2px_8px_rgba(24,24,27,0.06),inset_0_1px_0_rgba(255,255,255,0.96),inset_0_-1px_0_rgba(24,24,27,0.05)] backdrop-blur-xl">
+          <div className="flex h-16 items-center justify-between gap-3 px-4 sm:px-6">
+            <Brand brand={brand} href={brandHref} />
 
             <nav
-              aria-label="Mobile navigation"
-              className="mt-auto flex flex-col gap-2 pb-12"
+              aria-label="Main navigation"
+              className="hidden items-center gap-1 lg:flex"
             >
-              {links.map((link, index) => (
-                <m.div
+              {links.map((link) => (
+                <Link
                   key={`${link.href}-${link.label}`}
-                  initial={reduceMotion ? false : { opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{
-                    delay: reduceMotion ? 0 : index * 0.06,
-                    duration: 0.25,
-                  }}
+                  href={link.href}
+                  className="rounded-md px-3 py-2 text-sm font-medium text-zinc-500 transition-colors duration-150 hover:bg-zinc-100 hover:text-zinc-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-950"
                 >
-                  <Link
-                    href={link.href}
-                    onClick={closeMobileMenu}
-                    className="block py-2 text-[26px] leading-tight font-medium text-[#15202b] transition-opacity hover:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#c92f68]"
-                  >
-                    {link.label}
-                  </Link>
-                </m.div>
+                  {link.label}
+                </Link>
               ))}
-              <div className="mt-7 flex flex-wrap items-center gap-3">
-                <AccountLink
-                  href={localizeHref(accountHref)}
-                  onClick={closeMobileMenu}
-                  label={accountLabel}
-                  signedIn={isSignedIn}
-                  initial={accountInitial}
-                />
-                <DemoLink
-                  href={demoHref}
-                  label={demoLabel}
-                  onClick={closeMobileMenu}
-                />
-              </div>
             </nav>
-          </m.div>
-        )}
-      </AnimatePresence>
+
+            <div className="hidden items-center gap-2 lg:flex">
+              <AccountLink
+                href={localizeHref(accountHref)}
+                label={accountLabel}
+                signedIn={isSignedIn}
+                initial={accountInitial}
+                name={session?.user?.name || session?.user?.email || ''}
+                email={session?.user?.email || ''}
+                settingsLabel={settingsLabel}
+                signOutLabel={signOutLabel}
+              />
+            </div>
+
+            <button
+              type="button"
+              className="relative inline-flex size-9 items-center justify-center rounded-md text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-950 lg:hidden"
+              aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
+              aria-expanded={mobileOpen}
+              aria-controls="proactiv-mobile-menu"
+              onClick={() => setMobileOpen((isOpen) => !isOpen)}
+            >
+              {mobileOpen ? (
+                <X className="size-5" strokeWidth={1.8} />
+              ) : (
+                <Menu className="size-5" strokeWidth={1.8} />
+              )}
+            </button>
+          </div>
+
+          <AnimatePresence initial={false}>
+            {mobileOpen && (
+              <m.nav
+                id="proactiv-mobile-menu"
+                aria-label="Mobile navigation"
+                className="overflow-hidden border-t border-black/[0.06] lg:hidden"
+                initial={reduceMotion ? false : { height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={reduceMotion ? undefined : { height: 0, opacity: 0 }}
+                transition={{ duration: reduceMotion ? 0 : 0.2 }}
+              >
+                <div className="grid gap-1 px-4 py-4 sm:px-6">
+                  {links.map((link, index) => (
+                    <m.div
+                      key={`${link.href}-${link.label}`}
+                      initial={reduceMotion ? false : { opacity: 0, x: 10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{
+                        delay: reduceMotion ? 0 : index * 0.04,
+                        duration: 0.18,
+                      }}
+                    >
+                      <Link
+                        href={link.href}
+                        onClick={closeMobileMenu}
+                        className="block rounded-lg px-3 py-2.5 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100 hover:text-zinc-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-950"
+                      >
+                        {link.label}
+                      </Link>
+                    </m.div>
+                  ))}
+                  <div className="mt-3 flex items-center justify-end gap-2 border-t border-black/[0.06] pt-4">
+                    <AccountLink
+                      href={localizeHref(accountHref)}
+                      onClick={closeMobileMenu}
+                      label={accountLabel}
+                      signedIn={isSignedIn}
+                      initial={accountInitial}
+                      name={session?.user?.name || session?.user?.email || ''}
+                      email={session?.user?.email || ''}
+                      settingsLabel={settingsLabel}
+                      signOutLabel={signOutLabel}
+                    />
+                  </div>
+                </div>
+              </m.nav>
+            )}
+          </AnimatePresence>
+        </div>
+      </div>
     </header>
   );
 }
@@ -201,12 +172,20 @@ function AccountLink({
   label,
   signedIn,
   initial,
+  name,
+  email,
+  settingsLabel,
+  signOutLabel,
   onClick,
 }: {
   href: string;
   label: string;
   signedIn: boolean;
   initial: string;
+  name: string;
+  email: string;
+  settingsLabel: string;
+  signOutLabel: string;
   onClick?: () => void;
 }) {
   if (!signedIn) {
@@ -214,7 +193,7 @@ function AccountLink({
       <a
         href={href}
         onClick={onClick}
-        className="group inline-flex items-center gap-1.5 rounded-[8px] bg-[#151515] px-3 py-1.5 text-[13px] leading-5 font-medium tracking-[-0.01em] text-white shadow-[0_4px_10px_rgba(21,21,21,0.15)] transition-[background-color,box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:bg-[#292929] hover:shadow-[0_7px_14px_rgba(21,21,21,0.2)] focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-[#151515] active:scale-[0.98]"
+        className="group inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium text-zinc-500 transition-colors hover:text-zinc-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-950"
       >
         {label}
         <ArrowRight
@@ -227,15 +206,74 @@ function AccountLink({
   }
 
   return (
-    <a
-      href={href}
+    <SignedInAccountMenu
+      email={email}
+      initial={initial}
+      label={label}
+      name={name}
       onClick={onClick}
-      aria-label={label}
-      title={label}
-      className="inline-flex size-9 items-center justify-center rounded-full bg-[#dc5f8d] text-sm font-semibold text-white shadow-[0_5px_14px_rgba(220,95,141,0.2)] transition-[background-color,box-shadow,transform] duration-200 hover:scale-105 hover:bg-[#ca4c7b] hover:shadow-[0_8px_18px_rgba(220,95,141,0.28)] focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-[#c92f68] active:scale-95"
-    >
-      {initial}
-    </a>
+      settingsLabel={settingsLabel}
+      signOutLabel={signOutLabel}
+    />
+  );
+}
+
+function SignedInAccountMenu({
+  email,
+  initial,
+  label,
+  name,
+  onClick,
+  settingsLabel,
+  signOutLabel,
+}: {
+  email: string;
+  initial: string;
+  label: string;
+  name: string;
+  onClick?: () => void;
+  settingsLabel: string;
+  signOutLabel: string;
+}) {
+  const router = useRouter();
+
+  async function handleSignOut() {
+    await signOut();
+    router.push('/');
+  }
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        aria-label={label}
+        title={label}
+        className="inline-flex size-9 items-center justify-center rounded-full bg-zinc-950 text-sm font-semibold text-white shadow-[0_5px_14px_rgba(24,24,27,0.16)] transition-transform outline-none hover:scale-105 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-950 active:scale-95"
+      >
+        {initial}
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" sideOffset={10} className="min-w-52">
+        <DropdownMenuLabel className="px-2 py-2">
+          <span className="block truncate text-sm font-semibold text-zinc-950">
+            {name}
+          </span>
+          {email && (
+            <span className="mt-0.5 block truncate text-xs font-normal text-zinc-500">
+              {email}
+            </span>
+          )}
+        </DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem render={<Link href="/settings" />} onClick={onClick}>
+          <Settings className="size-4" aria-hidden="true" />
+          {settingsLabel}
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem variant="destructive" onClick={handleSignOut}>
+          <LogOut className="size-4" aria-hidden="true" />
+          {signOutLabel}
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
@@ -253,30 +291,9 @@ function Brand({
       href={href}
       onClick={onClick}
       aria-label={`${brand} home`}
-      className="relative inline-flex items-center gap-2 rounded-[6px] text-lg font-bold tracking-[-0.02em] text-[#15202b] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#c92f68]"
+      className="inline-flex items-center gap-2 rounded-md text-lg font-bold tracking-[-0.035em] text-zinc-950 focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-zinc-950"
     >
       <BrandWordmark brand={brand} />
-    </Link>
-  );
-}
-
-function DemoLink({
-  href,
-  label,
-  onClick,
-}: {
-  href: string;
-  label: string;
-  onClick?: () => void;
-}) {
-  return (
-    <Link
-      href={href}
-      onClick={onClick}
-      className="group hidden items-center gap-1.5 rounded-[6px] bg-[#c92f68] px-4 py-2 text-sm font-medium text-white transition-transform duration-200 hover:-translate-y-0.5 hover:bg-[#a62150] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c92f68] active:scale-[0.98]"
-    >
-      {label}
-      <ArrowRight className="size-3.5 transition-transform duration-200 group-hover:translate-x-0.5" />
     </Link>
   );
 }

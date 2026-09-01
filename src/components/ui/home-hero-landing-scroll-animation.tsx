@@ -119,6 +119,9 @@ export function HomeHeroLandingScrollAnimation({
           textRefs.current.forEach((segment) => {
             if (segment) gsap.set(segment, { opacity: 0 });
           });
+          slotRefs.current.forEach((slot) => {
+            if (slot) gsap.set(slot, { opacity: 0 });
+          });
 
           if (progress < 0.28) {
             const movement = progress / 0.28;
@@ -214,6 +217,9 @@ export function HomeHeroLandingScrollAnimation({
 
           gsap.set(header, { opacity: 0, y: -72 });
           gsap.set(rail, { opacity: 0 });
+          slotRefs.current.forEach((slot) => {
+            if (slot) gsap.set(slot, { opacity: 1 });
+          });
           duplicateCardsRef.current.forEach((duplicate, index) => {
             const slot = slotRefs.current[index];
             if (!slot) return;
@@ -249,17 +255,17 @@ export function HomeHeroLandingScrollAnimation({
     <section
       ref={heroRef}
       className={cn(
-        'relative isolate flex h-[100dvh] min-h-[680px] w-full items-center justify-center overflow-hidden bg-[#fff8fa] text-[#15202b]',
+        'relative isolate flex h-[100dvh] min-h-[680px] w-full items-center justify-center overflow-hidden bg-white text-[#18181b]',
         className
       )}
     >
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,rgba(255,255,255,0.7)_0%,rgba(255,240,245,0.14)_46%,rgba(255,218,229,0.6)_100%)]"
+        className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,rgba(255,255,255,0.76)_0%,rgba(250,250,250,0.32)_46%,rgba(244,244,245,0.72)_100%)]"
       />
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 opacity-35 [background-image:linear-gradient(rgba(201,47,104,0.055)_1px,transparent_1px),linear-gradient(90deg,rgba(201,47,104,0.055)_1px,transparent_1px)] [background-size:48px_48px]"
+        className="pointer-events-none absolute inset-0 opacity-35 [background-image:linear-gradient(rgba(24,24,27,0.045)_1px,transparent_1px),linear-gradient(90deg,rgba(24,24,27,0.045)_1px,transparent_1px)] [background-size:48px_48px]"
       />
 
       <div
@@ -282,29 +288,30 @@ export function HomeHeroLandingScrollAnimation({
                   alt=""
                   aria-hidden="true"
                   className="size-full object-cover"
-                  loading={index === 0 ? 'eager' : 'lazy'}
+                  loading="eager"
+                  fetchPriority={index === 0 ? 'high' : 'auto'}
                   decoding="async"
                 />
-                <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,248,250,0.38)_0%,rgba(255,248,250,0.14)_44%,rgba(255,248,250,0.92)_100%)]" />
+                  <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.38)_0%,rgba(255,255,255,0.14)_44%,rgba(255,255,255,0.92)_100%)]" />
               </SwiperSlide>
             ))}
           </Swiper>
         </div>
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_50%_42%,rgba(255,248,250,0.96)_0%,rgba(255,248,250,0.78)_39%,rgba(255,240,245,0.2)_73%)]"
+          className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_50%_42%,rgba(255,255,255,0.96)_0%,rgba(255,255,255,0.78)_39%,rgba(244,244,245,0.2)_73%)]"
         />
 
         <div className="relative z-10 mx-auto flex size-full max-w-5xl flex-col items-center justify-center px-5 pb-[16%] text-center sm:px-8">
           {eyebrow ? (
-            <p className="mb-4 text-[11px] font-semibold tracking-[0.22em] text-[#c92f68] uppercase">
+            <p className="mb-4 text-[11px] font-semibold tracking-[0.22em] text-[#18181b] uppercase">
               {eyebrow}
             </p>
           ) : null}
-          <h1 className="font-serif text-4xl leading-[0.96] font-bold tracking-[-0.06em] text-[#15202b] drop-shadow-[0_8px_20px_rgba(255,255,255,0.8)] sm:text-6xl lg:text-8xl">
+          <h1 className="font-serif text-4xl leading-[0.96] font-bold tracking-[-0.06em] text-[#18181b] drop-shadow-[0_8px_20px_rgba(255,255,255,0.8)] sm:text-6xl lg:text-8xl">
             {title}
           </h1>
-          <p className="mx-auto mt-5 max-w-2xl rounded-2xl bg-white/60 px-4 py-2 text-base leading-relaxed text-[#385466] shadow-[0_5px_20px_rgba(21,32,43,0.05)] backdrop-blur-sm sm:text-lg">
+          <p className="mx-auto mt-5 max-w-2xl px-4 py-2 text-base leading-relaxed text-[#3f3f46] drop-shadow-[0_2px_10px_rgba(255,255,255,0.75)] sm:text-lg">
             {description}
           </p>
         </div>
@@ -321,13 +328,13 @@ export function HomeHeroLandingScrollAnimation({
             ref={(element) => {
               cardRefs.current[index] = element;
             }}
-            className="aspect-[4/5] min-w-0 flex-1 overflow-hidden rounded-md border border-white/60 bg-[#fde2eb] shadow-[0_14px_36px_rgba(66,20,37,0.16)] will-change-transform"
+            className="aspect-[4/5] min-w-0 flex-1 overflow-hidden rounded-md border border-white/60 bg-[#f4f4f5] shadow-[0_14px_36px_rgba(24,24,27,0.12)] will-change-transform"
           >
             <img
               src={image.src}
               alt=""
               className="size-full object-cover"
-              loading="lazy"
+              loading="eager"
               decoding="async"
             />
           </div>
@@ -335,10 +342,10 @@ export function HomeHeroLandingScrollAnimation({
       </div>
 
       <div className="relative z-30 max-w-[1180px] px-5 text-center sm:px-8">
-        <p className="mb-5 text-[10px] font-semibold tracking-[0.24em] text-[#c92f68] uppercase opacity-0 motion-reduce:opacity-100">
+        <p className="mb-5 text-[10px] font-semibold tracking-[0.24em] text-[#18181b] uppercase opacity-0 motion-reduce:opacity-100">
           Motion control, made personal
         </p>
-        <h2 className="font-serif text-[clamp(2.65rem,7.4vw,7.5rem)] leading-[0.92] font-bold tracking-[-0.075em] text-[#15202b]">
+        <h2 className="font-serif text-[clamp(2.65rem,7.4vw,7.5rem)] leading-[0.92] font-bold tracking-[-0.075em] text-[#18181b]">
           {motionStatement.map((segment, index) => (
             <span key={`${segment}-${index}`} className="inline whitespace-nowrap">
               <span
@@ -354,8 +361,16 @@ export function HomeHeroLandingScrollAnimation({
                   slotRefs.current[index] = element;
                 }}
                 aria-hidden="true"
-                className="mx-[0.08em] inline-block size-[0.55em] align-[0.05em]"
-              />
+                className="mx-[0.08em] inline-block size-[0.55em] overflow-hidden rounded-[0.08em] align-[0.05em] opacity-0 shadow-[0_0.12em_0_rgba(24,24,27,0.16)] motion-reduce:opacity-100"
+              >
+                <img
+                  src={activeImages[index]?.src}
+                  alt=""
+                  className="size-full object-cover"
+                  loading="eager"
+                  decoding="async"
+                />
+              </span>
             </span>
           ))}
         </h2>
