@@ -3,6 +3,10 @@ import type { ProactivPriceTier } from '@/types/proactiv';
 import { envConfigs } from '@/config';
 import { grokPricingPlans } from '@/lib/grok-pricing-plans';
 import { m } from '@/paraglide/messages.js';
+import {
+  ProactivEditorGuide,
+  type ProactivEditorGuideItem,
+} from '@/components/proactiv/proactiv-editor-guide';
 import { ProactivFaq } from '@/components/proactiv/proactiv-faq';
 import {
   ProactivFooter,
@@ -65,38 +69,142 @@ const showcasePriority = new Map(
 );
 
 const showcaseAiImages = [
-  '/imgs/generated/showcase-cool-mountain-1787885973361.png',
-  '/imgs/image/meigen-2008986705962123774-1.jpg',
-  '/imgs/image/meigen-community_298030b1-c8c1-4436-b88f-5ae556af9c6a.png',
-  '/imgs/image/meigen-2075575662316749255-1.jpg',
-  '/imgs/image/meigen-2024104039827578910-1.jpg',
-  '/imgs/image/meigen-2080212481402896518-1.jpg',
-  '/imgs/image/meigen-community_5f68dfb7-b6d5-4734-b887-f5fed7c9d1af.jpg',
-  '/imgs/image/meigen-2032013831548125557.jpg',
-  '/imgs/image/meigen-community_6f65fc5d-7d3a-48d6-908c-2bf947fd1c23.png',
-  '/imgs/image/meigen-community_b827f6c2-5165-428e-9992-61f1de9e8ae3.png',
-  '/imgs/image/meigen-2060729668958097717-1.jpg',
-  '/imgs/image/meigen-community_c18ad1be-f6fb-4e2b-970d-932dff8832b9.png',
-  '/imgs/image/meigen-community_4461cb95-6748-4232-99cc-3d23b67c0b63.png',
-  '/imgs/image/meigen-community_9786c744-2f71-4f16-abeb-fc5aa1cf7d6b.png',
-  '/imgs/image/meigen-community_fb7a6b33-4d3a-459f-87e5-c67f611dd9a2.png',
-  '/imgs/generated/showcase-cool-horse-1787886505859.png',
-  '/imgs/generated/showcase-cool-deer-1787886008380.png',
-  '/imgs/generated/showcase-cool-portrait-1787885969684.png',
-  '/imgs/image/meigen-2069018297228575178-3.jpg',
-  '/imgs/image/meigen-2069018297228575178-2.jpg',
+  {
+    src: '/imgs/generated/showcase-cool-mountain-1787885973361.png',
+    width: 886,
+    height: 665,
+  },
+  {
+    src: '/imgs/image/meigen-2008986705962123774-1.jpg',
+    width: 768,
+    height: 1376,
+  },
+  {
+    src: '/imgs/image/meigen-community_298030b1-c8c1-4436-b88f-5ae556af9c6a.png',
+    width: 1024,
+    height: 1344,
+  },
+  {
+    src: '/imgs/image/meigen-2075575662316749255-1.jpg',
+    width: 1199,
+    height: 675,
+  },
+  {
+    src: '/imgs/image/meigen-2024104039827578910-1.jpg',
+    width: 967,
+    height: 1200,
+  },
+  {
+    src: '/imgs/image/meigen-2080212481402896518-1.jpg',
+    width: 904,
+    height: 1200,
+  },
+  {
+    src: '/imgs/image/meigen-community_5f68dfb7-b6d5-4734-b887-f5fed7c9d1af.jpg',
+    width: 1696,
+    height: 2528,
+  },
+  {
+    src: '/imgs/image/meigen-2032013831548125557.jpg',
+    width: 896,
+    height: 1200,
+  },
+  {
+    src: '/imgs/image/meigen-community_6f65fc5d-7d3a-48d6-908c-2bf947fd1c23.png',
+    width: 1360,
+    height: 2048,
+  },
+  {
+    src: '/imgs/image/meigen-community_b827f6c2-5165-428e-9992-61f1de9e8ae3.png',
+    width: 1008,
+    height: 1792,
+  },
+  {
+    src: '/imgs/image/meigen-2060729668958097717-1.jpg',
+    width: 675,
+    height: 1200,
+  },
+  {
+    src: '/imgs/image/meigen-community_c18ad1be-f6fb-4e2b-970d-932dff8832b9.png',
+    width: 1632,
+    height: 2048,
+  },
+  {
+    src: '/imgs/image/meigen-community_4461cb95-6748-4232-99cc-3d23b67c0b63.png',
+    width: 1344,
+    height: 1776,
+  },
+  {
+    src: '/imgs/image/meigen-community_9786c744-2f71-4f16-abeb-fc5aa1cf7d6b.png',
+    width: 1344,
+    height: 1776,
+  },
+  {
+    src: '/imgs/image/meigen-community_fb7a6b33-4d3a-459f-87e5-c67f611dd9a2.png',
+    width: 1344,
+    height: 1776,
+  },
+  {
+    src: '/imgs/generated/showcase-cool-horse-1787886505859.png',
+    width: 886,
+    height: 665,
+  },
+  {
+    src: '/imgs/generated/showcase-cool-deer-1787886008380.png',
+    width: 886,
+    height: 665,
+  },
+  {
+    src: '/imgs/generated/showcase-cool-portrait-1787885969684.png',
+    width: 886,
+    height: 665,
+  },
+  {
+    src: '/imgs/image/meigen-2069018297228575178-3.jpg',
+    width: 675,
+    height: 1199,
+  },
+  {
+    src: '/imgs/image/meigen-2069018297228575178-2.jpg',
+    width: 675,
+    height: 1199,
+  },
 ] as const;
 
 const workflowGalleryImages = [
-  '/imgs/generated/workflow-gallery-mountain-1788172411584.png',
-  '/imgs/generated/workflow-gallery-portrait-1788172415506.png',
-  '/imgs/generated/workflow-gallery-stag-1788172460025.png',
+  {
+    src: '/imgs/generated/workflow-gallery-mountain-1788172411584.png',
+    width: 1024,
+    height: 576,
+  },
+  {
+    src: '/imgs/generated/workflow-gallery-portrait-1788172415506.png',
+    width: 768,
+    height: 768,
+  },
+  {
+    src: '/imgs/generated/workflow-gallery-stag-1788172460025.png',
+    width: 768,
+    height: 768,
+  },
 ] as const;
 
 const workflowStepImages = [
-  '/imgs/generated/workflow-no-card-1788172520001.png',
-  '/imgs/generated/workflow-no-trial-1788172520002.png',
-  '/imgs/generated/workflow-no-meter-1788172520003.png',
+  {
+    src: '/imgs/generated/workflow-no-card-1788172520001.png',
+    width: 1672,
+    height: 941,
+  },
+  {
+    src: '/imgs/generated/workflow-no-trial-1788172520002.png',
+    width: 1672,
+    height: 941,
+  },
+  {
+    src: '/imgs/generated/workflow-no-meter-1788172520003.png',
+    width: 1672,
+    height: 941,
+  },
 ] as const;
 
 function navigation(): ProactivNavLink[] {
@@ -144,6 +252,13 @@ function faqs() {
   });
 }
 
+function editorGuideItems(value: string): ProactivEditorGuideItem[] {
+  return splitRows(value).map((row) => {
+    const [title, description] = row.split('||');
+    return { description: description ?? '', title: title ?? '' };
+  });
+}
+
 function footerColumns(): ProactivFooterColumn[] {
   return splitRows(m['proactiv.footer.columns']()).map((row) => {
     const [title, linksValue] = row.split('||');
@@ -185,7 +300,7 @@ function showcaseCases(): ProactivVideoShowcaseCase[] {
     )
     .map((videoCase, index) => ({
       ...videoCase,
-      showcaseImageSrc: showcaseAiImages[index],
+      showcaseImage: showcaseAiImages[index],
     }));
 }
 
@@ -205,7 +320,7 @@ function workflowSteps(): ProactivWorkflowStep[] {
       const [number, title, description] = item.split('|');
       return {
         description: description ?? '',
-        imageSrc: workflowStepImages[index],
+        image: workflowStepImages[index],
         number: number ?? '',
         title: title ?? '',
       };
@@ -281,6 +396,29 @@ export function ProactivLanding() {
           steps={workflowSteps()}
           tags={m['proactiv.workflow.tags']().split('~~')}
           title={m['proactiv.workflow.title']()}
+        />
+        <ProactivEditorGuide
+          title={m['proactiv.editor_guide.title']()}
+          definition={m['proactiv.editor_guide.definition']()}
+          definitionLinkLabel={m['proactiv.editor_guide.definition_link']()}
+          howItWorksTitle={m['proactiv.editor_guide.how_it_works.title']()}
+          steps={editorGuideItems(
+            m['proactiv.editor_guide.how_it_works.records']()
+          )}
+          howItWorksLinkLabel={m['proactiv.editor_guide.how_it_works.link']()}
+          featuresTitle={m['proactiv.editor_guide.features.title']()}
+          features={editorGuideItems(
+            m['proactiv.editor_guide.features.records']()
+          )}
+          useCasesTitle={m['proactiv.editor_guide.use_cases.title']()}
+          useCases={editorGuideItems(
+            m['proactiv.editor_guide.use_cases.records']()
+          )}
+          comparisonTitle={m['proactiv.editor_guide.comparison.title']()}
+          comparison={m['proactiv.editor_guide.comparison.description']()}
+          faqTitle={m['proactiv.editor_guide.faq.title']()}
+          faqs={editorGuideItems(m['proactiv.editor_guide.faq.records']())}
+          faqLinkLabel={m['proactiv.editor_guide.faq.link']()}
         />
         <ProactivPricing
           title={m['proactiv.pricing.title']()}

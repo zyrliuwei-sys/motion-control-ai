@@ -12,7 +12,9 @@ gsap.registerPlugin(ScrollTrigger);
 
 export type HomeHeroLandingImage = {
   alt: string;
+  height: number;
   src: string;
+  width: number;
 };
 
 export interface HomeHeroLandingScrollAnimationProps {
@@ -288,6 +290,8 @@ export function HomeHeroLandingScrollAnimation({
               <SwiperSlide key={`${image.src}-${index}`} className="size-full">
                 <img
                   src={image.src}
+                  width={image.width}
+                  height={image.height}
                   alt=""
                   aria-hidden="true"
                   className="size-full object-cover"
@@ -343,6 +347,8 @@ export function HomeHeroLandingScrollAnimation({
           >
             <img
               src={image.src}
+              width={image.width}
+              height={image.height}
               alt=""
               className="size-full object-cover"
               loading="eager"
@@ -376,6 +382,8 @@ export function HomeHeroLandingScrollAnimation({
               >
                 <img
                   src={activeImages[index]?.src}
+                  width={activeImages[index]?.width}
+                  height={activeImages[index]?.height}
                   alt=""
                   className="size-full object-cover"
                   loading="eager"

@@ -1,12 +1,15 @@
 import { useState } from 'react';
 
-import { ThreeDMarquee } from '@/components/ui/3d-marquee';
+import {
+  ThreeDMarquee,
+  type ThreeDMarqueeImage,
+} from '@/components/ui/3d-marquee';
 
 export interface ProactivVideoShowcaseCase {
   category: string;
   description: string;
   posterSrc: string;
-  showcaseImageSrc?: string;
+  showcaseImage?: ThreeDMarqueeImage;
   src: string;
   title: string;
 }
@@ -44,9 +47,9 @@ export function ProactivVideoShowcase({
           activeFilter === 'all' || videoCase.category === activeFilter
       );
   const displayedCases = visibleCases.slice(0, maxCases);
-  const marqueeImages = displayedCases
-    .map((videoCase) => videoCase.showcaseImageSrc ?? videoCase.posterSrc)
-    .filter(Boolean);
+  const marqueeImages = displayedCases.flatMap((videoCase) =>
+    videoCase.showcaseImage ? [videoCase.showcaseImage] : []
+  );
 
   if (!cases.length) return null;
 
