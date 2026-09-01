@@ -6,9 +6,15 @@ import { GlowingEffect } from '@/components/proactiv/proactiv-glowing-effect';
 
 export type ProactivWorkflowStep = {
   description: string;
-  imageSrc?: string;
+  image?: ProactivWorkflowImage;
   number: string;
   title: string;
+};
+
+export type ProactivWorkflowImage = {
+  height: number;
+  src: string;
+  width: number;
 };
 
 export interface ProactivWorkflowProps {
@@ -19,7 +25,7 @@ export interface ProactivWorkflowProps {
   galleryCaption?: string;
   galleryPrompt?: string;
   sideDescription: string;
-  sideImages?: readonly string[];
+  sideImages?: readonly ProactivWorkflowImage[];
   sideTitle: string;
   steps: readonly ProactivWorkflowStep[];
   tags: readonly string[];
@@ -140,10 +146,12 @@ export function ProactivWorkflow({
                     </p>
                   ) : null}
                   <div className="mt-3 grid grid-cols-2 gap-3">
-                    {sideImages.slice(0, 3).map((src, index) => (
+                    {sideImages.slice(0, 3).map((image, index) => (
                       <img
-                        key={src}
-                        src={src}
+                        key={image.src}
+                        src={image.src}
+                        width={image.width}
+                        height={image.height}
                         alt=""
                         loading="lazy"
                         decoding="async"
@@ -210,13 +218,15 @@ export function ProactivWorkflow({
 function StepCardContent({ step }: { step: ProactivWorkflowStep }) {
   return (
     <div className="flex h-full flex-col justify-between gap-7">
-      {step.imageSrc ? (
+      {step.image ? (
         <figure
           aria-hidden="true"
           className="aspect-[16/9] max-h-44 overflow-hidden rounded-[1rem] border border-zinc-100 bg-[#faf7f7] shadow-[0_12px_28px_rgba(24,24,27,0.08)]"
         >
           <img
-            src={step.imageSrc}
+            src={step.image.src}
+            width={step.image.width}
+            height={step.image.height}
             alt=""
             loading="lazy"
             decoding="async"

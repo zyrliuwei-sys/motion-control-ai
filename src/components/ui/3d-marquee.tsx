@@ -4,12 +4,18 @@ import { cn } from '@/lib/utils';
 
 export interface ThreeDMarqueeProps {
   className?: string;
-  images: readonly string[];
+  images: readonly ThreeDMarqueeImage[];
 }
+
+export type ThreeDMarqueeImage = {
+  height: number;
+  src: string;
+  width: number;
+};
 
 const columnCount = 5;
 
-function makeColumns(images: readonly string[]) {
+function makeColumns(images: readonly ThreeDMarqueeImage[]) {
   return Array.from({ length: columnCount }, (_, columnIndex) =>
     images.filter((_, imageIndex) => imageIndex % columnCount === columnIndex)
   );
@@ -68,13 +74,15 @@ export function ThreeDMarquee({ className, images }: ThreeDMarqueeProps) {
                 animation: `${animation} ${25 + columnIndex * 3}s linear infinite`,
               }}
             >
-              {sequence.map((src, imageIndex) => (
+              {sequence.map((image, imageIndex) => (
                 <div
-                  key={`${src}-${imageIndex}`}
+                  key={`${image.src}-${imageIndex}`}
                   className="relative aspect-[4/3] overflow-hidden rounded-lg border border-white/25 bg-zinc-100 shadow-[0_18px_36px_rgba(24,24,27,0.14)]"
                 >
                   <img
-                    src={src}
+                    src={image.src}
+                    width={image.width}
+                    height={image.height}
                     alt=""
                     className="size-full object-cover"
                     decoding="async"
