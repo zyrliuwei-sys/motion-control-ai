@@ -62,12 +62,15 @@ export interface ProactivHeroComposerProps {
   allowTextToImageMode?: boolean;
   allowVideoMode?: boolean;
   compactAction?: boolean;
+  compactGenerateAction?: boolean;
+  forceTextModeVersion?: number;
   isGenerating?: boolean;
   labels: ProactivHeroComposerLabels;
   maxImageReferences?: number;
   onPromptChange?: (prompt: string) => void;
   onGenerate?: (values: ProactivGenerationValues) => void;
   promptValue?: string;
+  referenceImageToAdd?: { file: File; id: string } | null;
   requireReferences?: boolean;
   showReferenceControls?: boolean;
 }
@@ -136,12 +139,15 @@ export function ProactivHeroComposer({
   allowTextToImageMode = true,
   allowVideoMode = true,
   compactAction = false,
+  compactGenerateAction = false,
+  forceTextModeVersion,
   isGenerating = false,
   labels,
   maxImageReferences = defaultMaximumImageReferenceCount,
   onPromptChange,
   onGenerate,
   promptValue,
+  referenceImageToAdd,
   requireReferences = true,
   showReferenceControls = true,
 }: ProactivHeroComposerProps) {
@@ -163,6 +169,7 @@ export function ProactivHeroComposer({
   const [motionVideoDurationState, setMotionVideoDurationState] =
     useState<MotionVideoDurationState>('idle');
   const referencesRef = useRef<ReferenceAttachment[]>([]);
+  const addedReferenceImageIdRef = useRef<string | null>(null);
   const motionVideo = references.find(
     (reference) => reference.slot === 'product' && reference.type === 'video'
   );
@@ -176,11 +183,9 @@ export function ProactivHeroComposer({
   const hasReachedImageReferenceLimit =
     mode === 'edit' && imageReferences.length >= maxImageReferences;
   const hasRequiredReferences =
-    mode === 'edit'
-      ? prompt.trim().length > 0 && imageReferences.length > 0
-      : mode === 'text'
-        ? prompt.trim().length > 0
-        : Boolean(avatarImage && motionVideo);
+    mode === 'text' || mode === 'edit'
+      ? prompt.trim().length > 0
+      : Boolean(avatarImage && motionVideo);
   const isReady = requireReferences
     ? hasRequiredReferences
     : prompt.trim().length > 0;
@@ -196,6 +201,8 @@ export function ProactivHeroComposer({
       Number(allowImageMode) +
       Number(allowVideoMode) >
     1;
+  const useCompactGenerateAction =
+    compactAction || compactGenerateAction || mode === 'text';
   const modelOptions = [
     ...(allowTextToImageMode
       ? [{ label: labels.textModel, value: 'text' as const }]
@@ -299,6 +306,21 @@ export function ProactivHeroComposer({
     setHasRequestedGeneration(false);
   };
 
+  // A previously sent prompt can be returned to this composer for another
+  // generation. That must use text mode: edit mode requires a reference image
+  // and would otherwise leave the generate action disabled.
+  useEffect(() => {
+    if (forceTextModeVersion === undefined || !allowTextToImageMode) return;
+
+    setMode('text');
+    setReferences((current) => {
+      current.forEach((reference) => URL.revokeObjectURL(reference.previewUrl));
+      return [];
+    });
+    setReferenceSlot(null);
+    setHasRequestedGeneration(false);
+  }, [allowTextToImageMode, forceTextModeVersion]);
+
   useEffect(() => {
     if (allowVideoMode || mode !== 'video') return;
 
@@ -334,7 +356,7 @@ export function ProactivHeroComposer({
     setHasRequestedGeneration(false);
   };
 
-  const addUploadedReferences = (files: FileList | null) => {
+  const addUploadedReferences = (files: FileList | File[] | null) => {
     if (!files?.length) return;
 
     // Adding an image from the text-to-image composer turns the request into
@@ -415,6 +437,18 @@ export function ProactivHeroComposer({
     setHasRequestedGeneration(false);
   };
 
+  useEffect(() => {
+    if (
+      !referenceImageToAdd ||
+      addedReferenceImageIdRef.current === referenceImageToAdd.id
+    ) {
+      return;
+    }
+
+    addedReferenceImageIdRef.current = referenceImageToAdd.id;
+    addUploadedReferences([referenceImageToAdd.file]);
+  }, [referenceImageToAdd]);
+
   const requestGeneration = () => {
     if (!canGenerate || isGenerating) return;
 
@@ -436,6 +470,20 @@ export function ProactivHeroComposer({
       batchSize,
       resolution,
     });
+
+    // Reference images belong to the request that was just sent. Remove their
+    // thumbnails immediately afterwards so the next prompt starts cleanly,
+    // and return to text mode because edit mode requires an attachment.
+    if (mode === 'edit') {
+      setReferences((current) => {
+        current.forEach((reference) =>
+          URL.revokeObjectURL(reference.previewUrl)
+        );
+        return [];
+      });
+      setReferenceSlot(null);
+      if (allowTextToImageMode) setMode('text');
+    }
   };
 
   return (
@@ -607,7 +655,7 @@ export function ProactivHeroComposer({
 
               <div
                 className={`flex shrink-0 items-stretch gap-1.5 self-end ${
-                  compactAction || mode === 'text'
+                  useCompactGenerateAction
                     ? 'mr-1 ml-auto size-14 self-center sm:mr-2'
                     : 'h-14 sm:w-[232px]'
                 }`}
@@ -623,7 +671,7 @@ export function ProactivHeroComposer({
                     hasRequestedGeneration ? labels.generated : labels.generate
                   }
                   className={`group relative overflow-hidden px-4 text-xs font-bold tracking-wide text-white uppercase transition-[filter,transform] hover:brightness-105 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c92f68] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 ${
-                    compactAction || mode === 'text'
+                    useCompactGenerateAction
                       ? 'size-full flex-none rounded-[18px] border border-white/65 bg-[#c92f68] p-0 shadow-[inset_0_-4px_0_#9f1f50,0_8px_18px_rgba(201,47,104,0.32)]'
                       : 'min-w-[112px] flex-1 rounded-xl bg-[#c92f68] shadow-[inset_0_-3px_0_#9f1f50,0_8px_18px_rgba(201,47,104,0.2)]'
                   }`}
@@ -631,12 +679,12 @@ export function ProactivHeroComposer({
                   <span className="absolute -right-5 -bottom-8 size-24 rounded-full bg-white/20 blur-2xl transition-transform duration-300 group-hover:scale-125" />
                   <span
                     className={`relative flex items-center justify-center ${
-                      compactAction || mode === 'text'
+                      useCompactGenerateAction
                         ? 'h-full'
                         : 'h-full flex-col gap-1'
                     }`}
                   >
-                    {compactAction || mode === 'text' ? (
+                    {useCompactGenerateAction ? (
                       <>
                         <ArrowUp
                           className="size-6 stroke-[2.5]"

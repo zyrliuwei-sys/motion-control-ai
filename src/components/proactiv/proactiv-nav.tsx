@@ -9,6 +9,7 @@ import { BrandWordmark } from '@/components/brand-wordmark';
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -252,16 +253,18 @@ function SignedInAccountMenu({
         {initial}
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" sideOffset={10} className="min-w-52">
-        <DropdownMenuLabel className="px-2 py-2">
-          <span className="block truncate text-sm font-semibold text-zinc-950">
-            {name}
-          </span>
-          {email && (
-            <span className="mt-0.5 block truncate text-xs font-normal text-zinc-500">
-              {email}
+        <DropdownMenuGroup>
+          <DropdownMenuLabel className="px-2 py-2">
+            <span className="block truncate text-sm font-semibold text-zinc-950">
+              {name}
             </span>
-          )}
-        </DropdownMenuLabel>
+            {email && (
+              <span className="mt-0.5 block truncate text-xs font-normal text-zinc-500">
+                {email}
+              </span>
+            )}
+          </DropdownMenuLabel>
+        </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuItem render={<Link href="/settings" />} onClick={onClick}>
           <Settings className="size-4" aria-hidden="true" />

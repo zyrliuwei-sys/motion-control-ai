@@ -158,7 +158,9 @@ export function TextToVideo({
           imagePreviewEmptyLabel:
             m['proactiv.video.studio.image_preview_empty'](),
           imagePreviewTitleLabel: m['proactiv.video.studio.image_preview'](),
+          editPromptLabel: m['proactiv.video.studio.edit_prompt'](),
           regenerateLabel: m['proactiv.video.studio.regenerate'](),
+          useAsReferenceLabel: m['proactiv.video.studio.use_as_reference'](),
           insufficientCreditsMessage:
             m['proactiv.video.studio.insufficient_credits'](),
           downloadVideoLabel: m['proactiv.video.studio.download_video'](),

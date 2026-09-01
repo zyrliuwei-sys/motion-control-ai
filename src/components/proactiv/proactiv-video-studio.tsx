@@ -6,8 +6,10 @@ import {
   Download,
   ExternalLink,
   ImageIcon,
+  ImagePlus,
   Layers3,
   LoaderCircle,
+  PencilLine,
   Play,
   RefreshCw,
   X,
@@ -23,6 +25,11 @@ import {
   type ProactivHeroComposerLabels,
 } from '@/components/proactiv/proactiv-hero-composer';
 import type { ProactivVideoShowcaseCase } from '@/components/proactiv/proactiv-video-showcase';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 export interface ProactivVideoStudioCopy {
   activeTemplateLabel: string;
@@ -36,7 +43,9 @@ export interface ProactivVideoStudioCopy {
   generatedImageLabel: string;
   imagePreviewEmptyLabel: string;
   imagePreviewTitleLabel: string;
+  editPromptLabel: string;
   regenerateLabel: string;
+  useAsReferenceLabel: string;
   insufficientCreditsMessage: string;
   downloadVideoLabel: string;
   downloadImageLabel: string;
@@ -85,9 +94,9 @@ const galleryLayouts = [
   'aspect-[2/3]',
   'aspect-[4/5]',
 ] as const;
-const maximumImageReferenceCount = 3;
+const maximumImageReferenceCount = 10;
+const maximumGrokImageReferenceCount = 3;
 const GROK_IMAGINE_IMAGE_API = '/api/evolink/grok-imagine-image';
-const GENERATING_IMAGE_PREVIEW_SRC = '/imgs/generated/image-1787716408940.png';
 
 interface MotionControlTask {
   id: string;
@@ -172,6 +181,125 @@ function promptWithStyle(values: ProactivGenerationValues) {
   return values.style ? `${prompt}\n\nVisual style: ${values.style}` : prompt;
 }
 
+function loadReferenceImage(file: File): Promise<HTMLImageElement> {
+  const src = URL.createObjectURL(file);
+
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => {
+      URL.revokeObjectURL(src);
+      resolve(image);
+    };
+    image.onerror = () => {
+      URL.revokeObjectURL(src);
+      reject(new Error(`Unable to read reference image: ${file.name}`));
+    };
+    image.src = src;
+  });
+}
+
+function createReferenceSheet(
+  references: ProactivGenerationReference[],
+  sheetIndex: number
+): Promise<File> {
+  return Promise.all(
+    references.map((reference) => loadReferenceImage(reference.file))
+  ).then((images) => {
+    const columns = images.length === 1 ? 1 : 2;
+    const rows = Math.ceil(images.length / columns);
+    const cellSize = 768;
+    const padding = 20;
+    const canvas = document.createElement('canvas');
+    canvas.width = columns * cellSize;
+    canvas.height = rows * cellSize;
+    const context = canvas.getContext('2d');
+    if (!context) throw new Error('Unable to prepare reference images');
+
+    context.fillStyle = '#ffffff';
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    context.strokeStyle = '#d7dde2';
+    context.lineWidth = 4;
+
+    images.forEach((image, index) => {
+      const column = index % columns;
+      const row = Math.floor(index / columns);
+      const x = column * cellSize;
+      const y = row * cellSize;
+      const availableWidth = cellSize - padding * 2;
+      const availableHeight = cellSize - padding * 2;
+      const scale = Math.min(
+        availableWidth / image.naturalWidth,
+        availableHeight / image.naturalHeight
+      );
+      const width = image.naturalWidth * scale;
+      const height = image.naturalHeight * scale;
+
+      context.drawImage(
+        image,
+        x + (cellSize - width) / 2,
+        y + (cellSize - height) / 2,
+        width,
+        height
+      );
+      context.strokeRect(x + 2, y + 2, cellSize - 4, cellSize - 4);
+    });
+
+    return new Promise<File>((resolve, reject) => {
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) {
+            reject(new Error('Unable to prepare reference images'));
+            return;
+          }
+          resolve(
+            new File([blob], `reference-sheet-${sheetIndex + 1}.jpg`, {
+              type: 'image/jpeg',
+            })
+          );
+        },
+        'image/jpeg',
+        0.9
+      );
+    });
+  });
+}
+
+async function prepareGrokReferenceUploads(
+  references: ProactivGenerationReference[]
+) {
+  if (references.length <= maximumGrokImageReferenceCount) {
+    return {
+      files: references.map((reference) => reference.file),
+      usesSheets: false,
+    };
+  }
+
+  const sheets = Array.from(
+    { length: maximumGrokImageReferenceCount },
+    () => [] as ProactivGenerationReference[]
+  );
+  references.forEach((reference, index) => {
+    sheets[index % maximumGrokImageReferenceCount].push(reference);
+  });
+
+  return {
+    files: await Promise.all(
+      sheets.filter((sheet) => sheet.length).map(createReferenceSheet)
+    ),
+    usesSheets: true,
+  };
+}
+
+function promptWithReferenceGuidance(
+  values: ProactivGenerationValues,
+  usesReferenceSheets: boolean
+) {
+  const prompt = promptWithStyle(values);
+  if (!usesReferenceSheets) return prompt;
+
+  return `${prompt}\n\nUse every image tile in the attached reference sheets as visual direction. Each tile is an independent reference image.`;
+}
+
 // A submission creates a paid upstream task. Users retry explicitly instead
 // of through an automatic client retry that could trigger a second charge.
 async function createMotionControlTask(payload: {
@@ -218,6 +346,39 @@ function displayPrompt(prompt: string) {
   return (separatorIndex > 0 ? prompt.slice(0, separatorIndex) : prompt).trim();
 }
 
+function GeneratedImageTile({
+  image,
+  label,
+  onOpen,
+}: {
+  image: GeneratedImagePreview;
+  label: string;
+  onOpen: (image: GeneratedImagePreview) => void;
+}) {
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  return (
+    <button
+      type="button"
+      onClick={() => onOpen(image)}
+      title={displayPrompt(image.prompt)}
+      aria-label={label}
+      className="group relative overflow-hidden rounded-2xl border border-[#d6e0e7] bg-white shadow-[0_8px_22px_rgba(21,32,43,0.1)] transition duration-200 hover:-translate-y-0.5 hover:border-[#efb0c4] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c92f68]"
+    >
+      <img
+        alt={displayPrompt(image.prompt) || label}
+        src={image.url}
+        loading="lazy"
+        decoding="async"
+        onLoad={() => setIsLoaded(true)}
+        className={`h-64 w-auto max-w-full object-cover transition-[opacity,transform] duration-700 ease-out group-hover:scale-[1.025] ${
+          isLoaded ? 'scale-100 opacity-100' : 'scale-[1.025] opacity-0'
+        }`}
+      />
+    </button>
+  );
+}
+
 /** A full-bleed template feed with the landing composer docked above it. */
 export function ProactivVideoStudio({
   cases,
@@ -235,6 +396,7 @@ export function ProactivVideoStudio({
     useState<ProactivVideoShowcaseCase | null>(null);
   const [isQueued, setIsQueued] = useState(false);
   const [isComposerOpen, setIsComposerOpen] = useState(false);
+  const [composerTextModeVersion, setComposerTextModeVersion] = useState(0);
   // The composer is position:fixed, so the feed's bottom padding must track its
   // live height (task cards, retry rows and reference thumbs all change it) or
   // the last turns stay hidden behind it even when scrolled to the end.
@@ -269,6 +431,13 @@ export function ProactivVideoStudio({
     useState<ProactivGenerationValues | null>(null);
   const [showRetry, setShowRetry] = useState(false);
   const [pendingPrompt, setPendingPrompt] = useState<string | null>(null);
+  const [referenceImageToAdd, setReferenceImageToAdd] = useState<{
+    file: File;
+    id: string;
+  } | null>(null);
+  const [addingReferenceImageId, setAddingReferenceImageId] = useState<
+    string | null
+  >(null);
   const selectedImagePreview =
     imagePreviewItems.find((item) => item.id === selectedImagePreviewId) ??
     null;
@@ -386,6 +555,12 @@ export function ProactivVideoStudio({
   const isImageGenerationActive =
     Boolean(pendingPrompt) ||
     Boolean(imageTask && !isTerminalTask(imageTask.status));
+  const activeImagePrompt = displayPrompt(
+    pendingPrompt ??
+      (imageTask ? imageTaskPrompts[imageTask.id] : undefined) ??
+      retryValues?.prompt ??
+      ''
+  );
   // The preview is a transient detail panel. Closing its current image should
   // reclaim the workspace rather than leaving an empty panel behind.
   const isPreviewPanelOpen = Boolean(selectedImagePreview);
@@ -481,7 +656,10 @@ export function ProactivVideoStudio({
       const images = values.references.filter(
         (reference) => reference.type === 'image'
       );
-      if (values.mode === 'text' && images.length === 0) {
+      if (
+        (values.mode === 'text' || values.mode === 'edit') &&
+        images.length === 0
+      ) {
         if (!values.prompt.trim()) {
           throw new Error(copy.imageUploadsRequiredMessage);
         }
@@ -503,9 +681,10 @@ export function ProactivVideoStudio({
           throw new Error(copy.imageUploadsRequiredMessage);
         }
 
+        const referenceUploads = await prepareGrokReferenceUploads(images);
         const formData = new FormData();
-        for (const reference of images.slice(0, maximumImageReferenceCount)) {
-          formData.append('files', reference.file, reference.name);
+        for (const file of referenceUploads.files) {
+          formData.append('files', file, file.name);
         }
         const uploaded = await apiUpload<{ images: string[] }>(
           '/api/storage/upload-media',
@@ -516,8 +695,11 @@ export function ProactivVideoStudio({
         }
 
         const task = await createGrokImagineImageTask({
-          prompt: promptWithStyle(values),
-          imageUrls: uploaded.images.slice(0, maximumImageReferenceCount),
+          prompt: promptWithReferenceGuidance(
+            values,
+            referenceUploads.usesSheets
+          ),
+          imageUrls: uploaded.images.slice(0, maximumGrokImageReferenceCount),
           n: values.batchSize,
           resolution: values.resolution,
           size: grokImageSizeByAspectRatio[values.aspectRatio] ?? 'auto',
@@ -631,6 +813,55 @@ export function ProactivVideoStudio({
     });
   }
 
+  function editPromptFromTurn(turn: StudioChatTurn) {
+    const nextPrompt = displayPrompt(turn.prompt);
+    if (!nextPrompt) return;
+
+    setPrompt(nextPrompt);
+    setIsQueued(false);
+    setIsComposerOpen(true);
+    setComposerTextModeVersion((version) => version + 1);
+
+    requestAnimationFrame(() => {
+      composerRef.current
+        ?.querySelector<HTMLTextAreaElement>('textarea')
+        ?.focus();
+    });
+  }
+
+  async function addGeneratedImageAsReference(image: GeneratedImagePreview) {
+    if (addingReferenceImageId) return;
+
+    setAddingReferenceImageId(image.id);
+    try {
+      const response = await fetch(image.downloadUrl ?? image.url);
+      if (!response.ok) {
+        throw new Error('Unable to download generated image');
+      }
+
+      const blob = await response.blob();
+      const imageType = blob.type.startsWith('image/')
+        ? blob.type
+        : 'image/png';
+      const extension = imageType === 'image/jpeg' ? 'jpg' : 'png';
+      setReferenceImageToAdd({
+        file: new File([blob], `generated-reference.${extension}`, {
+          type: imageType,
+        }),
+        id: `${image.id}-${Date.now()}`,
+      });
+      setIsComposerOpen(true);
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : 'Unable to add generated image as a reference'
+      );
+    } finally {
+      setAddingReferenceImageId(null);
+    }
+  }
+
   useEffect(() => {
     if (!videoModelEnabled) return;
     if (generationMutation.isPending || isQueued || motionTask || imageTask) {
@@ -667,69 +898,136 @@ export function ProactivVideoStudio({
             backdrop scroll here while the sidebar, preview panel and composer
             stay fixed. Flat #fff8fa backdrop — same tone as the landing page. */}
         <div className="relative h-full min-w-0 flex-1 overflow-y-auto">
-          {isImageGenerationActive ? (
-            <div
-              className="relative mx-auto flex w-full flex-1 items-center justify-center px-4 py-8"
-              style={{ paddingBottom: feedBottomPadding }}
-              role="status"
-              aria-live="polite"
-            >
-              <span className="sr-only">{copy.imageTaskProcessingLabel}</span>
-              <img
-                alt=""
-                aria-hidden="true"
-                src={GENERATING_IMAGE_PREVIEW_SRC}
-                className="aspect-square w-full max-w-[20rem] rounded-[26px] object-cover shadow-[0_16px_38px_rgba(21,32,43,0.14)]"
-              />
-            </div>
-          ) : hasImageHistory ? (
+          {hasImageHistory || isImageGenerationActive ? (
             <div
               className="relative mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 pt-8 pb-[180px] sm:px-6 sm:pb-[204px] md:pb-[224px]"
               style={{ paddingBottom: feedBottomPadding }}
             >
               {chatTurns.map((turn) => (
                 <article key={turn.id} className="flex flex-col gap-3.5">
-                  <div className="flex justify-end">
+                  <div className="flex flex-col items-end gap-1.5">
                     <p className="ml-auto max-w-[75%] rounded-[22px] rounded-br-md bg-[#fde3ec] px-4 py-2.5 text-sm leading-6 break-words whitespace-pre-wrap text-[#15202b] md:max-w-[32rem]">
                       {displayPrompt(turn.prompt) || copy.generatedImageLabel}
                     </p>
+                    <Tooltip>
+                      <TooltipTrigger
+                        render={
+                          <button
+                            type="button"
+                            onClick={() => editPromptFromTurn(turn)}
+                            aria-label={copy.editPromptLabel}
+                            className="inline-flex size-8 items-center justify-center text-[#8f2348] transition-colors hover:text-[#c92f68] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c92f68]"
+                          >
+                            <PencilLine
+                              className="size-3.5"
+                              aria-hidden="true"
+                            />
+                          </button>
+                        }
+                      />
+                      <TooltipContent side="left">
+                        {copy.editPromptLabel}
+                      </TooltipContent>
+                    </Tooltip>
                   </div>
                   <div className="flex flex-col items-start gap-2.5">
                     <div className="flex flex-wrap items-start gap-3">
                       {turn.images.map((image) => (
-                        <button
+                        <GeneratedImageTile
                           key={image.id}
-                          type="button"
-                          onClick={() => openImagePreview(image)}
-                          title={displayPrompt(image.prompt)}
-                          aria-label={copy.openGeneratedImageLabel}
-                          className="group relative overflow-hidden rounded-2xl border border-[#d6e0e7] bg-white shadow-[0_8px_22px_rgba(21,32,43,0.1)] transition duration-200 hover:-translate-y-0.5 hover:border-[#efb0c4] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c92f68]"
-                        >
-                          <img
-                            alt={
-                              displayPrompt(image.prompt) ||
-                              copy.generatedImageLabel
-                            }
-                            src={image.url}
-                            loading="lazy"
-                            decoding="async"
-                            className="h-64 w-auto max-w-full object-cover transition duration-300 group-hover:scale-[1.025]"
-                          />
-                        </button>
+                          image={image}
+                          label={copy.openGeneratedImageLabel}
+                          onOpen={openImagePreview}
+                        />
                       ))}
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => regenerateFromTurn(turn)}
-                      disabled={generationMutation.isPending}
-                      className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-medium text-[#627181] transition-colors hover:bg-[#fff1f5] hover:text-[#c92f68] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c92f68] disabled:cursor-not-allowed disabled:opacity-55"
-                    >
-                      <RefreshCw className="size-3.5" aria-hidden="true" />
-                      {copy.regenerateLabel}
-                    </button>
+                    <div className="flex items-center gap-1">
+                      <Tooltip>
+                        <TooltipTrigger
+                          render={
+                            <button
+                              type="button"
+                              onClick={() => regenerateFromTurn(turn)}
+                              disabled={generationMutation.isPending}
+                              aria-label={copy.regenerateLabel}
+                              className="inline-flex size-8 items-center justify-center text-[#627181] transition-colors hover:text-[#c92f68] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c92f68] disabled:cursor-not-allowed disabled:opacity-55"
+                            >
+                              <RefreshCw
+                                className="size-3.5"
+                                aria-hidden="true"
+                              />
+                            </button>
+                          }
+                        />
+                        <TooltipContent>{copy.regenerateLabel}</TooltipContent>
+                      </Tooltip>
+                      {turn.images.length ? (
+                        <Tooltip>
+                          <TooltipTrigger
+                            render={
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  void addGeneratedImageAsReference(
+                                    turn.images[turn.images.length - 1]!
+                                  )
+                                }
+                                disabled={
+                                  Boolean(addingReferenceImageId) ||
+                                  generationMutation.isPending
+                                }
+                                aria-label={copy.useAsReferenceLabel}
+                                className="inline-flex size-8 items-center justify-center text-[#627181] transition-colors hover:text-[#c92f68] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c92f68] disabled:cursor-not-allowed disabled:opacity-55"
+                              >
+                                {addingReferenceImageId ===
+                                turn.images[turn.images.length - 1]?.id ? (
+                                  <LoaderCircle
+                                    className="size-3.5 animate-spin"
+                                    aria-hidden="true"
+                                  />
+                                ) : (
+                                  <ImagePlus
+                                    className="size-3.5"
+                                    aria-hidden="true"
+                                  />
+                                )}
+                              </button>
+                            }
+                          />
+                          <TooltipContent>
+                            {copy.useAsReferenceLabel}
+                          </TooltipContent>
+                        </Tooltip>
+                      ) : null}
+                    </div>
                   </div>
                 </article>
               ))}
+              {isImageGenerationActive ? (
+                <article
+                  className="flex flex-col gap-3.5"
+                  role="status"
+                  aria-live="polite"
+                >
+                  <div className="flex min-w-0 justify-end">
+                    <p className="max-w-[75%] rounded-[22px] rounded-br-md bg-[#fde3ec] px-4 py-2.5 text-sm leading-6 break-words whitespace-pre-wrap text-[#15202b] md:max-w-[32rem]">
+                      {activeImagePrompt || copy.generatedImageLabel}
+                    </p>
+                  </div>
+                  <div className="relative aspect-square w-full max-w-64 overflow-hidden rounded-2xl border border-[#d6e0e7] bg-[#f4f6f7] shadow-[0_8px_22px_rgba(21,32,43,0.1)]">
+                    <div className="absolute inset-0 animate-pulse bg-[linear-gradient(125deg,#edf1f3_10%,#ffffff_36%,#e8edf0_54%,#f8fafb_72%,#edf1f3_94%)]" />
+                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_25%,rgba(255,255,255,0.88),transparent_42%)]" />
+                    <div className="absolute inset-0 grid place-items-center">
+                      <span className="grid size-12 place-items-center rounded-full bg-white/85 shadow-[0_8px_22px_rgba(21,32,43,0.12)] backdrop-blur-sm">
+                        <LoaderCircle
+                          className="size-5 animate-spin text-[#627181]"
+                          aria-hidden="true"
+                        />
+                      </span>
+                    </div>
+                  </div>
+                </article>
+              ) : null}
               <div ref={threadEndRef} aria-hidden="true" />
             </div>
           ) : showTemplateFeed ? (
@@ -788,14 +1086,14 @@ export function ProactivVideoStudio({
             {selectedImagePreview ? (
               <>
                 <div className="relative min-h-0 flex-1 overflow-hidden bg-[#fff8fa]">
-                  <div className="fixed top-2 right-2 z-30 flex shrink-0 items-center gap-0.5 rounded-lg border border-[#d6e0e7] bg-white/90 p-0.5 shadow-[0_4px_12px_rgba(21,32,43,0.14)] backdrop-blur">
+                  <div className="fixed top-2 right-2 z-30 flex items-center gap-1">
                     <a
                       href={
                         selectedImagePreview.downloadUrl ??
                         selectedImagePreview.url
                       }
                       download
-                      className="inline-flex size-7 items-center justify-center rounded-md text-[#627181] transition hover:bg-[#fff1f5] hover:text-[#15202b] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c92f68]"
+                      className="inline-flex size-8 items-center justify-center text-[#627181] transition-colors hover:text-[#15202b] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c92f68]"
                       aria-label={copy.downloadImageLabel}
                       title={copy.downloadImageLabel}
                     >
@@ -805,7 +1103,7 @@ export function ProactivVideoStudio({
                       href={selectedImagePreview.url}
                       target="_blank"
                       rel="noreferrer"
-                      className="inline-flex size-7 items-center justify-center rounded-md text-[#627181] transition hover:bg-[#fff1f5] hover:text-[#15202b] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c92f68]"
+                      className="inline-flex size-8 items-center justify-center text-[#627181] transition-colors hover:text-[#15202b] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c92f68]"
                       aria-label={copy.openGeneratedImageLabel}
                       title={copy.openGeneratedImageLabel}
                     >
@@ -814,7 +1112,7 @@ export function ProactivVideoStudio({
                     <button
                       type="button"
                       onClick={() => setSelectedImagePreviewId(null)}
-                      className="inline-flex size-7 items-center justify-center rounded-md text-[#627181] transition hover:bg-[#fff1f5] hover:text-[#15202b] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c92f68]"
+                      className="inline-flex size-8 items-center justify-center text-[#627181] transition-colors hover:text-[#15202b] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c92f68]"
                       aria-label={copy.dismissGeneratedImageLabel}
                       title={copy.dismissGeneratedImageLabel}
                     >
@@ -828,7 +1126,7 @@ export function ProactivVideoStudio({
                     }
                     decoding="async"
                     src={selectedImagePreview.url}
-                    className="size-full object-cover"
+                    className="size-full object-contain"
                   />
                 </div>
                 <div className="shrink-0 border-t border-[#d6e0e7] px-4 py-3">
@@ -929,6 +1227,8 @@ export function ProactivVideoStudio({
                 ) : null}
                 <ProactivHeroComposer
                   allowVideoMode={videoModelEnabled}
+                  compactGenerateAction
+                  forceTextModeVersion={composerTextModeVersion}
                   isGenerating={
                     generationMutation.isPending ||
                     Boolean(motionTask && !isTerminalTask(motionTask.status)) ||
@@ -941,6 +1241,7 @@ export function ProactivVideoStudio({
                   }}
                   maxImageReferences={maximumImageReferenceCount}
                   promptValue={prompt}
+                  referenceImageToAdd={referenceImageToAdd}
                   onPromptChange={(nextPrompt) => {
                     setPrompt(nextPrompt);
                     setIsQueued(false);
