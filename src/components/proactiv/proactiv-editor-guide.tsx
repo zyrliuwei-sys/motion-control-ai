@@ -8,9 +8,6 @@ export interface ProactivEditorGuideProps {
   comparisonTitle: string;
   definition: string;
   definitionLinkLabel: string;
-  faqLinkLabel: string;
-  faqTitle: string;
-  faqs: readonly ProactivEditorGuideItem[];
   features: readonly ProactivEditorGuideItem[];
   featuresTitle: string;
   howItWorksLinkLabel: string;
@@ -27,9 +24,6 @@ export function ProactivEditorGuide({
   comparisonTitle,
   definition,
   definitionLinkLabel,
-  faqLinkLabel,
-  faqTitle,
-  faqs,
   features,
   featuresTitle,
   howItWorksLinkLabel,
@@ -87,36 +81,6 @@ export function ProactivEditorGuide({
           <p className="mt-4 text-base leading-7 text-[#52525b]">
             {comparison}
           </p>
-        </section>
-
-        <section className="mt-14" aria-labelledby="editor-guide-faq-heading">
-          <h2
-            id="editor-guide-faq-heading"
-            className="text-2xl font-semibold tracking-[-0.045em] sm:text-3xl"
-          >
-            {faqTitle}
-          </h2>
-          <div className="mt-6 grid gap-4 md:grid-cols-2">
-            {faqs.map((faq) => (
-              <article
-                key={faq.title}
-                className="rounded-2xl border border-zinc-200 bg-white p-5"
-              >
-                <h3 className="text-base font-semibold tracking-[-0.02em]">
-                  {faq.title}
-                </h3>
-                <p className="mt-2 text-sm leading-6 text-[#52525b]">
-                  {faq.description}
-                </p>
-              </article>
-            ))}
-          </div>
-          <a
-            href="/text-to-image"
-            className="mt-6 inline-flex text-sm font-semibold text-[#18181b] underline decoration-[#18181b]/35 underline-offset-4 transition-colors hover:text-[#52525b] hover:decoration-[#18181b] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#18181b]"
-          >
-            {faqLinkLabel}
-          </a>
         </section>
       </div>
     </section>

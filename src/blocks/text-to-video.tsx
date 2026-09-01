@@ -40,8 +40,6 @@ function navGroups(): SenziaNavGroup[] {
 
 function navHref(id: string) {
   switch (id) {
-    case 'photo-editor':
-      return '/photo-editor';
     case 'explore':
     case 'image-to-video':
     case 'video-extender':
@@ -107,8 +105,6 @@ export function TextToVideo({
       brand={envConfigs.app_name}
       brandHref="/"
       languageLabel={m['proactiv.video.language']()}
-      demoLabel={m['proactiv.book_demo']()}
-      demoHref="/book-demo"
       pricingLabel={m['landing.pricing.title']()}
       pricingHref="/pricing"
       collapseSidebarLabel={m['proactiv.sidebar.collapse']()}

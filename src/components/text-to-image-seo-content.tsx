@@ -45,6 +45,27 @@ export function TextToImageSeoContent() {
           <p className="text-sm font-semibold tracking-[0.16em] text-neutral-500 uppercase">
             Free text to image generator
           </p>
+          <nav
+            aria-label="Breadcrumb"
+            className="mt-4 text-sm font-medium text-neutral-500"
+          >
+            <ol className="flex flex-wrap items-center gap-2">
+              <li>
+                <a
+                  href="/"
+                  className="transition-colors hover:text-neutral-950 hover:underline hover:underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-neutral-950"
+                >
+                  Home
+                </a>
+              </li>
+              <li aria-hidden="true" className="text-neutral-300">
+                /
+              </li>
+              <li aria-current="page" className="text-neutral-700">
+                Uncensored AI Image Editor
+              </li>
+            </ol>
+          </nav>
           <h1 className="mt-3 text-4xl font-semibold tracking-tight sm:text-5xl">
             Uncensored AI Image Editor
           </h1>
@@ -209,6 +230,61 @@ export function TextToImageSeoContent() {
             </dl>
           </section>
         </div>
+
+        <section
+          aria-labelledby="related-tools-heading"
+          className="mt-14 border-t border-neutral-200 pt-10 sm:mt-16 sm:pt-12"
+        >
+          <div className="max-w-3xl">
+            <h2
+              id="related-tools-heading"
+              className="text-2xl font-semibold tracking-tight text-neutral-950 sm:text-3xl"
+            >
+              Related Free AI Tools
+            </h2>
+            <ul className="mt-6 grid gap-3 sm:grid-cols-3">
+              <li>
+                <a
+                  href="/ai-motion-control"
+                  className="group flex h-full flex-col rounded-2xl border border-neutral-200 bg-neutral-50 p-5 transition-colors hover:border-neutral-300 hover:bg-white focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-neutral-950"
+                >
+                  <span className="font-semibold text-neutral-950 underline decoration-neutral-300 underline-offset-4 transition-colors group-hover:decoration-neutral-950">
+                    AI Motion Control
+                  </span>
+                  <span className="mt-2 text-sm leading-6 text-neutral-600">
+                    Animate your generated images
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a
+                  href="/text-to-image"
+                  className="group flex h-full flex-col rounded-2xl border border-neutral-200 bg-neutral-50 p-5 transition-colors hover:border-neutral-300 hover:bg-white focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-neutral-950"
+                >
+                  <span className="font-semibold text-neutral-950 underline decoration-neutral-300 underline-offset-4 transition-colors group-hover:decoration-neutral-950">
+                    Uncensored AI Image Editor
+                  </span>
+                  <span className="mt-2 text-sm leading-6 text-neutral-600">
+                    Back to the editor
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a
+                  href="/pricing"
+                  className="group flex h-full flex-col rounded-2xl border border-neutral-200 bg-neutral-50 p-5 transition-colors hover:border-neutral-300 hover:bg-white focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-neutral-950"
+                >
+                  <span className="font-semibold text-neutral-950 underline decoration-neutral-300 underline-offset-4 transition-colors group-hover:decoration-neutral-950">
+                    Pricing
+                  </span>
+                  <span className="mt-2 text-sm leading-6 text-neutral-600">
+                    Unlock pro features with no content filters
+                  </span>
+                </a>
+              </li>
+            </ul>
+          </div>
+        </section>
       </div>
     </article>
   );

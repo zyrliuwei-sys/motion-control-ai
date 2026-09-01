@@ -8,6 +8,7 @@ export interface ThreeDMarqueeProps {
 }
 
 export type ThreeDMarqueeImage = {
+  alt: string;
   height: number;
   src: string;
   width: number;
@@ -35,9 +36,8 @@ export function ThreeDMarquee({ className, images }: ThreeDMarqueeProps) {
 
   return (
     <div
-      aria-hidden="true"
       className={cn(
-        'relative h-[29rem] overflow-hidden [perspective:1200px] sm:h-[37rem] lg:h-[45rem]',
+        `relative h-[29rem] overflow-hidden [perspective:1200px] sm:h-[37rem] lg:h-[45rem] ${instanceId}-wall`,
         className
       )}
     >
@@ -52,6 +52,10 @@ export function ThreeDMarquee({ className, images }: ThreeDMarqueeProps) {
         }
         @media (prefers-reduced-motion: reduce) {
           .${instanceId}-column { animation-play-state: paused !important; }
+        }
+        .${instanceId}-wall:hover .${instanceId}-column,
+        .${instanceId}-wall:focus-within .${instanceId}-column {
+          animation-play-state: paused;
         }
       `}</style>
 
@@ -75,21 +79,25 @@ export function ThreeDMarquee({ className, images }: ThreeDMarqueeProps) {
               }}
             >
               {sequence.map((image, imageIndex) => (
-                <div
+                <a
                   key={`${image.src}-${imageIndex}`}
-                  className="relative aspect-[4/3] overflow-hidden rounded-lg border border-white/25 bg-zinc-100 shadow-[0_18px_36px_rgba(24,24,27,0.14)]"
+                  href="/text-to-image"
+                  className="group relative block aspect-[4/3] overflow-hidden rounded-lg border border-white/25 bg-zinc-100 shadow-[0_18px_36px_rgba(24,24,27,0.14)] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#18181b]"
                 >
                   <img
                     src={image.src}
                     width={image.width}
                     height={image.height}
-                    alt=""
+                    alt={image.alt}
                     className="size-full object-cover"
                     decoding="async"
                     loading={imageIndex < 2 ? 'eager' : 'lazy'}
                   />
                   <span className="absolute inset-0 bg-[linear-gradient(135deg,rgba(255,255,255,0.16),transparent_48%,rgba(24,24,27,0.12))]" />
-                </div>
+                  <span className="pointer-events-none absolute inset-0 grid place-items-center bg-[#15202b]/0 p-3 text-center text-xs font-semibold tracking-[0.08em] text-white opacity-0 transition-[background-color,opacity] duration-200 group-hover:bg-[#15202b]/40 group-hover:opacity-100 group-focus-visible:bg-[#15202b]/40 group-focus-visible:opacity-100">
+                    Try this style
+                  </span>
+                </a>
               ))}
             </div>
           );

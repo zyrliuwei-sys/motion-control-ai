@@ -5,7 +5,6 @@ import { baseLocale, locales, localizeUrl } from '@/paraglide/runtime.js';
 
 const STATIC_PATHS = [
   '',
-  '/ai-motion-control',
   '/text-to-image',
   '/pricing',
   '/privacy-policy',

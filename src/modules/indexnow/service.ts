@@ -5,7 +5,6 @@ const MAX_URLS_PER_SUBMISSION = 10_000;
 /** Only public, crawlable routes are included in the one-click submission. */
 const PUBLIC_PATHS = [
   '/',
-  '/ai-motion-control',
   '/pricing',
   '/privacy-policy',
   '/terms-of-service',

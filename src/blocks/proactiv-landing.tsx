@@ -70,101 +70,121 @@ const showcasePriority = new Map(
 
 const showcaseAiImages = [
   {
+    alt: 'Uncensored AI image editor sample of a snow-covered mountain reflected in a northern lake',
     src: '/imgs/generated/showcase-cool-mountain-1787885973361.png',
     width: 886,
     height: 665,
   },
   {
+    alt: 'AI generated floating chocolate, coffee, and cream ingredients in a dark product composition',
     src: '/imgs/image/meigen-2008986705962123774-1.jpg',
     width: 768,
     height: 1376,
   },
   {
+    alt: 'AI generated ornate Italy World Cup poster with marble football statues and gold trophy',
     src: '/imgs/image/meigen-community_298030b1-c8c1-4436-b88f-5ae556af9c6a.png',
     width: 1024,
     height: 1344,
   },
   {
+    alt: 'AI generated fruit tornado above a blender in a modern kitchen',
     src: '/imgs/image/meigen-2075575662316749255-1.jpg',
     width: 1199,
     height: 675,
   },
   {
+    alt: 'Uncensored AI image editor sample of a black perfume bottle with orchids and gold smoke',
     src: '/imgs/image/meigen-2024104039827578910-1.jpg',
     width: 967,
     height: 1200,
   },
   {
+    alt: 'AI generated athlete floating above an orange fashion campaign background',
     src: '/imgs/image/meigen-2080212481402896518-1.jpg',
     width: 904,
     height: 1200,
   },
   {
+    alt: 'AI generated modular brick house with floating architectural materials',
     src: '/imgs/image/meigen-community_5f68dfb7-b6d5-4734-b887-f5fed7c9d1af.jpg',
     width: 1696,
     height: 2528,
   },
   {
+    alt: 'Cinematic AI generated portrait of a man in a sunlit abandoned factory',
     src: '/imgs/image/meigen-2032013831548125557.jpg',
     width: 896,
     height: 1200,
   },
   {
+    alt: 'AI generated blue sports car advertisement in a neon showroom',
     src: '/imgs/image/meigen-community_6f65fc5d-7d3a-48d6-908c-2bf947fd1c23.png',
     width: 1360,
     height: 2048,
   },
   {
+    alt: 'AI generated woman with coffee and bicycle in a sunlit editorial poster',
     src: '/imgs/image/meigen-community_b827f6c2-5165-428e-9992-61f1de9e8ae3.png',
     width: 1008,
     height: 1792,
   },
   {
+    alt: 'Uncensored AI image editor sample of a woman in traditional dress on a fashion magazine cover',
     src: '/imgs/image/meigen-2060729668958097717-1.jpg',
     width: 675,
     height: 1200,
   },
   {
+    alt: 'AI generated beauty portrait holding a rose-gold perfume bottle',
     src: '/imgs/image/meigen-community_c18ad1be-f6fb-4e2b-970d-932dff8832b9.png',
     width: 1632,
     height: 2048,
   },
   {
+    alt: 'AI generated comic-style perfume poster with a phoenix, mountains, and sports car',
     src: '/imgs/image/meigen-community_4461cb95-6748-4232-99cc-3d23b67c0b63.png',
     width: 1344,
     height: 1776,
   },
   {
+    alt: 'AI generated artisan coffee bag with beans and a wooden scoop in a cafe',
     src: '/imgs/image/meigen-community_9786c744-2f71-4f16-abeb-fc5aa1cf7d6b.png',
     width: 1344,
     height: 1776,
   },
   {
+    alt: 'Uncensored AI image editor sample of a couture gown in an editorial real estate poster',
     src: '/imgs/image/meigen-community_fb7a6b33-4d3a-459f-87e5-c67f611dd9a2.png',
     width: 1344,
     height: 1776,
   },
   {
+    alt: 'AI generated white two-headed horse galloping through moonlit water',
     src: '/imgs/generated/showcase-cool-horse-1787886505859.png',
     width: 886,
     height: 665,
   },
   {
+    alt: 'AI generated stag silhouette in a misty blue forest',
     src: '/imgs/generated/showcase-cool-deer-1787886008380.png',
     width: 886,
     height: 665,
   },
   {
+    alt: 'Uncensored AI image editor sample of a purple-lit portrait with a blue halo',
     src: '/imgs/generated/showcase-cool-portrait-1787885969684.png',
     width: 886,
     height: 665,
   },
   {
+    alt: 'AI generated luxury gala poster with a woman in a black velvet gown',
     src: '/imgs/image/meigen-2069018297228575178-3.jpg',
     width: 675,
     height: 1199,
   },
   {
+    alt: 'AI generated fashion cover of a model in a bright yellow leather jacket',
     src: '/imgs/image/meigen-2069018297228575178-2.jpg',
     width: 675,
     height: 1199,
@@ -329,8 +349,6 @@ function workflowSteps(): ProactivWorkflowStep[] {
 }
 
 export function ProactivLanding() {
-  const demoLabel = m['proactiv.book_demo']();
-
   return (
     <div className="proactiv-site min-h-screen overflow-hidden">
       <ProactivNav
@@ -416,9 +434,6 @@ export function ProactivLanding() {
           )}
           comparisonTitle={m['proactiv.editor_guide.comparison.title']()}
           comparison={m['proactiv.editor_guide.comparison.description']()}
-          faqTitle={m['proactiv.editor_guide.faq.title']()}
-          faqs={editorGuideItems(m['proactiv.editor_guide.faq.records']())}
-          faqLinkLabel={m['proactiv.editor_guide.faq.link']()}
         />
         <ProactivPricing
           title={m['proactiv.pricing.title']()}
@@ -436,9 +451,7 @@ export function ProactivLanding() {
             m['proactiv.pricing.billed_annually']({ price })
           }
           tiers={tiers()}
-          getCtaHref={(tier) =>
-            tier.cta === demoLabel ? '/book-demo' : '/sign-up'
-          }
+          getCtaHref={() => '/sign-up'}
         />
         <ProactivFaq title={m['proactiv.faq.title']()} faqs={faqs()} />
       </main>

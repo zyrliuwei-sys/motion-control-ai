@@ -34,8 +34,6 @@ export interface SenziaAppShellProps {
   brand: string;
   brandHref: string;
   languageLabel: string;
-  demoLabel: string;
-  demoHref: string;
   pricingLabel: string;
   pricingHref: string;
   collapseSidebarLabel: string;
@@ -55,8 +53,6 @@ export function SenziaAppShell({
   brand,
   brandHref,
   languageLabel,
-  demoLabel,
-  demoHref,
   pricingLabel,
   pricingHref,
   collapseSidebarLabel,
@@ -102,12 +98,6 @@ export function SenziaAppShell({
           >
             {languageLabel}
           </button>
-          <Link
-            href={demoHref}
-            className="hidden rounded-lg bg-[#c92f68] px-3 py-1.5 text-sm font-semibold text-white transition-colors duration-150 ease-out hover:bg-[#a62150] focus-visible:bg-[#a62150] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c92f68]"
-          >
-            {demoLabel}
-          </Link>
         </div>
       </header>
 

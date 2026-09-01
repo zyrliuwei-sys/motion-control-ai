@@ -32,6 +32,25 @@ const faqStructuredData = {
   })),
 };
 
+const breadcrumbStructuredData = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    {
+      '@type': 'ListItem',
+      position: 1,
+      name: 'Home',
+      item: 'https://www.uncensoredaieditor.com/',
+    },
+    {
+      '@type': 'ListItem',
+      position: 2,
+      name: 'Uncensored AI Image Editor',
+      item: 'https://www.uncensoredaieditor.com/text-to-image',
+    },
+  ],
+};
+
 function TextToImageRoute() {
   const { prompt } = Route.useSearch();
   const router = useRouter();
@@ -88,6 +107,7 @@ export const Route = createFileRoute('/text-to-image')({
         content: TEXT_TO_IMAGE_SOCIAL_IMAGE_URL,
       },
       { 'script:ld+json': faqStructuredData },
+      { 'script:ld+json': breadcrumbStructuredData },
     ],
     links: [
       { rel: 'canonical', href: canonicalUrl },
