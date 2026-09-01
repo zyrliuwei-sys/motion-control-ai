@@ -9,28 +9,11 @@ import {
   TEXT_TO_IMAGE_SOCIAL_IMAGE_URL,
 } from '@/lib/motion-control-seo';
 import { TextToVideo } from '@/blocks/text-to-video';
-import {
-  textToImageFaqs,
-  TextToImageSeoContent,
-} from '@/components/text-to-image-seo-content';
 
 const textToImageSearchSchema = z.object({
   prompt: z.string().max(4000).optional(),
 });
 const canonicalUrl = `${SITE_URL}${siteSeo.textToImage.path}`;
-
-const faqStructuredData = {
-  '@context': 'https://schema.org',
-  '@type': 'FAQPage',
-  mainEntity: textToImageFaqs.map((faq) => ({
-    '@type': 'Question',
-    name: faq.question,
-    acceptedAnswer: {
-      '@type': 'Answer',
-      text: faq.answer,
-    },
-  })),
-};
 
 const breadcrumbStructuredData = {
   '@context': 'https://schema.org',
@@ -73,12 +56,7 @@ function TextToImageRoute() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [router]);
 
-  return (
-    <>
-      <TextToVideo initialPrompt={prompt} showTemplateFeed={false} />
-      <TextToImageSeoContent />
-    </>
-  );
+  return <TextToVideo initialPrompt={prompt} showTemplateFeed={false} />;
 }
 
 export const Route = createFileRoute('/text-to-image')({
@@ -106,7 +84,6 @@ export const Route = createFileRoute('/text-to-image')({
         name: 'twitter:image',
         content: TEXT_TO_IMAGE_SOCIAL_IMAGE_URL,
       },
-      { 'script:ld+json': faqStructuredData },
       { 'script:ld+json': breadcrumbStructuredData },
     ],
     links: [

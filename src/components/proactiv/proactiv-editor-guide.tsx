@@ -1,3 +1,5 @@
+import { Features } from '@/components/ui/features-11';
+
 export type ProactivEditorGuideItem = {
   description: string;
   title: string;
@@ -57,7 +59,7 @@ export function ProactivEditorGuide({
           </a>
         </header>
 
-        <GuideList title={howItWorksTitle} items={steps} ordered />
+        <GuideList title={howItWorksTitle} items={steps} />
         <a
           href="/text-to-image"
           className="mt-5 inline-flex text-sm font-semibold text-[#18181b] underline decoration-[#18181b]/35 underline-offset-4 transition-colors hover:text-[#52525b] hover:decoration-[#18181b] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#18181b]"
@@ -65,8 +67,8 @@ export function ProactivEditorGuide({
           {howItWorksLinkLabel}
         </a>
 
-        <GuideList title={featuresTitle} items={features} />
-        <GuideList title={useCasesTitle} items={useCases} />
+        <Features title={featuresTitle} items={features} />
+        <Features title={useCasesTitle} items={useCases} />
 
         <section
           className="mt-14 max-w-3xl"
@@ -89,35 +91,31 @@ export function ProactivEditorGuide({
 
 function GuideList({
   items,
-  ordered = false,
   title,
 }: {
   items: readonly ProactivEditorGuideItem[];
-  ordered?: boolean;
   title: string;
 }) {
-  const List = ordered ? 'ol' : 'ul';
-
   return (
     <section className="mt-14" aria-label={title}>
       <h2 className="text-2xl font-semibold tracking-[-0.045em] sm:text-3xl">
         {title}
       </h2>
-      <List className="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <ol className="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {items.map((item, index) => (
           <li
             key={item.title}
             className="rounded-2xl border border-zinc-200 bg-white p-5"
           >
             <h3 className="text-base font-semibold tracking-[-0.02em]">
-              {ordered ? `${index + 1}. ${item.title}` : item.title}
+              {`${index + 1}. ${item.title}`}
             </h3>
             <p className="mt-2 text-sm leading-6 text-[#52525b]">
               {item.description}
             </p>
           </li>
         ))}
-      </List>
+      </ol>
     </section>
   );
 }

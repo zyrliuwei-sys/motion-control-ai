@@ -47,6 +47,8 @@ function navHref(id: string) {
       return '/text-to-image#studio-feed';
     case 'text-to-video':
       return '/text-to-image';
+    case 'prompt-guide':
+      return '/ai-image-prompt-guide';
     case 'home':
       return '/';
     case 'blog':
@@ -115,6 +117,16 @@ export function TextToVideo({
         cases={cases}
         initialPrompt={initialPrompt}
         showTemplateFeed={showTemplateFeed}
+        toolIntro={{
+          description: m['proactiv.image_studio.intro.description'](),
+          eyebrow: m['proactiv.image_studio.intro.eyebrow'](),
+          examplePrompts: m['proactiv.image_studio.intro.examples']()
+            .split('\n')
+            .filter(Boolean),
+          guideHref: '/ai-image-prompt-guide',
+          guideLabel: m['proactiv.image_studio.intro.guide_label'](),
+          title: m['proactiv.image_studio.intro.title'](),
+        }}
         composerLabels={{
           addReference: m['proactiv.hero.composer.add_reference'](),
           aspectRatio: m['proactiv.hero.composer.aspect_ratio'](),

@@ -17,7 +17,7 @@ import {
 import { toast } from 'sonner';
 
 import { useSession } from '@/core/auth/client';
-import { useRouter } from '@/core/i18n/navigation';
+import { Link, useRouter } from '@/core/i18n/navigation';
 import { apiGet, apiPost, apiUpload } from '@/lib/api-client';
 import {
   ProactivHeroComposer,
@@ -77,7 +77,17 @@ export interface ProactivVideoStudioProps {
   copy: ProactivVideoStudioCopy;
   initialPrompt?: string;
   showTemplateFeed?: boolean;
+  toolIntro?: ProactivVideoStudioToolIntro;
   videoModelEnabled?: boolean;
+}
+
+export interface ProactivVideoStudioToolIntro {
+  description: string;
+  examplePrompts: readonly string[];
+  eyebrow: string;
+  guideHref: string;
+  guideLabel: string;
+  title: string;
 }
 
 const galleryLayouts = [
@@ -386,6 +396,7 @@ export function ProactivVideoStudio({
   copy,
   initialPrompt = '',
   showTemplateFeed = true,
+  toolIntro,
   videoModelEnabled = false,
 }: ProactivVideoStudioProps) {
   const queryClient = useQueryClient();
@@ -888,6 +899,19 @@ export function ProactivVideoStudio({
     setIsComposerOpen(true);
   };
 
+  const useExamplePrompt = (examplePrompt: string) => {
+    setPrompt(examplePrompt);
+    setIsQueued(false);
+    setIsComposerOpen(true);
+    setComposerTextModeVersion((version) => version + 1);
+
+    requestAnimationFrame(() => {
+      composerRef.current
+        ?.querySelector<HTMLTextAreaElement>('textarea')
+        ?.focus();
+    });
+  };
+
   return (
     <div className="flex h-[calc(100dvh-3rem)] min-w-0">
       <section
@@ -1073,6 +1097,43 @@ export function ProactivVideoStudio({
                     onSelect={() => selectCase(videoCase)}
                   />
                 ))}
+              </div>
+            </div>
+          ) : toolIntro ? (
+            <div className="mx-auto flex min-h-full w-full max-w-3xl flex-col justify-center px-5 pt-6 pb-52 sm:px-8 sm:pt-10 sm:pb-60">
+              <div className="rounded-[28px] border border-[#d6e0e7] bg-white/80 p-6 shadow-[0_14px_36px_rgba(21,32,43,0.06)] backdrop-blur-sm sm:p-8">
+                <p className="text-[11px] font-semibold tracking-[0.14em] text-[#8f2348] uppercase">
+                  {toolIntro.eyebrow}
+                </p>
+                <h1 className="mt-3 text-3xl font-semibold tracking-[-0.04em] text-[#15202b] sm:text-4xl">
+                  {toolIntro.title}
+                </h1>
+                <p className="mt-3 max-w-2xl text-sm leading-6 text-[#627181] sm:text-base">
+                  {toolIntro.description}
+                </p>
+
+                <div
+                  className="mt-6 flex flex-wrap gap-2"
+                  aria-label={toolIntro.eyebrow}
+                >
+                  {toolIntro.examplePrompts.map((examplePrompt) => (
+                    <button
+                      key={examplePrompt}
+                      type="button"
+                      onClick={() => useExamplePrompt(examplePrompt)}
+                      className="rounded-full border border-[#d6e0e7] bg-[#fff8fa] px-3 py-2 text-left text-xs leading-5 font-medium text-[#4f5e6b] transition-colors hover:border-[#efb0c4] hover:bg-[#fff0f5] hover:text-[#8f2348] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c92f68]"
+                    >
+                      {examplePrompt}
+                    </button>
+                  ))}
+                </div>
+
+                <Link
+                  href={toolIntro.guideHref}
+                  className="mt-6 inline-flex text-sm font-semibold text-[#15202b] underline decoration-[#d6e0e7] underline-offset-4 transition-colors hover:text-[#8f2348] hover:decoration-[#c92f68] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#c92f68]"
+                >
+                  {toolIntro.guideLabel}
+                </Link>
               </div>
             </div>
           ) : null}

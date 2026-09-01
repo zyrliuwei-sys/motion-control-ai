@@ -3,7 +3,12 @@ import { notFound, useLoaderData } from '@tanstack/react-router';
 
 import { envConfigs } from '@/config';
 import { m } from '@/paraglide/messages.js';
-import { baseLocale, getLocale, localizeUrl } from '@/paraglide/runtime.js';
+import {
+  baseLocale,
+  getLocale,
+  locales,
+  localizeUrl,
+} from '@/paraglide/runtime.js';
 
 type PageMeta = {
   title: string;
@@ -14,6 +19,7 @@ type PageMeta = {
 type PageModule = {
   default: ComponentType;
   meta: PageMeta;
+  structuredData?: Record<string, unknown>;
 };
 
 // Eagerly bundle the static content pages (small legal/info MDX files).
@@ -30,7 +36,12 @@ function loadPage(slug: string, locale: string): PageModule | null {
   );
 }
 
-type LoaderData = { meta: PageMeta; slug: string; locale: string };
+type LoaderData = {
+  meta: PageMeta;
+  slug: string;
+  locale: string;
+  structuredData?: Record<string, unknown>;
+};
 
 // Shared route options for static MDX pages. Each page gets its own
 // explicit route file (e.g. privacy-policy.tsx) so static segments
@@ -42,11 +53,16 @@ export function staticPageRouteOptions(slug: string) {
       const locale = getLocale();
       const page = loadPage(slug, locale);
       if (!page) throw notFound();
-      return { meta: page.meta, slug, locale };
+      return {
+        meta: page.meta,
+        slug,
+        locale,
+        structuredData: page.structuredData,
+      };
     },
     head: ({ loaderData }: { loaderData?: LoaderData }) => {
       if (!loaderData) return {};
-      const { meta, locale } = loaderData;
+      const { meta, locale, structuredData } = loaderData;
       const canonical = localizeUrl(`${envConfigs.app_url}/${slug}`, {
         locale: locale as ReturnType<typeof getLocale>,
       }).href;
@@ -54,8 +70,18 @@ export function staticPageRouteOptions(slug: string) {
         meta: [
           { title: meta.title },
           { name: 'description', content: meta.description },
+          ...(structuredData ? [{ 'script:ld+json': structuredData }] : []),
         ],
-        links: [{ rel: 'canonical', href: canonical }],
+        links: [
+          { rel: 'canonical', href: canonical },
+          ...locales.map((alternateLocale) => ({
+            rel: 'alternate' as const,
+            hrefLang: alternateLocale,
+            href: localizeUrl(`${envConfigs.app_url}/${slug}`, {
+              locale: alternateLocale,
+            }).href,
+          })),
+        ],
       };
     },
     component: StaticPage,
