@@ -29,6 +29,7 @@ const streamImages: readonly HomeHeroLandingImage[] = [
 export interface ProactivHeroStreamProps {
   eyebrow?: string;
   className?: string;
+  ctaLabel?: string;
   title: string;
   description: string;
   motionStatement?: readonly string[];
@@ -37,6 +38,7 @@ export interface ProactivHeroStreamProps {
 export function ProactivHeroStream({
   eyebrow,
   className,
+  ctaLabel,
   title,
   description,
   motionStatement,
@@ -44,6 +46,7 @@ export function ProactivHeroStream({
   return (
     <HomeHeroLandingScrollAnimation
       eyebrow={eyebrow}
+      ctaLabel={ctaLabel}
       title={title}
       description={description}
       motionStatement={motionStatement}

@@ -7,6 +7,7 @@ import { ProactivHeroStream } from '@/components/proactiv/proactiv-hero-stream';
 
 export interface ProactivMarketingHeroProps {
   eyebrow?: string;
+  ctaLabel?: string;
   description?: string;
   motionStatement?: readonly string[];
   openEditorLabel?: string;
@@ -17,6 +18,7 @@ export interface ProactivMarketingHeroProps {
 /** Marketing hero retained for the homepage; the text-to-video workspace lives on its own route. */
 export function ProactivMarketingHero({
   eyebrow = 'Motion direction, without the production overhead',
+  ctaLabel,
   description = 'Automate Campaigns, Engage Audiences, and Boost Lead Generation with Our All-in-One Marketing Solution',
   motionStatement = ['Direct', 'every', 'movement.', 'Make', 'it yours.'],
   openEditorLabel = 'Open editor',
@@ -53,6 +55,7 @@ export function ProactivMarketingHero({
         className="h-[86dvh] min-h-[600px] [&>div:last-child>h2]:!leading-[1.04]"
         title={title}
         description={description}
+        ctaLabel={ctaLabel}
         motionStatement={motionStatement}
       />
       <div className="relative bg-[#fff8fa] px-4 py-8 sm:px-6 sm:py-10">

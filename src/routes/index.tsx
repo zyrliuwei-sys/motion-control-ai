@@ -83,10 +83,7 @@ export const Route = createFileRoute('/')({
         content: DEFAULT_SOCIAL_IMAGE_URL,
       },
     ],
-    links: [
-      { rel: 'canonical', href: SITE_URL },
-      { rel: 'alternate', hrefLang: 'en', href: SITE_URL },
-    ],
+    links: [{ rel: 'canonical', href: SITE_URL }],
   }),
   component: HomePage,
 });

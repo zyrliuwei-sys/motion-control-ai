@@ -18,6 +18,8 @@ export type HomeHeroLandingImage = {
 export interface HomeHeroLandingScrollAnimationProps {
   /** A short label shown above the initial art direction. */
   eyebrow?: string;
+  /** Optional crawlable destination rendered beneath the description. */
+  ctaLabel?: string;
   /** The accessible headline shown before the cards become type. */
   title: string;
   description: string;
@@ -63,6 +65,7 @@ function shuffledSegments(segments: TextSegmentRef[]) {
  */
 export function HomeHeroLandingScrollAnimation({
   eyebrow,
+  ctaLabel,
   title,
   description,
   motionStatement = defaultMotionStatement,
@@ -314,6 +317,14 @@ export function HomeHeroLandingScrollAnimation({
           <p className="mx-auto mt-5 max-w-2xl px-4 py-2 text-base leading-relaxed text-[#3f3f46] drop-shadow-[0_2px_10px_rgba(255,255,255,0.75)] sm:text-lg">
             {description}
           </p>
+          {ctaLabel ? (
+            <a
+              href="/text-to-image"
+              className="mt-1 inline-flex text-sm font-semibold text-[#18181b] underline decoration-[#18181b]/35 underline-offset-4 transition-colors hover:text-[#52525b] hover:decoration-[#18181b] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#18181b]"
+            >
+              {ctaLabel}
+            </a>
+          ) : null}
         </div>
       </div>
 

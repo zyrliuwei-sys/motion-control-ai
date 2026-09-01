@@ -18,6 +18,7 @@ export interface ProactivVideoShowcaseFilter {
 
 export interface ProactivVideoShowcaseProps {
   cases: ProactivVideoShowcaseCase[];
+  ctaLabel?: string;
   description: string;
   maxCases?: number;
   filters: ProactivVideoShowcaseFilter[];
@@ -28,6 +29,7 @@ export interface ProactivVideoShowcaseProps {
 /** A restrained reference gallery for motion studies. */
 export function ProactivVideoShowcase({
   cases,
+  ctaLabel,
   description,
   filters,
   maxCases = 6,
@@ -65,6 +67,14 @@ export function ProactivVideoShowcase({
           <p className="mx-auto mt-4 max-w-xl text-base leading-7 text-[#627181]">
             {description}
           </p>
+          {ctaLabel ? (
+            <a
+              href="/text-to-image"
+              className="mt-4 inline-flex text-sm font-semibold text-[#18181b] underline decoration-[#18181b]/35 underline-offset-4 transition-colors hover:text-[#52525b] hover:decoration-[#18181b] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#18181b]"
+            >
+              {ctaLabel}
+            </a>
+          ) : null}
         </header>
 
         {!showAllCategories ? (

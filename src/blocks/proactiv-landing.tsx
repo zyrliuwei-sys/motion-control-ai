@@ -229,6 +229,7 @@ export function ProactivLanding() {
       <main className="pt-24">
         <ProactivMarketingHero
           eyebrow={m['proactiv.hero.eyebrow']()}
+          ctaLabel={m['proactiv.hero.cta']()}
           title={m['proactiv.hero.title']()}
           description={m['proactiv.hero.subtitle']()}
           motionStatement={m['proactiv.hero.motion_statement']().split('||')}
@@ -260,6 +261,7 @@ export function ProactivLanding() {
         />
         <ProactivVideoShowcase
           title={m['proactiv.showcase.title']()}
+          ctaLabel={m['proactiv.showcase.cta']()}
           description={m['proactiv.showcase.description']()}
           cases={showcaseCases()}
           filters={showcaseFilters()}
