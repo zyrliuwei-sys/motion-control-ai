@@ -2,12 +2,12 @@ export const textToImageFaqs = [
   {
     question: 'Is this uncensored AI image editor really free?',
     answer:
-      'Yes. You can use the free text to image generator to turn a written idea into an image without a paid subscription or an upfront commitment. Availability can vary with demand, but there is no charge to begin creating.',
+      'Yes. You can use the free image generator to turn a written idea into an image without a paid subscription or an upfront commitment. Availability can vary with demand, but there is no charge to begin creating.',
   },
   {
     question: 'Do I need to sign up to generate images?',
     answer:
-      'No. The text to image generator is designed to let you start with a prompt right away. A sign-in is not required to try an idea, so you can focus on refining your image direction instead of completing an account flow first.',
+      'No. The editor is designed to let you start with a prompt right away. A sign-in is not required to try an idea, so you can focus on refining your image direction instead of completing an account flow first.',
   },
   {
     question: 'What can I use the generated images for?',
@@ -23,12 +23,27 @@ export const textToImageFaqs = [
     question:
       'How is this different from ChatGPT, Midjourney, or other AI image generators?',
     answer:
-      'This tool is built as a direct, free text to image generator with an uncensored creative workflow. It emphasizes quick prompting, optional reference images, and detailed direction in one workspace, so you can test ideas without changing tools or learning a complicated command system.',
+      'This tool is built as a direct, free image workspace with an uncensored creative workflow. It emphasizes quick prompting, optional reference images, and detailed direction in one workspace, so you can test ideas without changing tools or learning a complicated command system.',
   },
   {
     question: 'Are there any content restrictions?',
     answer:
       'The editor is intended to give creators broad visual freedom rather than applying ordinary aesthetic filters. It must still be used for lawful purposes and in a way that respects consent, intellectual-property rights, and the safety of other people.',
+  },
+  {
+    question: 'Can I use generated images commercially?',
+    answer:
+      'You can use outputs for commercial drafts, mockups, posts, and client presentations when prompts, references, and final use comply with applicable laws, contracts, and platform rules. Obtain permission when a recognizable person, logo, or copyrighted source image is involved, and review the destination platform’s AI-media policy before publishing.',
+  },
+  {
+    question: 'How fast is image generation?',
+    answer:
+      'A typical image is ready in seconds. Timing can vary with the chosen format, image settings, reference images, and current demand, so a higher-detail request may take longer than a quick draft. Generate an early version first when you want to compare directions quickly.',
+  },
+  {
+    question: 'How is this different from Midjourney or Stable Diffusion?',
+    answer:
+      'Midjourney is a hosted service with its own account plans and workflow, while Stable Diffusion is a model family that can be used through self-hosted or third-party interfaces. This uncensored AI image editor focuses on direct browser-based prompting and optional reference images; it is an AI image generator without filters for ordinary creative choices, while still prohibiting illegal and non-consensual content.',
   },
 ] as const;
 
@@ -79,10 +94,10 @@ export function TextToImageSeoContent() {
             An uncensored AI image editor gives you a straightforward place to
             move from an idea to a visual without flattening that idea into a
             preset look. Describe a subject, setting, composition, lighting, and
-            mood, then use the free text to image generator to explore the
-            result. Whether you are planning a campaign, building a character,
-            or simply following a visual impulse, the goal is the same: give
-            your direction clearly and make an image that feels like yours.
+            mood, then use the free image generator to explore the result.
+            Whether you are planning a campaign, building a character, or simply
+            following a visual impulse, the goal is the same: give your
+            direction clearly and make an image that feels like yours.
           </p>
 
           <section aria-labelledby="what-is-heading">
@@ -133,10 +148,36 @@ export function TextToImageSeoContent() {
               already have an image that captures the mood, add it as an
               optional reference and explain what to keep: perhaps the pose,
               palette, material, or composition. Generate, review the result,
-              and adjust a few details at a time. This simple loop makes the
-              text to image generator useful for both quick experiments and more
-              deliberate creative development.
+              and adjust a few details at a time. This simple loop supports both
+              quick experiments and more deliberate creative development.
             </p>
+            <ol className="mt-5 list-decimal space-y-2 pl-6 marker:text-neutral-400">
+              <li>
+                Start with the subject and outcome; an uncensored AI image
+                editor works best when the main person, object, or scene is
+                clear.
+              </li>
+              <li>
+                Add the setting, viewpoint, lighting, and a medium or camera
+                treatment.
+              </li>
+              <li>
+                Use concrete modifiers for framing, palette, texture, and mood
+                instead of disconnected style names.
+              </li>
+              <li>
+                Choose an aspect ratio: vertical for posts, wide for banners, or
+                square for flexible layouts.
+              </li>
+              <li>
+                Upload a reference when pose, materials, color, or composition
+                matter; it supplies visual context.
+              </li>
+              <li>
+                Generate an initial version, then revise one or two details. The
+                no signup AI art tool makes comparison immediate.
+              </li>
+            </ol>
           </section>
 
           <section aria-labelledby="create-heading">
@@ -179,6 +220,71 @@ export function TextToImageSeoContent() {
               angle, remove an unwanted object, or ask for a different color
               story. Small prompt changes can reveal options that would take
               much longer to sketch or source manually.
+            </p>
+          </section>
+
+          <section aria-labelledby="image-types-heading">
+            <h2
+              id="image-types-heading"
+              className="text-2xl font-semibold tracking-tight text-neutral-950 sm:text-3xl"
+            >
+              What kind of images can I generate?
+            </h2>
+            <p className="mt-4">
+              An uncensored AI image editor supports sketches and visual
+              directions. A free AI image generator helps test these starting
+              points:
+            </p>
+            <ul className="mt-4 list-disc space-y-2 pl-6 marker:text-neutral-400">
+              <li>
+                <strong>Portraits:</strong> Set expression, wardrobe, lens feel,
+                and light for a person-centered image. Example prompt:
+                “editorial portrait of a chef in soft window light, 85mm lens.”
+              </li>
+              <li>
+                <strong>Landscapes:</strong> Shape terrain, weather, time of
+                day, and viewing angle. Example prompt: “misty coastal cliffs at
+                sunrise, cinematic wide shot.”
+              </li>
+              <li>
+                <strong>Concept design:</strong> Explore vehicles, worlds,
+                props, or future products before illustration. Example prompt:
+                “modular lunar research vehicle, clean industrial concept art.”
+              </li>
+              <li>
+                <strong>Character illustration:</strong> Combine costume,
+                silhouette, action, and art direction for a defined cast member.
+                Example prompt: “desert courier with weathered cloak,
+                graphic-novel illustration.”
+              </li>
+              <li>
+                <strong>Social-media visuals:</strong> Create announcement art
+                and story backgrounds in the right format. Example prompt:
+                “bright product-launch post, cobalt background, centered
+                composition.”
+              </li>
+              <li>
+                <strong>Product imagery:</strong> Test packaging, lighting, and
+                material treatments before a studio shoot. Example prompt:
+                “matte skincare bottle on travertine, warm afternoon shadows.”
+              </li>
+              <li>
+                <strong>Interior previews:</strong> Try furniture, finishes, and
+                daylight arrangements in a room concept. Example prompt:
+                “compact reading nook, oak shelves, linen chair, afternoon
+                light.”
+              </li>
+            </ul>
+            <p className="mt-4">
+              The uncensored AI image editor makes it practical to test a
+              direction before commissioning it. Compare plans and capacity on{' '}
+              <a
+                href="/pricing"
+                className="font-semibold text-neutral-950 underline decoration-neutral-300 underline-offset-4 transition-colors hover:decoration-neutral-950 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-neutral-950"
+              >
+                Pricing
+              </a>
+              .
             </p>
           </section>
 
