@@ -144,8 +144,10 @@ async function POST({ request }: { request: Request }) {
 
     const input = parseInput(await request.json().catch(() => ({})));
     validateGrokImagineImageInput(input);
+    const apiKey = await configuredApiKey();
     const quality = input.quality || 'medium';
     const resolution = input.resolution || '1K';
+    const imageCount = input.n || 1;
     const billingTask = await createTask({
       userId: session.user.id,
       mediaType: 'image',
@@ -154,17 +156,21 @@ async function POST({ request }: { request: Request }) {
       prompt: input.prompt,
       options: input,
       costCredits: grokImagineImageReservationCredits({
-        imageCount: input.n || 1,
+        imageCount,
         inputImageCount: input.imageUrls?.length || 0,
         quality,
         resolution,
       }),
+      // The UI submits one image at a time. Keep this server-enforced too, so
+      // a direct API caller cannot turn the one-image welcome offer into a
+      // free batch.
+      requestFreeImageTrial: imageCount === 1,
     });
     billingTaskId = billingTask.id;
     const task = await submitGrokImagineImageTask({
       taskId: billingTask.id,
       userId: session.user.id,
-      apiKey: await configuredApiKey(),
+      apiKey,
       input,
     });
     submittedUpstream = true;

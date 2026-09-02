@@ -36,6 +36,11 @@ export const user = table(
     utmSource: varchar('utm_source', { length: 100 }).notNull().default(''),
     ip: varchar('ip', { length: 45 }).notNull().default(''),
     locale: varchar('locale', { length: 20 }).notNull().default(''),
+    // Existing accounts keep the default. New accounts opt in through the
+    // auth creation hook, so this entitlement is not retroactive.
+    freeImageTrialAvailable: boolean('free_image_trial_available')
+      .default(false)
+      .notNull(),
   },
   (table) => [
     index('idx_user_name').on(table.name),

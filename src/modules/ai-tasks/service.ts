@@ -1,7 +1,7 @@
 import { and, desc, eq, isNull } from 'drizzle-orm';
 
 import { db } from '@/core/db';
-import { aiTask } from '@/config/db/schema';
+import { aiTask, user } from '@/config/db/schema';
 import {
   consume,
   refundConsumedCredits,
@@ -17,6 +17,8 @@ export enum AITaskStatus {
   CANCELED = 'canceled',
 }
 
+export const FREE_IMAGE_TRIAL_SCENE = 'free_image_trial';
+
 /**
  * Create an AI task with optional credit consumption.
  */
@@ -28,14 +30,40 @@ export async function createTask(params: {
   prompt: string;
   costCredits?: number;
   options?: any;
+  /** Atomically apply a new user's one-time single-image entitlement. */
+  requestFreeImageTrial?: boolean;
 }): Promise<any> {
-  const { userId, mediaType, provider, model, prompt, costCredits, options } =
-    params;
+  const {
+    userId,
+    mediaType,
+    provider,
+    model,
+    prompt,
+    costCredits,
+    options,
+    requestFreeImageTrial,
+  } = params;
 
   return db().transaction(async (tx: any) => {
+    const taskId = getUuid();
+    let usesFreeImageTrial = false;
+
+    // The conditional update is the entitlement claim: concurrent requests
+    // cannot both receive the free generation.
+    if (requestFreeImageTrial) {
+      const claimedUsers = await tx
+        .update(user)
+        .set({ freeImageTrialAvailable: false })
+        .where(and(eq(user.id, userId), eq(user.freeImageTrialAvailable, true)))
+        .returning({ id: user.id });
+      usesFreeImageTrial = claimedUsers.length > 0;
+    }
+
+    const billedCredits = usesFreeImageTrial ? 0 : costCredits || 0;
+
     // 1. Insert task
     const taskData: any = {
-      id: getUuid(),
+      id: taskId,
       userId,
       mediaType,
       provider,
@@ -43,17 +71,18 @@ export async function createTask(params: {
       prompt,
       options: options === undefined ? null : JSON.stringify(options),
       status: AITaskStatus.PENDING,
-      costCredits: costCredits || 0,
+      costCredits: billedCredits,
+      scene: usesFreeImageTrial ? FREE_IMAGE_TRIAL_SCENE : '',
     };
 
     const [task] = await tx.insert(aiTask).values(taskData).returning();
     if (!task) throw new Error('Unable to create AI task');
 
     // 2. Consume credits if cost > 0
-    if (costCredits && costCredits > 0) {
+    if (billedCredits > 0) {
       const result = await consume({
         userId,
-        credits: costCredits,
+        credits: billedCredits,
         scene: 'ai_task',
         description: `AI ${mediaType} generation`,
         metadata: JSON.stringify({ taskId: task.id }),
@@ -114,6 +143,20 @@ export async function updateTask(params: {
     task.creditId
   ) {
     await revoke(task.creditId);
+  }
+
+  // A provider-side failure should not spend a new user's free chance. The
+  // conditional restore leaves any later successful claim untouched.
+  if (
+    (status === AITaskStatus.FAILED || status === AITaskStatus.CANCELED) &&
+    task.scene === FREE_IMAGE_TRIAL_SCENE
+  ) {
+    await db()
+      .update(user)
+      .set({ freeImageTrialAvailable: true })
+      .where(
+        and(eq(user.id, task.userId), eq(user.freeImageTrialAvailable, false))
+      );
   }
 }
 

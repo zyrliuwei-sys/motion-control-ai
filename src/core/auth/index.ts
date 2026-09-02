@@ -246,6 +246,12 @@ export function getAuth(configs?: Record<string, string>) {
           required: false,
           defaultValue: '',
         },
+        freeImageTrialAvailable: {
+          type: 'boolean',
+          input: false,
+          required: false,
+          defaultValue: true,
+        },
       },
     },
     databaseHooks: {
@@ -266,6 +272,7 @@ export function getAuth(configs?: Record<string, string>) {
                 locale: guessLocaleFromAcceptLanguage(
                   getHeaderValue(ctx, 'accept-language')
                 ),
+                freeImageTrialAvailable: true,
               },
             };
           },
