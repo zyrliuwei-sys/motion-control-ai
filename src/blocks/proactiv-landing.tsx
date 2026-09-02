@@ -471,8 +471,8 @@ export function ProactivLanding() {
             >
               <img
                 src="https://fazier.com/api/v1//public/badges/launch_badges.svg?badge_type=featured&theme=light"
-                width="250"
-                height="59"
+                width="210"
+                height="50"
                 alt="Fazier featured badge"
                 className="h-auto max-w-full"
               />
@@ -486,8 +486,8 @@ export function ProactivLanding() {
             >
               <img
                 src="https://assets.dang.ai/badges/dang-verified-dark.png"
-                width="260"
-                height="94"
+                width="220"
+                height="80"
                 alt="Verified on DANG!"
                 className="block h-auto max-w-full border-0 outline-none"
               />
