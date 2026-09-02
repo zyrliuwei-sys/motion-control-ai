@@ -19,6 +19,11 @@ import { toast } from 'sonner';
 import { useSession } from '@/core/auth/client';
 import { useRouter } from '@/core/i18n/navigation';
 import { apiGet, apiPost, apiUpload } from '@/lib/api-client';
+import { usePublicConfig } from '@/hooks/use-public-config';
+import {
+  PaymentProviderModal,
+  type PaymentProvider,
+} from '@/components/payment-provider-modal';
 import {
   ProactivHeroComposer,
   type ProactivGenerationValues,
@@ -51,6 +56,15 @@ export interface ProactivVideoStudioCopy {
   regenerateLabel: string;
   useAsReferenceLabel: string;
   insufficientCreditsMessage: string;
+  creditPaywallTitle: string;
+  creditPaywallDescription: string;
+  creditPackOptions: readonly {
+    productId: string;
+    price: number;
+    planName: string;
+    creditsLabel: string;
+  }[];
+  checkoutFailedMessage: string;
   downloadVideoLabel: string;
   downloadImageLabel: string;
   openGeneratedVideoLabel: string;
@@ -110,6 +124,13 @@ const galleryLayouts = [
 const maximumImageReferenceCount = 10;
 const maximumGrokImageReferenceCount = 3;
 const GROK_IMAGINE_IMAGE_API = '/api/evolink/grok-imagine-image';
+const paymentProviders: PaymentProvider[] = [
+  'stripe',
+  'creem',
+  'paypal',
+  'alipay',
+  'wechat',
+];
 
 interface MotionControlTask {
   id: string;
@@ -405,11 +426,21 @@ export function ProactivVideoStudio({
   const queryClient = useQueryClient();
   const router = useRouter();
   const { data: session, isPending: isSessionPending } = useSession();
+  const { data: publicConfigs } = usePublicConfig();
   const [prompt, setPrompt] = useState(initialPrompt);
   const [selectedCase, setSelectedCase] =
     useState<ProactivVideoShowcaseCase | null>(null);
   const [isQueued, setIsQueued] = useState(false);
   const [isComposerOpen, setIsComposerOpen] = useState(false);
+  const [isCreditPaywallOpen, setIsCreditPaywallOpen] = useState(false);
+  const [paywallPrompt, setPaywallPrompt] = useState('');
+  const [selectedCreditPackProductId, setSelectedCreditPackProductId] =
+    useState(() => copy.creditPackOptions[0]?.productId ?? 'starter_lifetime');
+  const [loadingPaymentProvider, setLoadingPaymentProvider] =
+    useState<PaymentProvider | null>(null);
+  const [freeImageTrialAvailable, setFreeImageTrialAvailable] = useState<
+    boolean | null
+  >(null);
   const [composerTextModeVersion, setComposerTextModeVersion] = useState(0);
   // The composer is position:fixed, so the feed's bottom padding must track its
   // live height (task cards, retry rows and reference thumbs all change it) or
@@ -468,6 +499,29 @@ export function ProactivVideoStudio({
     setPrompt(initialPrompt);
     setIsQueued(false);
   }, [initialPrompt]);
+
+  useEffect(() => {
+    if (!session?.user) {
+      setFreeImageTrialAvailable(null);
+      return;
+    }
+    setFreeImageTrialAvailable(session.user.freeImageTrialAvailable ?? null);
+  }, [session?.user, session?.user?.freeImageTrialAvailable]);
+
+  const enabledPaymentProviders = useMemo(
+    () =>
+      paymentProviders.filter(
+        (provider) => publicConfigs?.[`${provider}_enabled`] === 'true'
+      ),
+    [publicConfigs]
+  );
+
+  const creditsQuery = useQuery({
+    queryKey: ['user-credits', 'balance'],
+    queryFn: () => apiGet<{ balance: number }>('/api/credits'),
+    enabled: Boolean(session?.user),
+    staleTime: 15_000,
+  });
 
   const taskQuery = useQuery({
     queryKey: ['evolink-motion-control', motionTask?.id],
@@ -581,6 +635,16 @@ export function ProactivVideoStudio({
   // History remains available independently of the transient preview panel, so
   // previously generated images stay above the composer after a preview closes.
   const hasImageHistory = chatTurns.length > 0;
+  // On the empty text-to-image workspace, the guide belongs on the right while
+  // the composer anchors the creation side on the left. Once a conversation or
+  // a preview exists, both return to the shared workspace column.
+  const isSplitIntroWorkspace = Boolean(
+    toolIntro &&
+    !showTemplateFeed &&
+    !hasImageHistory &&
+    !isImageGenerationActive &&
+    !isPreviewPanelOpen
+  );
 
   // Keep the latest chat turn in view.
   useEffect(() => {
@@ -661,6 +725,44 @@ export function ProactivVideoStudio({
       ? `/text-to-image?prompt=${encodeURIComponent(trimmedPrompt)}`
       : '/text-to-image';
     router.push(`/sign-in?callbackUrl=${encodeURIComponent(target)}`);
+  };
+
+  const openCreditPaywall = (nextPrompt: string) => {
+    setPaywallPrompt(nextPrompt.trim());
+    setSelectedCreditPackProductId(
+      copy.creditPackOptions[0]?.productId ?? 'starter_lifetime'
+    );
+    setIsCreditPaywallOpen(true);
+  };
+
+  const creditCheckoutMutation = useMutation({
+    mutationFn: (provider: PaymentProvider) =>
+      apiPost<{ checkout_url?: string }>('/api/payment/checkout', {
+        product_id: selectedCreditPackProductId,
+        payment_provider: provider,
+        // Return to the editor with the draft preserved. The user explicitly
+        // sends again after payment, once their newly granted credits arrive.
+        redirect: paywallPrompt
+          ? `/text-to-image?prompt=${encodeURIComponent(paywallPrompt)}`
+          : '/text-to-image',
+      }),
+    onSuccess: (data) => {
+      if (!data.checkout_url) {
+        toast.error(copy.checkoutFailedMessage);
+        setLoadingPaymentProvider(null);
+        return;
+      }
+      window.location.href = data.checkout_url;
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || copy.checkoutFailedMessage);
+      setLoadingPaymentProvider(null);
+    },
+  });
+
+  const startCreditCheckout = (provider: PaymentProvider) => {
+    setLoadingPaymentProvider(provider);
+    creditCheckoutMutation.mutate(provider);
   };
 
   const generationMutation = useMutation({
@@ -757,6 +859,10 @@ export function ProactivVideoStudio({
     onSuccess: (result, values) => {
       setDismissedTaskId(null);
       if (result.kind === 'image') {
+        // The server claims the trial atomically. Mirroring that successful
+        // claim locally lets the next click open checkout without a failed
+        // generation request or a distracting insufficient-credit toast.
+        if (freeImageTrialAvailable) setFreeImageTrialAvailable(false);
         setImageTask(result.task);
         setImageTaskPrompts((current) => ({
           ...current,
@@ -777,19 +883,32 @@ export function ProactivVideoStudio({
         return;
       }
       const insufficientCredits = error.message === 'Insufficient credits';
-      toast.error(
-        insufficientCredits ? copy.insufficientCreditsMessage : error.message
-      );
       setIsQueued(false);
       setPendingPrompt(null);
       setRetryValues(values);
-      setShowRetry(!insufficientCredits);
+      if (insufficientCredits) {
+        setPrompt(values.prompt);
+        setShowRetry(false);
+        openCreditPaywall(values.prompt);
+        return;
+      }
+      toast.error(error.message);
+      setShowRetry(true);
     },
   });
 
   function startGeneration(values: ProactivGenerationValues) {
     if (!isSessionPending && !session?.user) {
       signInForGeneration(values);
+      return;
+    }
+
+    // New accounts receive one image through the server-enforced trial. Once
+    // that successful first request has used the trial and the balance is
+    // known to be empty, take the user straight to checkout on the next send.
+    if (freeImageTrialAvailable === false && creditsQuery.data?.balance === 0) {
+      setRetryValues(values);
+      openCreditPaywall(values.prompt);
       return;
     }
 
@@ -1102,8 +1221,14 @@ export function ProactivVideoStudio({
                 ))}
               </div>
             </div>
-          ) : toolIntro ? (
-            <div className="mx-auto flex min-h-full w-full max-w-3xl flex-col justify-center px-5 pt-6 pb-52 sm:px-8 sm:pt-10 sm:pb-60">
+          ) : toolIntro && !isPreviewPanelOpen ? (
+            <div
+              className={`flex min-h-full w-full flex-col justify-center px-5 pt-6 pb-52 sm:px-8 sm:pt-10 sm:pb-60 ${
+                isSplitIntroWorkspace
+                  ? '2xl:ml-auto 2xl:max-w-3xl 2xl:pr-10'
+                  : 'mx-auto max-w-3xl'
+              }`}
+            >
               <div className="rounded-[28px] border border-[#d6e0e7] bg-white/80 p-6 shadow-[0_14px_36px_rgba(21,32,43,0.06)] backdrop-blur-sm sm:p-8">
                 <p className="text-[11px] font-semibold tracking-[0.14em] text-[#8f2348] uppercase">
                   {toolIntro.eyebrow}
@@ -1237,11 +1362,21 @@ export function ProactivVideoStudio({
         <div
           ref={composerRef}
           className={`fixed right-3 bottom-3 left-3 z-40 md:bottom-5 md:left-[calc(var(--app-sidebar-width,0rem)+1.25rem)] ${
-            isPreviewPanelOpen ? 'md:right-[calc(26rem+1.25rem)]' : 'md:right-5'
+            isSplitIntroWorkspace
+              ? '2xl:right-[calc(50%-5rem)] 2xl:left-[calc(var(--app-sidebar-width,0rem)+5rem)]'
+              : isPreviewPanelOpen
+                ? 'md:right-[calc(26rem+1.25rem)]'
+                : 'md:right-5'
           }`}
         >
           {/* The composer receives the space released when the sidebar collapses. */}
-          <div className="mx-auto w-full max-w-[min(1240px,calc(1024px+14rem-var(--app-sidebar-width,0rem)))]">
+          <div
+            className={`w-full ${
+              isSplitIntroWorkspace
+                ? '2xl:mx-0 2xl:max-w-none'
+                : 'mx-auto max-w-[min(1240px,calc(1024px+14rem-var(--app-sidebar-width,0rem)))]'
+            }`}
+          >
             <div className="relative min-w-0">
               <div className="relative flex items-center justify-between gap-3 px-3 pt-1.5 pb-2 sm:px-4 sm:pt-2">
                 <button
@@ -1311,6 +1446,31 @@ export function ProactivVideoStudio({
             </div>
           </div>
         </div>
+
+        <PaymentProviderModal
+          open={isCreditPaywallOpen}
+          onOpenChange={(open) => {
+            setIsCreditPaywallOpen(open);
+            if (!open) setLoadingPaymentProvider(null);
+          }}
+          providers={
+            enabledPaymentProviders.length
+              ? enabledPaymentProviders
+              : ['stripe']
+          }
+          loadingProvider={loadingPaymentProvider}
+          onSelect={startCreditCheckout}
+          title={copy.creditPaywallTitle}
+          description={copy.creditPaywallDescription}
+          priceOptions={copy.creditPackOptions.map((option) => ({
+            id: option.productId,
+            price: option.price,
+            planName: option.planName,
+            creditsLabel: option.creditsLabel,
+          }))}
+          selectedPriceOptionId={selectedCreditPackProductId}
+          onSelectPriceOption={setSelectedCreditPackProductId}
+        />
       </section>
     </div>
   );

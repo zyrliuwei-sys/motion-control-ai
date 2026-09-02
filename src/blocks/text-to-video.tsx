@@ -1,4 +1,5 @@
 import { envConfigs } from '@/config';
+import { grokPricingPlans } from '@/lib/grok-pricing-plans';
 import { m } from '@/paraglide/messages.js';
 import type { ProactivImagePromptGuideSummaryProps } from '@/components/proactiv/proactiv-image-prompt-guide-summary';
 import type { ProactivVideoShowcaseCase } from '@/components/proactiv/proactiv-video-showcase';
@@ -228,6 +229,46 @@ export function TextToVideo({
           useAsReferenceLabel: m['proactiv.video.studio.use_as_reference'](),
           insufficientCreditsMessage:
             m['proactiv.video.studio.insufficient_credits'](),
+          creditPaywallTitle: m['proactiv.video.studio.credit_paywall.title'](),
+          creditPaywallDescription:
+            m['proactiv.video.studio.credit_paywall.description'](),
+          creditPackOptions: [
+            {
+              productId: grokPricingPlans.essentials.oneTime.productId,
+              price: 10,
+              planName: m['landing.pricing.essentials'](),
+              creditsLabel: m['landing.pricing.feature_credits']({
+                credits:
+                  grokPricingPlans.essentials.oneTime.credits.toLocaleString(
+                    'en-US'
+                  ),
+              }),
+            },
+            {
+              productId: grokPricingPlans.studio.oneTime.productId,
+              price: 30,
+              planName: m['landing.pricing.studio'](),
+              creditsLabel: m['landing.pricing.feature_credits']({
+                credits:
+                  grokPricingPlans.studio.oneTime.credits.toLocaleString(
+                    'en-US'
+                  ),
+              }),
+            },
+            {
+              productId: grokPricingPlans.production.oneTime.productId,
+              price: 59,
+              planName: m['landing.pricing.production'](),
+              creditsLabel: m['landing.pricing.feature_credits']({
+                credits:
+                  grokPricingPlans.production.oneTime.credits.toLocaleString(
+                    'en-US'
+                  ),
+              }),
+            },
+          ],
+          checkoutFailedMessage:
+            m['proactiv.video.studio.credit_paywall.checkout_failed'](),
           downloadVideoLabel: m['proactiv.video.studio.download_video'](),
           downloadImageLabel: m['proactiv.video.studio.download_image'](),
           openGeneratedVideoLabel:

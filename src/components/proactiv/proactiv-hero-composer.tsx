@@ -594,7 +594,7 @@ export function ProactivHeroComposer({
                     className={`block w-full flex-1 resize-none bg-transparent py-1 pr-1 pl-[4.5rem] text-[#15202b] outline-none placeholder:text-[#7b8995] ${
                       compactAction
                         ? 'min-h-10 text-sm leading-5 sm:text-base'
-                        : 'min-h-24 text-sm leading-5'
+                        : 'min-h-28 text-sm leading-5'
                     } ${references.length ? 'mt-2' : ''}`}
                   />
                 </div>
