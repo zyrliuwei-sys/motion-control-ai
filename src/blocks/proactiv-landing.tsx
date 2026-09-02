@@ -461,21 +461,38 @@ export function ProactivLanding() {
         rights={m['proactiv.footer.rights']()}
         columns={footerColumns()}
         badge={
-          <a
-            href="https://fazier.com/launches/www.uncensoredaieditor.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label="View uncensored ai on Fazier"
-            className="inline-flex rounded-xl transition-opacity hover:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#18181b]"
-          >
-            <img
-              src="https://fazier.com/api/v1//public/badges/launch_badges.svg?badge_type=featured&theme=light"
-              width="250"
-              height="59"
-              alt="Fazier featured badge"
-              className="h-auto max-w-full"
-            />
-          </a>
+          <div className="flex flex-col items-start gap-4">
+            <a
+              href="https://fazier.com/launches/www.uncensoredaieditor.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="View uncensored ai on Fazier"
+              className="inline-flex rounded-xl transition-opacity hover:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#18181b]"
+            >
+              <img
+                src="https://fazier.com/api/v1//public/badges/launch_badges.svg?badge_type=featured&theme=light"
+                width="250"
+                height="59"
+                alt="Fazier featured badge"
+                className="h-auto max-w-full"
+              />
+            </a>
+            <a
+              href="https://dang.ai"
+              target="_blank"
+              rel="dofollow noopener"
+              aria-label="Verified on DANG!"
+              className="inline-flex transition-opacity hover:opacity-80 focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#18181b]"
+            >
+              <img
+                src="https://assets.dang.ai/badges/dang-verified-dark.png"
+                width="260"
+                height="94"
+                alt="Verified on DANG!"
+                className="block h-auto max-w-full border-0 outline-none"
+              />
+            </a>
+          </div>
         }
       />
     </div>
