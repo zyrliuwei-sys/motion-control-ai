@@ -460,6 +460,23 @@ export function ProactivLanding() {
         copyright={m['proactiv.footer.copyright']()}
         rights={m['proactiv.footer.rights']()}
         columns={footerColumns()}
+        badge={
+          <a
+            href="https://fazier.com/launches/www.uncensoredaieditor.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="View uncensored ai on Fazier"
+            className="inline-flex rounded-xl transition-opacity hover:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#18181b]"
+          >
+            <img
+              src="https://fazier.com/api/v1//public/badges/launch_badges.svg?badge_type=featured&theme=light"
+              width="250"
+              height="59"
+              alt="Fazier featured badge"
+              className="h-auto max-w-full"
+            />
+          </a>
+        }
       />
     </div>
   );

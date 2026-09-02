@@ -1,3 +1,5 @@
+import type { ReactNode } from 'react';
+
 import { Link } from '@/core/i18n/navigation';
 import { cn } from '@/lib/utils';
 import { BrandWordmark } from '@/components/brand-wordmark';
@@ -19,6 +21,7 @@ export interface ProactivFooterProps {
   copyright: string;
   rights: string;
   columns: readonly ProactivFooterColumn[];
+  badge?: ReactNode;
   className?: string;
 }
 
@@ -38,6 +41,7 @@ export function ProactivFooter({
   copyright,
   rights,
   columns,
+  badge,
   className,
 }: ProactivFooterProps) {
   return (
@@ -60,6 +64,7 @@ export function ProactivFooter({
           <p className="mt-5 max-w-[17rem] text-sm leading-6 text-[#71717a]">
             {copyright} {rights}
           </p>
+          {badge && <div className="mt-6">{badge}</div>}
         </div>
 
         <nav
