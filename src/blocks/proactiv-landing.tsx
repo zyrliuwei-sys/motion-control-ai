@@ -507,6 +507,22 @@ export function ProactivLanding() {
                 className="h-auto max-w-full"
               />
             </a>
+            <a
+              href="https://www.toolpilot.ai"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Featured on ToolPilot"
+              className="inline-flex rounded-sm transition-opacity hover:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#18181b]"
+            >
+              <img
+                src="https://www.toolpilot.ai/cdn/shop/files/toolpilot-badge-w.png"
+                width="300"
+                height="85"
+                alt="Featured on ToolPilot"
+                loading="lazy"
+                className="h-auto max-w-full"
+              />
+            </a>
           </div>
         }
       />
