@@ -250,7 +250,7 @@ export function getAuth(configs?: Record<string, string>) {
           type: 'boolean',
           input: false,
           required: false,
-          defaultValue: true,
+          defaultValue: false,
         },
       },
     },
@@ -272,7 +272,8 @@ export function getAuth(configs?: Record<string, string>) {
                 locale: guessLocaleFromAcceptLanguage(
                   getHeaderValue(ctx, 'accept-language')
                 ),
-                freeImageTrialAvailable: true,
+                // New accounts must purchase credits before their first image.
+                freeImageTrialAvailable: false,
               },
             };
           },

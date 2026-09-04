@@ -903,10 +903,10 @@ export function ProactivVideoStudio({
       return;
     }
 
-    // New accounts receive one image through the server-enforced trial. Once
-    // that successful first request has used the trial and the balance is
-    // known to be empty, take the user straight to checkout on the next send.
-    if (freeImageTrialAvailable === false && creditsQuery.data?.balance === 0) {
+    // Accounts without the free-image entitlement never submit an unpaid
+    // generation request. With no balance, open checkout immediately instead.
+    // Treat an unavailable session entitlement as no entitlement, too.
+    if (freeImageTrialAvailable !== true && creditsQuery.data?.balance === 0) {
       setRetryValues(values);
       openCreditPaywall(values.prompt);
       return;
