@@ -492,6 +492,21 @@ export function ProactivLanding() {
                 className="block h-auto max-w-full border-0 outline-none"
               />
             </a>
+            <a
+              href="https://twelve.tools"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Featured on Twelve Tools"
+              className="inline-flex rounded-sm transition-opacity hover:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#18181b]"
+            >
+              <img
+                src="https://twelve.tools/badge3-white.svg"
+                width="148"
+                height="40"
+                alt="Featured on Twelve Tools"
+                className="h-auto max-w-full"
+              />
+            </a>
           </div>
         }
       />
