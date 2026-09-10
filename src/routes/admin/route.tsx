@@ -58,6 +58,7 @@ function AdminLayout() {
         { href: '/admin/categories', label: m['admin.nav.categories']() },
         { href: '/admin/posts', label: m['admin.nav.posts']() },
         { href: '/admin/tickets', label: m['admin.nav.tickets']() },
+        { href: '/admin/backlinks', label: m['admin.nav.backlinks']() },
       ],
     },
   ];

@@ -599,6 +599,29 @@ export type NewTicketMessage = typeof ticketMessage.$inferInsert;
 // ─── Custom tables ───────────────────────────────────────────────────────────
 // Add your own tables below this line.
 
+export const backlink = table(
+  'backlink',
+  {
+    id: text('id').primaryKey(),
+    siteName: text('site_name').notNull(),
+    targetUrl: text('target_url').notNull(),
+    displayText: text('display_text').notNull(),
+    imageUrl: text('image_url'),
+    placement: text('placement').notNull().default('footer'),
+    rel: text('rel').notNull().default('nofollow'),
+    status: text('status').notNull().default('pending'),
+    enabled: boolean('enabled').notNull().default(false),
+    notes: text('notes').default(''),
+    createdBy: text('created_by').references(() => user.id),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  (t) => [index('idx_backlink_status_enabled').on(t.status, t.enabled)]
+);
+
+export type Backlink = typeof backlink.$inferSelect;
+export type NewBacklink = typeof backlink.$inferInsert;
+
 // ─── Invite Codes ────────────────────────────────────────────────────────────
 
 export const inviteCode = table(
