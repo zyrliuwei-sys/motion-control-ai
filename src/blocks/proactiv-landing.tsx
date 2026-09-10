@@ -523,6 +523,21 @@ export function ProactivLanding() {
                 className="h-auto max-w-full"
               />
             </a>
+            <a
+              href="https://launchscroll.com/product/youtube"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Featured on Launch Scroll"
+              className="inline-flex rounded-sm transition-opacity hover:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#18181b]"
+            >
+              <img
+                src="https://launchscroll.com/assets/images/badge-dark.png"
+                height="54"
+                alt="Launch Scroll"
+                loading="lazy"
+                className="h-auto max-w-full"
+              />
+            </a>
           </div>
         }
       />
