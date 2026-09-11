@@ -57,7 +57,10 @@ yarn-error.log*
 
 # database
 /data/
-/drizzle/
+/drizzle/*
+!/drizzle/*.sql
+!/drizzle/meta/
+!/drizzle/meta/*.json
 src/config/db/schema.ts
 
 # npm (project uses pnpm)
