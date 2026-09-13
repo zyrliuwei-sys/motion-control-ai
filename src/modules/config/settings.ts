@@ -124,6 +124,12 @@ export function getSettingGroups(): SettingGroup[] {
       description: 'WeChat Pay gateway (native)',
       tab: 'payment',
     },
+    {
+      name: 'waffo',
+      title: 'Waffo Pancake',
+      description: 'Waffo hosted checkout',
+      tab: 'payment',
+    },
 
     // Email
     {
@@ -382,6 +388,7 @@ export function getSettings(): Setting[] {
         { label: 'PayPal', value: 'paypal' },
         { label: 'Alipay', value: 'alipay' },
         { label: 'WeChat Pay', value: 'wechat' },
+        { label: 'Waffo Pancake', value: 'waffo' },
       ],
       group: 'basic_payment',
       tab: 'payment',
@@ -523,6 +530,78 @@ export function getSettings(): Setting[] {
       type: 'number',
       placeholder: '留空使用实际金额，填 1 则支付 $0.01',
       group: 'paypal',
+      tab: 'payment',
+    },
+
+    // ─── Payment / Waffo Pancake ────────────────────────────────────
+    {
+      name: 'waffo_enabled',
+      title: 'Enable Waffo Pancake',
+      type: 'switch',
+      group: 'waffo',
+      tab: 'payment',
+      tip: 'Register this webhook URL in Waffo Dashboard > Settings > Webhooks: https://your-domain.com/api/payment/notify/waffo',
+    },
+    {
+      name: 'waffo_environment',
+      title: 'Environment',
+      type: 'select',
+      options: [
+        { label: 'Test', value: 'test' },
+        { label: 'Production', value: 'production' },
+      ],
+      group: 'waffo',
+      tab: 'payment',
+      defaultValue: 'test',
+    },
+    {
+      name: 'waffo_merchant_id',
+      title: 'Merchant ID',
+      type: 'text',
+      placeholder: 'MER_xxx',
+      group: 'waffo',
+      tab: 'payment',
+    },
+    {
+      name: 'waffo_private_key',
+      title: 'Merchant Private Key (PEM)',
+      type: 'textarea',
+      placeholder:
+        '-----BEGIN PRIVATE KEY-----\\n...\\n-----END PRIVATE KEY-----',
+      group: 'waffo',
+      tab: 'payment',
+    },
+    {
+      name: 'waffo_store_id',
+      title: 'Store ID',
+      type: 'text',
+      placeholder: 'STO_xxx (required for subscription cancellation)',
+      group: 'waffo',
+      tab: 'payment',
+    },
+    {
+      name: 'waffo_webhook_test_public_key',
+      title: 'Test Webhook Public Key (optional)',
+      type: 'textarea',
+      placeholder: 'Optional; Waffo public key is built in',
+      group: 'waffo',
+      tab: 'payment',
+    },
+    {
+      name: 'waffo_webhook_prod_public_key',
+      title: 'Production Webhook Public Key (optional)',
+      type: 'textarea',
+      placeholder: 'Optional; Waffo public key is built in',
+      group: 'waffo',
+      tab: 'payment',
+    },
+    {
+      name: 'waffo_product_ids_mapping',
+      title: 'Product IDs Mapping',
+      type: 'textarea',
+      placeholder: '{"enterprise_monthly": "PROD_xxx"}',
+      tip: 'Put all mappings inside one JSON object (one outer pair of braces), e.g. {"starter_monthly":"PROD_xxx","pro_monthly":"PROD_xxx","enterprise_monthly":"PROD_xxx"}. Do not enter separate JSON objects on separate lines.',
+      group: 'waffo',
       tab: 'payment',
     },
 

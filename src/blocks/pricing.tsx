@@ -36,6 +36,7 @@ const ALL_PROVIDERS: PaymentProvider[] = [
   'stripe',
   'creem',
   'paypal',
+  'waffo',
   'alipay',
   'wechat',
 ];

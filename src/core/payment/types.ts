@@ -301,7 +301,9 @@ export interface PaymentProvider {
   // cancel subscription
   cancelSubscription?({
     subscriptionId,
+    customerId,
   }: {
     subscriptionId: string;
+    customerId?: string;
   }): Promise<PaymentSession>;
 }

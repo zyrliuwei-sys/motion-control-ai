@@ -383,6 +383,9 @@ function SettingField({
             onCheckedChange={(checked) => onChange(checked ? 'true' : 'false')}
           />
         </div>
+        {setting.tip && (
+          <p className="text-muted-foreground text-xs">{setting.tip}</p>
+        )}
       </div>
     );
   }
@@ -403,6 +406,9 @@ function SettingField({
             ))}
           </SelectContent>
         </Select>
+        {setting.tip && (
+          <p className="text-muted-foreground text-xs">{setting.tip}</p>
+        )}
       </div>
     );
   }
@@ -419,6 +425,9 @@ function SettingField({
           rows={3}
           className="border-input placeholder:text-muted-foreground focus-visible:ring-ring flex w-full rounded-md border bg-transparent px-3 py-2 text-sm focus-visible:ring-1 focus-visible:outline-none"
         />
+        {setting.tip && (
+          <p className="text-muted-foreground text-xs">{setting.tip}</p>
+        )}
       </div>
     );
   }
@@ -439,6 +448,9 @@ function SettingField({
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
       />
+      {setting.tip && (
+        <p className="text-muted-foreground text-xs">{setting.tip}</p>
+      )}
     </div>
   );
 }

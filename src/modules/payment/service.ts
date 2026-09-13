@@ -7,6 +7,7 @@ import {
   PaymentManager,
   PayPalProvider,
   StripeProvider,
+  WaffoProvider,
   WechatPayProvider,
 } from '@/core/payment';
 import {
@@ -60,6 +61,13 @@ async function getPaymentManager(): Promise<PaymentManager> {
     c('paypal_environment'),
     c('alipay_app_id'),
     c('wechat_mch_id'),
+    c('waffo_enabled'),
+    c('waffo_merchant_id'),
+    c('waffo_private_key'),
+    c('waffo_store_id'),
+    c('waffo_environment'),
+    c('waffo_webhook_test_public_key'),
+    c('waffo_webhook_prod_public_key'),
     c('default_payment_provider'),
   ]);
   if (manager && hash === managerConfigHash) return manager;
@@ -148,6 +156,26 @@ async function getPaymentManager(): Promise<PaymentManager> {
     );
   }
 
+  if (
+    c('waffo_enabled') === 'true' &&
+    c('waffo_merchant_id') &&
+    c('waffo_private_key')
+  ) {
+    const isDefault = c('default_payment_provider') === 'waffo';
+    manager.addProvider(
+      new WaffoProvider({
+        merchantId: c('waffo_merchant_id'),
+        privateKey: c('waffo_private_key'),
+        storeId: c('waffo_store_id') || undefined,
+        environment:
+          c('waffo_environment') === 'production' ? 'production' : 'test',
+        webhookTestPublicKey: c('waffo_webhook_test_public_key') || undefined,
+        webhookProdPublicKey: c('waffo_webhook_prod_public_key') || undefined,
+      }),
+      isDefault
+    );
+  }
+
   return manager;
 }
 
@@ -194,14 +222,62 @@ export async function createCheckout(params: {
       }
     }
   }
+  if (resolvedProvider === 'waffo' && paymentOrder.productId) {
+    const mapping = configs.waffo_product_ids_mapping;
+    if (mapping) {
+      let parsedMapping: unknown;
+      try {
+        parsedMapping = JSON.parse(mapping);
+      } catch {
+        throw new Error(
+          'Waffo Product IDs Mapping must be a JSON object, e.g. {"enterprise_monthly":"PROD_xxx"}'
+        );
+      }
+      if (
+        !parsedMapping ||
+        typeof parsedMapping !== 'object' ||
+        Array.isArray(parsedMapping)
+      ) {
+        throw new Error(
+          'Waffo Product IDs Mapping must be a JSON object, e.g. {"enterprise_monthly":"PROD_xxx"}'
+        );
+      }
+      const map = parsedMapping as Record<string, unknown>;
+
+      const mappedProductId = map[paymentOrder.productId];
+      if (typeof mappedProductId === 'string' && mappedProductId.trim()) {
+        resolvedProductId = mappedProductId.trim();
+      }
+    }
+
+    if (!resolvedProductId?.startsWith('PROD_')) {
+      throw new Error(
+        `Missing Waffo product ID mapping for "${paymentOrder.productId}". Add its Waffo PROD_... ID in Admin > Settings > Payment > Waffo Pancake.`
+      );
+    }
+  }
 
   const finalSuccessUrl =
     paymentOrder.successUrl || `${appUrl}/settings/billing?success=1`;
   const callbackSuccessUrl = `${appUrl}/api/payment/callback?order_no=${orderNo}&redirect=${encodeURIComponent(finalSuccessUrl)}`;
 
+  const providerOrder =
+    resolvedProvider === 'waffo'
+      ? {
+          ...paymentOrder,
+          customer: {
+            ...paymentOrder.customer,
+            id:
+              paymentOrder.customer?.id ||
+              paymentOrder.customer?.email ||
+              userId,
+          },
+        }
+      : paymentOrder;
+
   const session = await pm.createPayment({
     order: {
-      ...paymentOrder,
+      ...providerOrder,
       productId: resolvedProductId,
       orderNo,
       successUrl: callbackSuccessUrl,
@@ -228,7 +304,10 @@ export async function createCheckout(params: {
       creditsValidDays: creditsValidDays ?? null,
       paymentType: paymentOrder.type || 'one-time',
       paymentProvider: session.provider,
-      paymentSessionId: session.checkoutInfo.sessionId,
+      // Waffo's order query is keyed by our external order reference. Keep its
+      // actual checkout session ID inside checkoutInfo/checkoutResult.
+      paymentSessionId:
+        session.provider === 'waffo' ? orderNo : session.checkoutInfo.sessionId,
       checkoutInfo: JSON.stringify(session.checkoutInfo),
       checkoutResult: JSON.stringify(session.checkoutResult),
       checkoutUrl: session.checkoutInfo.checkoutUrl,
@@ -628,6 +707,7 @@ export async function cancelUserSubscription(params: {
 
   const session = await provider.cancelSubscription({
     subscriptionId: sub.subscriptionId,
+    customerId: sub.paymentUserId || sub.userEmail,
   });
 
   const info = session.subscriptionInfo;

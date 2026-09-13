@@ -16,6 +16,7 @@ import {
   CreemProvider,
   PayPalProvider,
   StripeProvider,
+  WaffoProvider,
   WechatPayProvider,
 } from '@/core/payment';
 import { PaymentType, type PaymentOrder } from '@/core/payment/types';
@@ -43,6 +44,8 @@ export async function runTest(
         return await testStripe(inputs, configs);
       case 'creem':
         return await testCreem(inputs, configs);
+      case 'waffo':
+        return await testWaffo(inputs, configs);
       case 'paypal':
         return await testPaypal(inputs, configs);
       case 'alipay':
@@ -190,6 +193,49 @@ async function testCreem(
     message: 'Checkout session created',
     details: {
       'Session ID': session.checkoutInfo.sessionId,
+      'Checkout URL': session.checkoutInfo.checkoutUrl,
+    },
+  };
+}
+
+// --- Waffo Pancake --------------------------------------------------------
+
+async function testWaffo(
+  inputs: Record<string, string>,
+  configs: Record<string, string>
+): Promise<TestResult> {
+  const missing = need(configs, ['waffo_merchant_id', 'waffo_private_key']);
+  if (missing) return { success: false, message: missing };
+
+  const provider = new WaffoProvider({
+    merchantId: configs.waffo_merchant_id,
+    privateKey: configs.waffo_private_key,
+    storeId: configs.waffo_store_id || undefined,
+    environment:
+      configs.waffo_environment === 'production' ? 'production' : 'test',
+    webhookTestPublicKey: configs.waffo_webhook_test_public_key || undefined,
+    webhookProdPublicKey: configs.waffo_webhook_prod_public_key || undefined,
+  });
+
+  const session = await provider.createPayment({
+    order: {
+      type: PaymentType.ONE_TIME,
+      orderNo: getUniSeq('TEST'),
+      productId: inputs.productId,
+      price: {
+        amount: 100,
+        currency: (inputs.currency || 'USD').toLowerCase(),
+      },
+      description: 'Waffo settings test',
+      successUrl: configuredSuccessUrl('waffo', configs),
+    },
+  });
+
+  return {
+    success: true,
+    message: 'Waffo checkout session created',
+    details: {
+      'Session ID': session.checkoutResult.sessionId,
       'Checkout URL': session.checkoutInfo.checkoutUrl,
     },
   };
