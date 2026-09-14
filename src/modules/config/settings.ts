@@ -572,6 +572,15 @@ export function getSettings(): Setting[] {
       tab: 'payment',
     },
     {
+      name: 'waffo_content_safety_enabled',
+      title: 'Enable Waffo prompt screening',
+      type: 'switch',
+      group: 'waffo',
+      tab: 'payment',
+      defaultValue: 'false',
+      tip: 'When enabled, image and motion-control prompts are screened before generation. Requires the Waffo Merchant ID and private key above; requests only proceed when the screening result is allow.',
+    },
+    {
       name: 'waffo_store_id',
       title: 'Store ID',
       type: 'text',

@@ -21,6 +21,10 @@ import { getStorage } from '@/modules/storage/service';
 import { enforceMinIntervalRateLimit } from '@/lib/rate-limit';
 import { respData, respErr } from '@/lib/resp';
 import { motionControlReservationCredits } from '@/lib/retail-pricing';
+import {
+  PromptScreeningError,
+  screenGenerationPrompt,
+} from '@/lib/waffo-content-safety';
 
 function stringArray(value: unknown): string[] {
   if (typeof value === 'string') return [value.trim()].filter(Boolean);
@@ -139,6 +143,10 @@ async function POST({ request }: { request: Request }) {
     const body = await request.json().catch(() => ({}));
     const apiKey = await configuredApiKey();
     const input = parseInput(body);
+    await screenGenerationPrompt(
+      input.prompt || '',
+      request.headers.get('accept-language')
+    );
     const reservationCredits = motionControlReservationCredits({
       quality: input.quality,
       characterOrientation: input.characterOrientation,
@@ -170,7 +178,12 @@ async function POST({ request }: { request: Request }) {
         status: BillingTaskStatus.FAILED,
       }).catch(() => undefined);
     }
-    return respErr(error?.message || 'Unable to create motion-control task');
+    return respErr(
+      error?.message || 'Unable to create motion-control task',
+      error instanceof PromptScreeningError
+        ? { status: error.status }
+        : undefined
+    );
   }
 }
 

@@ -5,15 +5,15 @@ export const TEXT_TO_IMAGE_SOCIAL_IMAGE_URL = `${SITE_URL}/imgs/image/meigen-201
 
 export const siteSeo = {
   home: {
-    title: 'Uncensored AI - Free Uncensored AI Image Tools',
+    title: 'Uncensored AI - AI Image & Motion Studio',
     description:
-      'Explore free uncensored AI image tools for image generation, editing, and creative direction. Start creating in your browser with no sign-up required.',
+      'Create AI images and motion-controlled videos with clear credit pricing. Choose a monthly or annual subscription, or purchase a one-time credit pack.',
     path: '/',
   },
   textToImage: {
-    title: 'Uncensored AI Image Editor - Free Text to Image Generator',
+    title: 'AI Image Editor - Credit-Based Text to Image',
     description:
-      'Uncensored AI image editor: turn text into images without filters or restrictions. Free to use, no signup, full creative direction. Try it now.',
+      'Create and edit AI images from text prompts and reference images. Sign in, review the credit cost before generation, and choose a subscription or one-time credit pack.',
     path: '/text-to-image',
   },
 } as const;

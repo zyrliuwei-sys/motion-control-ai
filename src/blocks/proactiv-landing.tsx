@@ -1,5 +1,6 @@
 import type { ProactivPriceTier } from '@/types/proactiv';
 
+import { Link } from '@/core/i18n/navigation';
 import { envConfigs } from '@/config';
 import { grokPricingPlans } from '@/lib/grok-pricing-plans';
 import { m } from '@/paraglide/messages.js';
@@ -453,6 +454,15 @@ export function ProactivLanding() {
           tiers={tiers()}
           getCtaHref={() => '/sign-up'}
         />
+        <p className="text-muted-foreground mx-auto -mt-8 mb-16 max-w-3xl px-6 text-center text-sm leading-6">
+          {m['proactiv.pricing.billing_disclosure']()}{' '}
+          <Link
+            href="/terms-of-service"
+            className="hover:text-foreground underline underline-offset-4"
+          >
+            {m['proactiv.pricing.terms_link']()}
+          </Link>
+        </p>
         <ProactivFaq title={m['proactiv.faq.title']()} faqs={faqs()} />
       </main>
       <ProactivFooter

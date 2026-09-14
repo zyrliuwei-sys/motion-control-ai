@@ -19,6 +19,10 @@ import {
 import { enforceMinIntervalRateLimit } from '@/lib/rate-limit';
 import { respData, respErr } from '@/lib/resp';
 import { grokImagineImageReservationCredits } from '@/lib/retail-pricing';
+import {
+  PromptScreeningError,
+  screenGenerationPrompt,
+} from '@/lib/waffo-content-safety';
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value && typeof value === 'object' && !Array.isArray(value));
@@ -144,6 +148,10 @@ async function POST({ request }: { request: Request }) {
 
     const input = parseInput(await request.json().catch(() => ({})));
     validateGrokImagineImageInput(input);
+    await screenGenerationPrompt(
+      input.prompt,
+      request.headers.get('accept-language')
+    );
     const apiKey = await configuredApiKey();
     const quality = input.quality || 'medium';
     const resolution = input.resolution || '1K';
@@ -183,7 +191,10 @@ async function POST({ request }: { request: Request }) {
       }).catch(() => undefined);
     }
     return respErr(
-      error instanceof Error ? error.message : 'Unable to create image task'
+      error instanceof Error ? error.message : 'Unable to create image task',
+      error instanceof PromptScreeningError
+        ? { status: error.status }
+        : undefined
     );
   }
 }
