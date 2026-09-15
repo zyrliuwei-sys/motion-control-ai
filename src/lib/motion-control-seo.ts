@@ -5,9 +5,9 @@ export const TEXT_TO_IMAGE_SOCIAL_IMAGE_URL = `${SITE_URL}/imgs/image/meigen-201
 
 export const siteSeo = {
   home: {
-    title: 'Uncensored AI - AI Image & Motion Studio',
+    title: 'Uncensored AI - AI Image Studio',
     description:
-      'Create AI images and motion-controlled videos with clear credit pricing. Choose a monthly or annual subscription, or purchase a one-time credit pack.',
+      'Create and edit AI images with clear credit pricing. Choose a monthly or annual subscription, or purchase a one-time credit pack.',
     path: '/',
   },
   textToImage: {
