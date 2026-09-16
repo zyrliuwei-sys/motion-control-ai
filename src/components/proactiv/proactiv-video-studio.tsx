@@ -60,7 +60,7 @@ export interface ProactivVideoStudioCopy {
   insufficientCreditsMessage: string;
   creditPaywallTitle: string;
   creditPaywallDescription: string;
-  creditPackOptions: readonly {
+  monthlyPlanOptions: readonly {
     productId: string;
     price: number;
     planName: string;
@@ -438,8 +438,8 @@ export function ProactivVideoStudio({
   const [isComposerOpen, setIsComposerOpen] = useState(false);
   const [isCreditPaywallOpen, setIsCreditPaywallOpen] = useState(false);
   const [paywallPrompt, setPaywallPrompt] = useState('');
-  const [selectedCreditPackProductId, setSelectedCreditPackProductId] =
-    useState(() => copy.creditPackOptions[0]?.productId ?? 'starter_lifetime');
+  const [selectedMonthlyPlanProductId, setSelectedMonthlyPlanProductId] =
+    useState(() => copy.monthlyPlanOptions[0]?.productId ?? 'starter_monthly');
   const [loadingPaymentProvider, setLoadingPaymentProvider] =
     useState<PaymentProvider | null>(null);
   const [freeImageTrialAvailable, setFreeImageTrialAvailable] = useState<
@@ -733,8 +733,8 @@ export function ProactivVideoStudio({
 
   const openCreditPaywall = (nextPrompt: string) => {
     setPaywallPrompt(nextPrompt.trim());
-    setSelectedCreditPackProductId(
-      copy.creditPackOptions[0]?.productId ?? 'starter_lifetime'
+    setSelectedMonthlyPlanProductId(
+      copy.monthlyPlanOptions[0]?.productId ?? 'starter_monthly'
     );
     setIsCreditPaywallOpen(true);
   };
@@ -742,7 +742,7 @@ export function ProactivVideoStudio({
   const creditCheckoutMutation = useMutation({
     mutationFn: (provider: PaymentProvider) =>
       apiPost<{ checkout_url?: string }>('/api/payment/checkout', {
-        product_id: selectedCreditPackProductId,
+        product_id: selectedMonthlyPlanProductId,
         payment_provider: provider,
         // Return to the editor with the draft preserved. The user explicitly
         // sends again after payment, once their newly granted credits arrive.
@@ -1498,15 +1498,15 @@ export function ProactivVideoStudio({
           onSelect={startCreditCheckout}
           title={copy.creditPaywallTitle}
           description={copy.creditPaywallDescription}
-          priceOptions={copy.creditPackOptions.map((option) => ({
+          priceOptions={copy.monthlyPlanOptions.map((option) => ({
             id: option.productId,
             price: option.price,
             planName: option.planName,
             creditsLabel: option.creditsLabel,
             billingLabel: option.billingLabel,
           }))}
-          selectedPriceOptionId={selectedCreditPackProductId}
-          onSelectPriceOption={setSelectedCreditPackProductId}
+          selectedPriceOptionId={selectedMonthlyPlanProductId}
+          onSelectPriceOption={setSelectedMonthlyPlanProductId}
         />
       </section>
     </div>

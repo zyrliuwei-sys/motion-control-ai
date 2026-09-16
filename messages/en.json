@@ -978,7 +978,7 @@
   "proactiv.video.studio.resize_preview": "Drag to resize · double-click to reset",
   "proactiv.video.studio.insufficient_credits": "Insufficient credits. Please purchase credits before generating a video.",
   "proactiv.video.studio.credit_paywall.title": "Continue creating",
-  "proactiv.video.studio.credit_paywall.description": "Your credit balance is insufficient for this task. Select a one-time credit pack to continue creating.",
+  "proactiv.video.studio.credit_paywall.description": "Your credit balance is insufficient for this task. Select a monthly plan to continue creating.",
   "proactiv.video.studio.credit_paywall.checkout_failed": "Unable to open checkout. Please try again.",
   "proactiv.video.studio.dismiss_generated_video": "Close generated video",
   "proactiv.video.studio.dismiss_generated_image": "Close generated image",

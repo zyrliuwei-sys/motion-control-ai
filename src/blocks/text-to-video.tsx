@@ -234,42 +234,42 @@ export function TextToVideo({
           creditPaywallTitle: m['proactiv.video.studio.credit_paywall.title'](),
           creditPaywallDescription:
             m['proactiv.video.studio.credit_paywall.description'](),
-          creditPackOptions: [
+          monthlyPlanOptions: [
             {
-              productId: grokPricingPlans.essentials.oneTime.productId,
-              price: grokPricingPlans.essentials.oneTime.priceInCents / 100,
+              productId: grokPricingPlans.essentials.monthly.productId,
+              price: grokPricingPlans.essentials.monthly.priceInCents / 100,
               planName: m['landing.pricing.essentials'](),
               creditsLabel: m['landing.pricing.feature_credits']({
                 credits:
-                  grokPricingPlans.essentials.oneTime.credits.toLocaleString(
+                  grokPricingPlans.essentials.monthly.credits.toLocaleString(
                     'en-US'
                   ),
               }),
-              billingLabel: m['proactiv.pricing.one_time_price_label'](),
+              billingLabel: m['proactiv.pricing.monthly'](),
             },
             {
-              productId: grokPricingPlans.studio.oneTime.productId,
-              price: grokPricingPlans.studio.oneTime.priceInCents / 100,
+              productId: grokPricingPlans.studio.monthly.productId,
+              price: grokPricingPlans.studio.monthly.priceInCents / 100,
               planName: m['landing.pricing.studio'](),
               creditsLabel: m['landing.pricing.feature_credits']({
                 credits:
-                  grokPricingPlans.studio.oneTime.credits.toLocaleString(
+                  grokPricingPlans.studio.monthly.credits.toLocaleString(
                     'en-US'
                   ),
               }),
-              billingLabel: m['proactiv.pricing.one_time_price_label'](),
+              billingLabel: m['proactiv.pricing.monthly'](),
             },
             {
-              productId: grokPricingPlans.production.oneTime.productId,
-              price: grokPricingPlans.production.oneTime.priceInCents / 100,
+              productId: grokPricingPlans.production.monthly.productId,
+              price: grokPricingPlans.production.monthly.priceInCents / 100,
               planName: m['landing.pricing.production'](),
               creditsLabel: m['landing.pricing.feature_credits']({
                 credits:
-                  grokPricingPlans.production.oneTime.credits.toLocaleString(
+                  grokPricingPlans.production.monthly.credits.toLocaleString(
                     'en-US'
                   ),
               }),
-              billingLabel: m['proactiv.pricing.one_time_price_label'](),
+              billingLabel: m['proactiv.pricing.monthly'](),
             },
           ],
           checkoutFailedMessage:

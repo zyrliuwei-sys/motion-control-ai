@@ -978,7 +978,7 @@
   "proactiv.video.studio.resize_preview": "拖动可调整宽度，双击恢复默认",
   "proactiv.video.studio.insufficient_credits": "积分不足，请先购买积分后再生成视频。",
   "proactiv.video.studio.credit_paywall.title": "继续创作",
-  "proactiv.video.studio.credit_paywall.description": "当前积分余额不足以完成此任务。选择一次性积分包即可继续创作。",
+  "proactiv.video.studio.credit_paywall.description": "当前积分余额不足以完成此任务。选择月度套餐即可继续创作。",
   "proactiv.video.studio.credit_paywall.checkout_failed": "无法打开支付页面，请重试。",
   "proactiv.video.studio.dismiss_generated_video": "关闭生成视频",
   "proactiv.video.studio.dismiss_generated_image": "关闭生成图片",
