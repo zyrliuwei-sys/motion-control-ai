@@ -22,6 +22,11 @@ import { enforceMinIntervalRateLimit } from '@/lib/rate-limit';
 import { respData, respErr } from '@/lib/resp';
 import { motionControlReservationCredits } from '@/lib/retail-pricing';
 import {
+  assertImagesAllowed,
+  getSeeApiKey,
+  ImageModerationError,
+} from '@/lib/seeapi-moderation';
+import {
   PromptScreeningError,
   screenGenerationPrompt,
 } from '@/lib/waffo-content-safety';
@@ -147,6 +152,10 @@ async function POST({ request }: { request: Request }) {
       input.prompt || '',
       request.headers.get('accept-language')
     );
+    await assertImagesAllowed({
+      apiKey: getSeeApiKey(),
+      imageUrls: input.imageUrls,
+    });
     const reservationCredits = motionControlReservationCredits({
       quality: input.quality,
       characterOrientation: input.characterOrientation,
@@ -180,7 +189,8 @@ async function POST({ request }: { request: Request }) {
     }
     return respErr(
       error?.message || 'Unable to create motion-control task',
-      error instanceof PromptScreeningError
+      error instanceof PromptScreeningError ||
+        error instanceof ImageModerationError
         ? { status: error.status }
         : undefined
     );

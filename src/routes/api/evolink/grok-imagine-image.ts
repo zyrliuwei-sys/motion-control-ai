@@ -20,6 +20,11 @@ import { enforceMinIntervalRateLimit } from '@/lib/rate-limit';
 import { respData, respErr } from '@/lib/resp';
 import { grokImagineImageReservationCredits } from '@/lib/retail-pricing';
 import {
+  assertImagesAllowed,
+  getSeeApiKey,
+  ImageModerationError,
+} from '@/lib/seeapi-moderation';
+import {
   PromptScreeningError,
   screenGenerationPrompt,
 } from '@/lib/waffo-content-safety';
@@ -152,6 +157,11 @@ async function POST({ request }: { request: Request }) {
       input.prompt,
       request.headers.get('accept-language')
     );
+    const imageModerationApiKey = getSeeApiKey();
+    await assertImagesAllowed({
+      apiKey: imageModerationApiKey,
+      imageUrls: input.imageUrls || [],
+    });
     const apiKey = await configuredApiKey();
     const quality = input.quality || 'medium';
     const resolution = input.resolution || '1K';
@@ -192,7 +202,8 @@ async function POST({ request }: { request: Request }) {
     }
     return respErr(
       error instanceof Error ? error.message : 'Unable to create image task',
-      error instanceof PromptScreeningError
+      error instanceof PromptScreeningError ||
+        error instanceof ImageModerationError
         ? { status: error.status }
         : undefined
     );

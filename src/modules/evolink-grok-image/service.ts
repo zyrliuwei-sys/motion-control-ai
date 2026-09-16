@@ -8,6 +8,12 @@ import {
 } from '@/core/ai';
 import { db } from '@/core/db';
 import { aiTask, type AiTask } from '@/config/db/schema';
+import {
+  assertImagesAllowed,
+  ImageModerationError,
+  ImageModerationRejectedError,
+  type ImageModerationSummary,
+} from '@/lib/seeapi-moderation';
 
 export const EVOLINK_GROK_IMAGINE_IMAGE_MODEL = 'grok-imagine-image-2.0';
 
@@ -56,6 +62,13 @@ export type GrokImagineImageTask = {
 
 type StoredTaskInfo = {
   errorMessage?: string;
+  moderation?:
+    | ImageModerationSummary
+    | {
+        checkedAt: string;
+        provider: 'seeapi';
+        status: 'failed';
+      };
   progress?: number;
   providerStatus?: string;
 };
@@ -103,6 +116,8 @@ function taskMode(task: AiTask): 'edit' | 'text' {
 
 function toClientTask(task: AiTask): GrokImagineImageTask {
   const info = parseJson<StoredTaskInfo>(task.taskInfo) ?? {};
+  const resultIsModerated =
+    !info.moderation || info.moderation.status === 'passed';
 
   return {
     id: task.id,
@@ -111,10 +126,85 @@ function toClientTask(task: AiTask): GrokImagineImageTask {
     mode: taskMode(task),
     status: task.status,
     progress: Math.max(0, Math.min(100, Number(info.progress) || 0)),
-    resultUrls: resultUrls(task.taskResult),
+    // Do not expose a result unless the provider task succeeded and the
+    // generated image passed SeeAPI moderation. Legacy tasks without a
+    // moderation record remain readable.
+    resultUrls:
+      task.status === AITaskStatus.SUCCESS && resultIsModerated
+        ? resultUrls(task.taskResult)
+        : [],
     createdAt: task.createdAt.toISOString(),
     ...(info.errorMessage ? { errorMessage: info.errorMessage } : {}),
   };
+}
+
+async function moderateGeneratedResult(params: {
+  apiKey: string;
+  imageUrls: string[];
+  taskId: string;
+}): Promise<ImageModerationSummary> {
+  return assertImagesAllowed({
+    apiKey: params.apiKey,
+    idempotencyPrefix: `grok-image-${params.taskId}`,
+    imageUrls: params.imageUrls,
+  });
+}
+
+async function resolveRemoteTask(params: {
+  apiKey: string;
+  localTask: AiTask;
+  remote: {
+    taskInfo?: { errorMessage?: string; status?: string };
+    taskResult?: unknown;
+    taskStatus: string;
+  };
+}) {
+  const taskInfo = taskInfoFromRemote(params.remote);
+  let status = params.remote.taskStatus;
+
+  if (params.remote.taskStatus === AITaskStatus.SUCCESS) {
+    const remoteResultUrls = resultUrls(
+      JSON.stringify(params.remote.taskResult)
+    );
+
+    if (!remoteResultUrls.length) {
+      status = AITaskStatus.FAILED;
+      taskInfo.errorMessage =
+        'Generated image was not returned by the provider.';
+      taskInfo.moderation = {
+        checkedAt: new Date().toISOString(),
+        provider: 'seeapi',
+        status: 'failed',
+      };
+    } else {
+      try {
+        taskInfo.moderation = await moderateGeneratedResult({
+          apiKey: params.apiKey,
+          imageUrls: remoteResultUrls,
+          taskId: params.localTask.id,
+        });
+        if (taskInfo.moderation.status === 'rejected') {
+          status = AITaskStatus.FAILED;
+          taskInfo.errorMessage =
+            'Generated image did not pass the content review.';
+        }
+      } catch (error) {
+        if (!(error instanceof ImageModerationRejectedError)) throw error;
+
+        status = AITaskStatus.FAILED;
+        taskInfo.errorMessage =
+          'Generated image did not pass the content review.';
+        taskInfo.moderation = {
+          checkedAt: new Date().toISOString(),
+          provider: 'seeapi',
+          results: error.results,
+          status: 'rejected',
+        };
+      }
+    }
+  }
+
+  return { status, taskInfo };
 }
 
 function taskInfoFromRemote(remote: {
@@ -215,22 +305,69 @@ export async function submitGrokImagineImageTask(params: {
     prompt: params.input.prompt.trim(),
     options: providerOptions(params.input),
   });
-  const taskInfo = taskInfoFromRemote(remote);
-  const updatedTask = {
+  const initialTaskInfo = taskInfoFromRemote(remote);
+  const initialTask = {
     ...task,
     taskId: remote.taskId,
     status: remote.taskStatus,
-    taskInfo: JSON.stringify(taskInfo),
+    taskInfo: JSON.stringify(initialTaskInfo),
     taskResult: JSON.stringify(remote.taskResult),
   };
 
   await db()
     .update(aiTask)
     .set({
-      taskId: updatedTask.taskId,
+      taskId: initialTask.taskId,
+      status: initialTask.status,
+      taskInfo: initialTask.taskInfo,
+      taskResult: initialTask.taskResult,
+    })
+    .where(eq(aiTask.id, task.id));
+
+  let resolved: Awaited<ReturnType<typeof resolveRemoteTask>>;
+  try {
+    resolved = await resolveRemoteTask({
+      apiKey: params.apiKey,
+      localTask: initialTask,
+      remote,
+    });
+  } catch (error) {
+    if (!(error instanceof ImageModerationError)) throw error;
+
+    const failedTaskInfo: StoredTaskInfo = {
+      ...initialTaskInfo,
+      errorMessage: error.message,
+      moderation: {
+        checkedAt: new Date().toISOString(),
+        provider: 'seeapi',
+        status: 'failed',
+      },
+    };
+    const failedTask = {
+      ...initialTask,
+      status: AITaskStatus.FAILED,
+      taskInfo: JSON.stringify(failedTaskInfo),
+    };
+    await db()
+      .update(aiTask)
+      .set({
+        status: failedTask.status,
+        taskInfo: failedTask.taskInfo,
+      })
+      .where(eq(aiTask.id, task.id));
+    throw error;
+  }
+  const updatedTask = {
+    ...initialTask,
+    status: resolved.status,
+    taskInfo: JSON.stringify(resolved.taskInfo),
+  };
+
+  await db()
+    .update(aiTask)
+    .set({
       status: updatedTask.status,
       taskInfo: updatedTask.taskInfo,
-      taskResult: updatedTask.taskResult,
     })
     .where(eq(aiTask.id, task.id));
 
@@ -267,11 +404,45 @@ export async function getGrokImagineImageTask(params: {
     mediaType: AIMediaType.IMAGE,
     model: EVOLINK_GROK_IMAGINE_IMAGE_MODEL,
   });
-  const taskInfo = taskInfoFromRemote(remote);
+  let resolved: Awaited<ReturnType<typeof resolveRemoteTask>>;
+  try {
+    resolved = await resolveRemoteTask({
+      apiKey: params.apiKey,
+      localTask: task,
+      remote,
+    });
+  } catch (error) {
+    if (!(error instanceof ImageModerationError)) throw error;
+
+    const failedTaskInfo: StoredTaskInfo = {
+      ...taskInfoFromRemote(remote),
+      errorMessage: error.message,
+      moderation: {
+        checkedAt: new Date().toISOString(),
+        provider: 'seeapi',
+        status: 'failed',
+      },
+    };
+    const failedTask = {
+      ...task,
+      status: AITaskStatus.FAILED,
+      taskInfo: JSON.stringify(failedTaskInfo),
+      taskResult: JSON.stringify(remote.taskResult),
+    };
+    await db()
+      .update(aiTask)
+      .set({
+        status: failedTask.status,
+        taskInfo: failedTask.taskInfo,
+        taskResult: failedTask.taskResult,
+      })
+      .where(eq(aiTask.id, task.id));
+    return toClientTask(failedTask);
+  }
   const updatedTask = {
     ...task,
-    status: remote.taskStatus,
-    taskInfo: JSON.stringify(taskInfo),
+    status: resolved.status,
+    taskInfo: JSON.stringify(resolved.taskInfo),
     taskResult: JSON.stringify(remote.taskResult),
   };
 

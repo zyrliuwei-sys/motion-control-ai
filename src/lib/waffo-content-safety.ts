@@ -43,15 +43,14 @@ function wait(ms: number) {
 
 /**
  * Screen a generation prompt before it is persisted, billed, or sent to a
- * generation provider. Screening is opt-in until Waffo credentials and access
- * have been configured in Admin → Settings → Waffo Pancake.
+ * generation provider. Once Waffo credentials are configured, screening is
+ * mandatory so generation cannot bypass the moderation step.
  */
 export async function screenGenerationPrompt(
   prompt: string,
   acceptLanguage: string | null
 ): Promise<void> {
   const configs = await getAllConfigs();
-  if (configs.waffo_content_safety_enabled !== 'true') return;
 
   const merchantId = configs.waffo_merchant_id?.trim();
   const privateKey = configs.waffo_private_key?.trim();
