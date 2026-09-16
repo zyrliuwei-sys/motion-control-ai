@@ -355,13 +355,16 @@ export async function grantForNewUser(params: {
 }) {
   const { userId, userEmail, configs } = params;
 
-  if (configs.initial_credits_enabled !== 'true') return;
+  // New accounts receive the welcome grant by default. Admin settings can
+  // explicitly disable it or override the amount/description.
+  if (configs.initial_credits_enabled === 'false') return;
 
-  const credits = parseInt(configs.initial_credits_amount) || 0;
+  const credits = parseInt(configs.initial_credits_amount || '50', 10) || 0;
   if (credits <= 0) return;
 
-  const validDays = parseInt(configs.initial_credits_valid_days) || 0;
-  const description = configs.initial_credits_description || 'Initial credits';
+  const validDays =
+    parseInt(configs.initial_credits_valid_days || '0', 10) || 0;
+  const description = configs.initial_credits_description || 'Welcome credits';
 
   const expiresAt = calculateCreditExpirationTime({
     creditsValidDays: validDays,

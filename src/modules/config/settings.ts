@@ -262,6 +262,42 @@ export function getSettings(): Setting[] {
       tab: 'general',
     },
 
+    // ─── General / Credits ──────────────────────────────────────────
+    {
+      name: 'initial_credits_enabled',
+      title: 'Grant credits on signup',
+      type: 'switch',
+      group: 'credit',
+      tab: 'general',
+      defaultValue: 'true',
+    },
+    {
+      name: 'initial_credits_amount',
+      title: 'Credits amount',
+      type: 'number',
+      group: 'credit',
+      tab: 'general',
+      defaultValue: '50',
+    },
+    {
+      name: 'initial_credits_valid_days',
+      title: 'Valid days',
+      type: 'number',
+      placeholder: '0 = never expires',
+      group: 'credit',
+      tab: 'general',
+      defaultValue: '0',
+    },
+    {
+      name: 'initial_credits_description',
+      title: 'Description',
+      type: 'text',
+      placeholder: 'Welcome credits',
+      group: 'credit',
+      tab: 'general',
+      defaultValue: 'Welcome credits',
+    },
+
     // ─── General / User Roles ────────────────────────────────────────
     {
       name: 'initial_role_enabled',
