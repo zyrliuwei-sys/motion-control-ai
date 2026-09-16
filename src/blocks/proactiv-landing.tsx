@@ -471,20 +471,20 @@ export function ProactivLanding() {
         rights={m['proactiv.footer.rights']()}
         columns={footerColumns()}
         badge={
-          <div className="flex flex-col items-start gap-4">
+          <div className="flex flex-col items-start gap-3">
             <a
               href="https://fazier.com/launches/www.uncensoredaieditor.com"
               target="_blank"
               rel="noopener noreferrer"
               aria-label="View uncensored ai on Fazier"
-              className="inline-flex rounded-xl transition-opacity hover:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#18181b]"
+              className="inline-flex h-[52px] w-[190px] max-w-full items-center justify-center rounded-xl transition-opacity hover:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#18181b]"
             >
               <img
                 src="https://fazier.com/api/v1//public/badges/launch_badges.svg?badge_type=featured&theme=light"
-                width="210"
-                height="50"
+                width="190"
+                height="52"
                 alt="Fazier featured badge"
-                className="h-auto max-w-full"
+                className="block h-full w-full object-contain"
               />
             </a>
             <a
@@ -492,14 +492,14 @@ export function ProactivLanding() {
               target="_blank"
               rel="dofollow noopener"
               aria-label="Verified on DANG!"
-              className="inline-flex transition-opacity hover:opacity-80 focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#18181b]"
+              className="inline-flex h-[52px] w-[190px] max-w-full items-center justify-center transition-opacity hover:opacity-80 focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#18181b]"
             >
               <img
                 src="https://assets.dang.ai/badges/dang-verified-dark.png"
-                width="220"
-                height="80"
+                width="190"
+                height="52"
                 alt="Verified on DANG!"
-                className="block h-auto max-w-full border-0 outline-none"
+                className="block h-full w-full border-0 object-contain outline-none"
               />
             </a>
             <a
@@ -507,14 +507,14 @@ export function ProactivLanding() {
               target="_blank"
               rel="noopener noreferrer"
               aria-label="Featured on Twelve Tools"
-              className="inline-flex rounded-sm transition-opacity hover:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#18181b]"
+              className="inline-flex h-[52px] w-[190px] max-w-full items-center justify-center rounded-sm transition-opacity hover:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#18181b]"
             >
               <img
                 src="https://twelve.tools/badge3-white.svg"
-                width="148"
-                height="40"
+                width="190"
+                height="52"
                 alt="Featured on Twelve Tools"
-                className="h-auto max-w-full"
+                className="block h-full w-full object-contain"
               />
             </a>
             <a
@@ -522,15 +522,15 @@ export function ProactivLanding() {
               target="_blank"
               rel="noopener noreferrer"
               aria-label="Featured on ToolPilot"
-              className="inline-flex rounded-sm transition-opacity hover:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#18181b]"
+              className="inline-flex h-[52px] w-[190px] max-w-full items-center justify-center rounded-sm transition-opacity hover:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#18181b]"
             >
               <img
                 src="https://www.toolpilot.ai/cdn/shop/files/toolpilot-badge-w.png"
-                width="300"
-                height="85"
+                width="190"
+                height="52"
                 alt="Featured on ToolPilot"
                 loading="lazy"
-                className="h-auto max-w-full"
+                className="block h-full w-full object-contain"
               />
             </a>
             <a
@@ -538,14 +538,15 @@ export function ProactivLanding() {
               target="_blank"
               rel="noopener noreferrer"
               aria-label="Featured on Launch Scroll"
-              className="inline-flex rounded-sm transition-opacity hover:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#18181b]"
+              className="inline-flex h-[52px] w-[190px] max-w-full items-center justify-center rounded-sm transition-opacity hover:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#18181b]"
             >
               <img
                 src="https://launchscroll.com/assets/images/badge-dark.png"
-                height="54"
+                width="190"
+                height="52"
                 alt="Launch Scroll"
                 loading="lazy"
-                className="h-auto max-w-full"
+                className="block h-full w-full object-contain"
               />
             </a>
           </div>

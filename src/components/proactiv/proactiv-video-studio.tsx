@@ -19,6 +19,7 @@ import { toast } from 'sonner';
 import { useSession } from '@/core/auth/client';
 import { useRouter } from '@/core/i18n/navigation';
 import { apiGet, apiPost, apiUpload } from '@/lib/api-client';
+import { hasRestrictedPromptContent } from '@/lib/prompt-policy';
 import { usePublicConfig } from '@/hooks/use-public-config';
 import {
   PaymentProviderModal,
@@ -48,6 +49,7 @@ export interface ProactivVideoStudioCopy {
   readyLabel: string;
   referenceImageLabel: string;
   referenceVideoLabel: string;
+  referenceImageRejectedMessage: string;
   generatedVideoLabel: string;
   generatedImageLabel: string;
   imagePreviewEmptyLabel: string;
@@ -85,6 +87,7 @@ export interface ProactivVideoStudioCopy {
   imageTaskProcessingLabel: string;
   imageTaskCompletedLabel: string;
   imageTaskFailedLabel: string;
+  promptRejectedMessage: string;
   retryGenerationLabel: string;
   selectTemplateLabel: string;
 }
@@ -769,6 +772,10 @@ export function ProactivVideoStudio({
     mutationFn: async (
       values: ProactivGenerationValues
     ): Promise<GenerationTask> => {
+      if (hasRestrictedPromptContent(values.prompt)) {
+        throw new Error(copy.promptRejectedMessage);
+      }
+
       const images = values.references.filter(
         (reference) => reference.type === 'image'
       );
@@ -882,6 +889,26 @@ export function ProactivVideoStudio({
         signInForGeneration(values);
         return;
       }
+      if (hasRestrictedPromptContent(values.prompt)) {
+        setIsQueued(false);
+        setPendingPrompt(null);
+        setRetryValues(null);
+        setShowRetry(false);
+        toast.error(copy.promptRejectedMessage);
+        return;
+      }
+      if (
+        error.message
+          .toLowerCase()
+          .includes('reference image cannot be uploaded')
+      ) {
+        setIsQueued(false);
+        setPendingPrompt(null);
+        setRetryValues(null);
+        setShowRetry(false);
+        toast.error(copy.referenceImageRejectedMessage);
+        return;
+      }
       const insufficientCredits = error.message === 'Insufficient credits';
       setIsQueued(false);
       setPendingPrompt(null);
@@ -898,6 +925,14 @@ export function ProactivVideoStudio({
   });
 
   function startGeneration(values: ProactivGenerationValues) {
+    if (hasRestrictedPromptContent(values.prompt)) {
+      setRetryValues(null);
+      setPendingPrompt(null);
+      setShowRetry(false);
+      toast.error(copy.promptRejectedMessage);
+      return;
+    }
+
     if (!isSessionPending && !session?.user) {
       signInForGeneration(values);
       return;

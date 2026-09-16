@@ -6,6 +6,12 @@ import { getStorage } from '@/modules/storage/service';
 import { md5 } from '@/lib/hash';
 import { enforceMinIntervalRateLimit } from '@/lib/rate-limit';
 import { respData, respErr } from '@/lib/resp';
+import {
+  assertImagesAllowed,
+  getSeeApiKey,
+  ImageModerationError,
+  ImageModerationRejectedError,
+} from '@/lib/seeapi-moderation';
 
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
 const MAX_VIDEO_BYTES = 100 * 1024 * 1024;
@@ -73,40 +79,64 @@ async function POST({ request }: { request: Request }) {
 
     const images: string[] = [];
     const videos: string[] = [];
-    for (const file of files) {
-      const isImage = IMAGE_TYPES.has(file.type);
-      const isVideo = VIDEO_TYPES.has(file.type);
-      if (!isImage && !isVideo) {
-        return respErr(`${file.name} must be a JPG, PNG, MP4, or MOV file`);
-      }
-      const limit = isImage ? MAX_IMAGE_BYTES : MAX_VIDEO_BYTES;
-      if (file.size > limit) {
-        return respErr(
-          `${file.name} exceeds the ${isImage ? '10MB image' : '100MB video'} limit`
-        );
+    const uploadedKeys: string[] = [];
+    try {
+      for (const file of files) {
+        const isImage = IMAGE_TYPES.has(file.type);
+        const isVideo = VIDEO_TYPES.has(file.type);
+        if (!isImage && !isVideo) {
+          throw new Error(`${file.name} must be a JPG, PNG, MP4, or MOV file`);
+        }
+        const limit = isImage ? MAX_IMAGE_BYTES : MAX_VIDEO_BYTES;
+        if (file.size > limit) {
+          throw new Error(
+            `${file.name} exceeds the ${isImage ? '10MB image' : '100MB video'} limit`
+          );
+        }
+
+        const body = new Uint8Array(await file.arrayBuffer());
+        const key = `evolink/${md5(body)}.${extFromMime(file.type)}`;
+        const existed = await storage.exists({ key });
+        const result = await storage.uploadFile({
+          body,
+          key,
+          contentType: file.type,
+          disposition: 'inline',
+        });
+        if (!result.success || !result.url) {
+          throw new Error(result.error || `Unable to upload ${file.name}`);
+        }
+        if (!isPublicHttpsUrl(result.url)) {
+          throw new Error('Storage did not return a public HTTPS URL');
+        }
+
+        if (!existed) uploadedKeys.push(result.key || key);
+        (isImage ? images : videos).push(result.url);
       }
 
-      const body = new Uint8Array(await file.arrayBuffer());
-      const key = `evolink/${md5(body)}.${extFromMime(file.type)}`;
-      const result = await storage.uploadFile({
-        body,
-        key,
-        contentType: file.type,
-        disposition: 'inline',
+      // The uploaded object is only a temporary public source for SeeAPI. Do
+      // not return any image URL until it has passed content moderation.
+      await assertImagesAllowed({
+        apiKey: getSeeApiKey(),
+        imageUrls: images,
       });
-      if (!result.success || !result.url) {
-        return respErr(result.error || `Unable to upload ${file.name}`);
-      }
-      if (!isPublicHttpsUrl(result.url)) {
-        return respErr('Storage did not return a public HTTPS URL');
-      }
-
-      (isImage ? images : videos).push(result.url);
+    } catch (error) {
+      await Promise.all(uploadedKeys.map((key) => storage.deleteFile({ key })));
+      throw error;
     }
 
     return respData({ images, videos });
   } catch (error: any) {
-    return respErr(error?.message || 'Unable to upload media');
+    const message =
+      error instanceof ImageModerationRejectedError
+        ? 'This reference image cannot be uploaded. Please choose another image.'
+        : error?.message || 'Unable to upload media';
+    return respErr(
+      message,
+      error instanceof ImageModerationError
+        ? { status: error.status }
+        : undefined
+    );
   }
 }
 

@@ -56,6 +56,10 @@ export interface StorageProvider {
   // check if object exists (optional)
   exists?: (options: { key: string; bucket?: string }) => Promise<boolean>;
 
+  // Delete a temporary or user-owned object (optional for providers that do
+  // not support deletion).
+  deleteFile?: (options: { key: string; bucket?: string }) => Promise<boolean>;
+
   // get public url for key (optional)
   getPublicUrl?: (options: { key: string; bucket?: string }) => string;
 
@@ -133,6 +137,16 @@ export class StorageManager {
     const provider = this.ensureDefaultProvider();
     if (!provider.exists) return false;
     return provider.exists(options);
+  }
+
+  // Delete an object using the default provider when supported.
+  async deleteFile(options: {
+    key: string;
+    bucket?: string;
+  }): Promise<boolean> {
+    const provider = this.ensureDefaultProvider();
+    if (!provider.deleteFile) return false;
+    return provider.deleteFile(options);
   }
 
   // get public url using default provider (if supported)

@@ -146,12 +146,12 @@ async function POST({ request }: { request: Request }) {
     if (limited) return limited;
 
     const body = await request.json().catch(() => ({}));
-    const apiKey = await configuredApiKey();
     const input = parseInput(body);
     await screenGenerationPrompt(
       input.prompt || '',
       request.headers.get('accept-language')
     );
+    const apiKey = await configuredApiKey();
     await assertImagesAllowed({
       apiKey: getSeeApiKey(),
       imageUrls: input.imageUrls,

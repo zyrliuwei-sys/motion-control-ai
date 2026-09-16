@@ -219,6 +219,8 @@ export function TextToVideo({
           readyLabel: m['proactiv.video.studio.ready'](),
           referenceImageLabel: m['proactiv.video.studio.reference_image'](),
           referenceVideoLabel: m['proactiv.video.studio.reference_video'](),
+          referenceImageRejectedMessage:
+            m['proactiv.video.studio.reference_image_rejected'](),
           generatedVideoLabel: m['proactiv.video.studio.generated_video'](),
           generatedImageLabel: m['proactiv.video.studio.generated_image'](),
           imagePreviewEmptyLabel:
@@ -298,6 +300,7 @@ export function TextToVideo({
           imageTaskCompletedLabel:
             m['proactiv.video.studio.image_task_completed'](),
           imageTaskFailedLabel: m['proactiv.video.studio.image_task_failed'](),
+          promptRejectedMessage: m['proactiv.video.studio.prompt_rejected'](),
           retryGenerationLabel: m['proactiv.video.studio.retry_generation'](),
           selectTemplateLabel: m['proactiv.video.studio.select_template'](),
         }}

@@ -1,6 +1,7 @@
 import * as crypto from 'crypto';
 
 import { getAllConfigs } from '@/modules/config/service';
+import { hasRestrictedPromptContent } from '@/lib/prompt-policy';
 
 const WAFFO_API_URL = 'https://api.waffo.ai';
 const SCAN_PROMPT_PATH = '/v1/actions/verification/scan-prompt';
@@ -50,6 +51,20 @@ export async function screenGenerationPrompt(
   prompt: string,
   acceptLanguage: string | null
 ): Promise<void> {
+  if (!prompt.trim() || prompt.length > 10_000) {
+    throw new PromptScreeningError(
+      'Please enter a prompt between 1 and 10,000 characters.',
+      400
+    );
+  }
+
+  if (hasRestrictedPromptContent(prompt)) {
+    throw new PromptScreeningError(
+      'This prompt cannot be used under our content rules. Please revise your prompt and try again.',
+      400
+    );
+  }
+
   const configs = await getAllConfigs();
 
   const merchantId = configs.waffo_merchant_id?.trim();
@@ -58,13 +73,6 @@ export async function screenGenerationPrompt(
     throw new PromptScreeningError(
       'Prompt review is temporarily unavailable. Please try again later.',
       503
-    );
-  }
-
-  if (!prompt.trim() || prompt.length > 10_000) {
-    throw new PromptScreeningError(
-      'Please enter a prompt between 1 and 10,000 characters.',
-      400
     );
   }
 
