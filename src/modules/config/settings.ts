@@ -277,7 +277,7 @@ export function getSettings(): Setting[] {
       type: 'number',
       group: 'credit',
       tab: 'general',
-      defaultValue: '50',
+      defaultValue: '30',
     },
     {
       name: 'initial_credits_valid_days',

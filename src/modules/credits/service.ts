@@ -359,7 +359,7 @@ export async function grantForNewUser(params: {
   // explicitly disable it or override the amount/description.
   if (configs.initial_credits_enabled === 'false') return;
 
-  const credits = parseInt(configs.initial_credits_amount || '50', 10) || 0;
+  const credits = parseInt(configs.initial_credits_amount || '30', 10) || 0;
   if (credits <= 0) return;
 
   const validDays =

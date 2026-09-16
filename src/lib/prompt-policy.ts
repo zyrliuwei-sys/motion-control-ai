@@ -7,12 +7,13 @@
  * as "having-sex" are covered too.
  */
 const restrictedPromptPatterns: RegExp[] = [
-  /\b(?:having|have)\s+sex\b/iu,
+  /\b(?:sex|having\s+sex|have\s+sex)\b/iu,
   /\bsexual\s+intercourse\b/iu,
   /\b(?:explicit\s+sex|sex\s+acts?|sexual\s+acts?)\b/iu,
-  /\b(?:porn|pornography|pornographic|xxx)\b/iu,
-  /\b(?:masturbat(?:e|ion)|blowjob|handjob|cunnilingus|fellatio|ejaculat(?:e|ion)|orgasm|penetrat(?:e|ion))\b/iu,
-  /(?:性交|做爱|性爱|色情|淫秽|口交|手淫|自慰|射精|高潮|插入)/u,
+  /\b(?:porn|pornography|pornographic|xxx|nsfw|nude|nudity|naked|topless|erotic)\b/iu,
+  /\b(?:fuck(?:ed|ing)?|masturbat(?:e|ion)|blowjob|handjob|cunnilingus|fellatio|ejaculat(?:e|ion)|orgasm|penetrat(?:e|ion)|cum|semen|orgy|threesome|gangbang|deepthroat|dildo|sex\s+toy)\b/iu,
+  /(?:性交|性行为|做爱|性爱|色情|淫秽|裸照|裸体|裸露|口交|手淫|自慰|射精|高潮|插入|生殖器|阴茎|阴道|私处|乳头)/u,
+  /(?:セックス|性交|ポルノ|裸|性行為)/u,
 ];
 
 function normalizePrompt(prompt: string) {
