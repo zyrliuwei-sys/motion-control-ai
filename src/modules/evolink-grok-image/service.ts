@@ -151,8 +151,8 @@ async function moderateGeneratedResult(params: {
 }
 
 async function resolveRemoteTask(params: {
-  apiKey: string;
   localTask: AiTask;
+  moderationApiKey: string;
   remote: {
     taskInfo?: { errorMessage?: string; status?: string };
     taskResult?: unknown;
@@ -179,7 +179,7 @@ async function resolveRemoteTask(params: {
     } else {
       try {
         taskInfo.moderation = await moderateGeneratedResult({
-          apiKey: params.apiKey,
+          apiKey: params.moderationApiKey,
           imageUrls: remoteResultUrls,
           taskId: params.localTask.id,
         });
@@ -338,6 +338,7 @@ export async function submitGrokImagineImageTask(params: {
 /** Refresh a user-owned Grok Imagine Image task until it is terminal. */
 export async function getGrokImagineImageTask(params: {
   apiKey: string;
+  moderationApiKey: string;
   taskId: string;
   userId: string;
 }): Promise<GrokImagineImageTask> {
@@ -368,8 +369,8 @@ export async function getGrokImagineImageTask(params: {
   let resolved: Awaited<ReturnType<typeof resolveRemoteTask>>;
   try {
     resolved = await resolveRemoteTask({
-      apiKey: params.apiKey,
       localTask: task,
+      moderationApiKey: params.moderationApiKey,
       remote,
     });
   } catch (error) {
@@ -457,6 +458,7 @@ export async function getGrokImagineImageTask(params: {
 export async function getGrokImagineImageResultUrl(params: {
   apiKey: string;
   index: number;
+  moderationApiKey: string;
   taskId: string;
   userId: string;
 }): Promise<string> {

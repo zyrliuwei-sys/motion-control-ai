@@ -115,6 +115,7 @@ function downloadFileExtension(contentType: string | null): string {
 async function downloadResult(params: {
   apiKey: string;
   index: number;
+  moderationApiKey: string;
   taskId: string;
   userId: string;
 }) {
@@ -220,6 +221,7 @@ async function GET({ request }: { request: Request }) {
     const taskId = url.searchParams.get('taskId')?.trim();
     if (!taskId) return respErr('taskId is required');
     const apiKey = await configuredApiKey();
+    const imageModerationApiKey = getSeeApiKey();
 
     if (url.searchParams.get('download') === '1') {
       const index = Number(url.searchParams.get('index') ?? '0');
@@ -229,6 +231,7 @@ async function GET({ request }: { request: Request }) {
       return downloadResult({
         apiKey,
         index,
+        moderationApiKey: imageModerationApiKey,
         taskId,
         userId: session.user.id,
       });
@@ -236,6 +239,7 @@ async function GET({ request }: { request: Request }) {
 
     const task = await getGrokImagineImageTask({
       apiKey,
+      moderationApiKey: imageModerationApiKey,
       taskId,
       userId: session.user.id,
     });
