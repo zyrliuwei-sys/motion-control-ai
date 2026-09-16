@@ -5,6 +5,7 @@ export interface PricingInteractionOption {
   price: number;
   planName: string;
   creditsLabel: string;
+  billingLabel?: string;
 }
 
 export function PricingInteraction({
@@ -51,7 +52,9 @@ export function PricingInteraction({
                   {option.planName}
                 </span>
                 <span className="mt-0.5 block truncate text-sm text-[#64748b]">
-                  {option.creditsLabel}
+                  {option.billingLabel
+                    ? `${option.creditsLabel} · ${option.billingLabel}`
+                    : option.creditsLabel}
                 </span>
               </span>
             </span>

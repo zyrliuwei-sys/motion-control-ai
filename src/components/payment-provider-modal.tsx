@@ -32,6 +32,7 @@ interface Props {
     price: number;
     planName: string;
     creditsLabel: string;
+    billingLabel?: string;
   }[];
   selectedPriceOptionId?: string;
   onSelectPriceOption?: (id: string) => void;

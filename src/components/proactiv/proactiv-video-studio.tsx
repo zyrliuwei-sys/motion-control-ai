@@ -65,6 +65,7 @@ export interface ProactivVideoStudioCopy {
     price: number;
     planName: string;
     creditsLabel: string;
+    billingLabel?: string;
   }[];
   checkoutFailedMessage: string;
   downloadVideoLabel: string;
@@ -1502,6 +1503,7 @@ export function ProactivVideoStudio({
             price: option.price,
             planName: option.planName,
             creditsLabel: option.creditsLabel,
+            billingLabel: option.billingLabel,
           }))}
           selectedPriceOptionId={selectedCreditPackProductId}
           onSelectPriceOption={setSelectedCreditPackProductId}

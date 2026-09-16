@@ -237,7 +237,7 @@ export function TextToVideo({
           creditPackOptions: [
             {
               productId: grokPricingPlans.essentials.oneTime.productId,
-              price: 10,
+              price: grokPricingPlans.essentials.oneTime.priceInCents / 100,
               planName: m['landing.pricing.essentials'](),
               creditsLabel: m['landing.pricing.feature_credits']({
                 credits:
@@ -245,10 +245,11 @@ export function TextToVideo({
                     'en-US'
                   ),
               }),
+              billingLabel: m['proactiv.pricing.one_time_price_label'](),
             },
             {
               productId: grokPricingPlans.studio.oneTime.productId,
-              price: 30,
+              price: grokPricingPlans.studio.oneTime.priceInCents / 100,
               planName: m['landing.pricing.studio'](),
               creditsLabel: m['landing.pricing.feature_credits']({
                 credits:
@@ -256,10 +257,11 @@ export function TextToVideo({
                     'en-US'
                   ),
               }),
+              billingLabel: m['proactiv.pricing.one_time_price_label'](),
             },
             {
               productId: grokPricingPlans.production.oneTime.productId,
-              price: 59,
+              price: grokPricingPlans.production.oneTime.priceInCents / 100,
               planName: m['landing.pricing.production'](),
               creditsLabel: m['landing.pricing.feature_credits']({
                 credits:
@@ -267,6 +269,7 @@ export function TextToVideo({
                     'en-US'
                   ),
               }),
+              billingLabel: m['proactiv.pricing.one_time_price_label'](),
             },
           ],
           checkoutFailedMessage:
