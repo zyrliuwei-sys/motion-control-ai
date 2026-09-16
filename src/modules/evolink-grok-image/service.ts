@@ -306,10 +306,18 @@ export async function submitGrokImagineImageTask(params: {
     options: providerOptions(params.input),
   });
   const initialTaskInfo = taskInfoFromRemote(remote);
+  // Do not make the create request wait for output moderation. The provider
+  // may already return a completed task, while SeeAPI can still take several
+  // seconds to inspect the generated image. Keep it hidden from the client
+  // until the normal polling path records a passed moderation result.
+  const initialStatus =
+    remote.taskStatus === AITaskStatus.SUCCESS
+      ? AITaskStatus.PROCESSING
+      : remote.taskStatus;
   const initialTask = {
     ...task,
     taskId: remote.taskId,
-    status: remote.taskStatus,
+    status: initialStatus,
     taskInfo: JSON.stringify(initialTaskInfo),
     taskResult: JSON.stringify(remote.taskResult),
   };
@@ -324,54 +332,7 @@ export async function submitGrokImagineImageTask(params: {
     })
     .where(eq(aiTask.id, task.id));
 
-  let resolved: Awaited<ReturnType<typeof resolveRemoteTask>>;
-  try {
-    resolved = await resolveRemoteTask({
-      apiKey: params.apiKey,
-      localTask: initialTask,
-      remote,
-    });
-  } catch (error) {
-    if (!(error instanceof ImageModerationError)) throw error;
-
-    const failedTaskInfo: StoredTaskInfo = {
-      ...initialTaskInfo,
-      errorMessage: error.message,
-      moderation: {
-        checkedAt: new Date().toISOString(),
-        provider: 'seeapi',
-        status: 'failed',
-      },
-    };
-    const failedTask = {
-      ...initialTask,
-      status: AITaskStatus.FAILED,
-      taskInfo: JSON.stringify(failedTaskInfo),
-    };
-    await db()
-      .update(aiTask)
-      .set({
-        status: failedTask.status,
-        taskInfo: failedTask.taskInfo,
-      })
-      .where(eq(aiTask.id, task.id));
-    throw error;
-  }
-  const updatedTask = {
-    ...initialTask,
-    status: resolved.status,
-    taskInfo: JSON.stringify(resolved.taskInfo),
-  };
-
-  await db()
-    .update(aiTask)
-    .set({
-      status: updatedTask.status,
-      taskInfo: updatedTask.taskInfo,
-    })
-    .where(eq(aiTask.id, task.id));
-
-  return toClientTask(updatedTask);
+  return toClientTask(initialTask);
 }
 
 /** Refresh a user-owned Grok Imagine Image task until it is terminal. */
@@ -412,9 +373,40 @@ export async function getGrokImagineImageTask(params: {
       remote,
     });
   } catch (error) {
+    if (error instanceof ImageModerationRejectedError) {
+      const failedTaskInfo: StoredTaskInfo = {
+        ...taskInfoFromRemote(remote),
+        errorMessage: 'Generated image did not pass the content review.',
+        moderation: {
+          checkedAt: new Date().toISOString(),
+          provider: 'seeapi',
+          results: error.results,
+          status: 'rejected',
+        },
+      };
+      const failedTask = {
+        ...task,
+        status: AITaskStatus.FAILED,
+        taskInfo: JSON.stringify(failedTaskInfo),
+        taskResult: JSON.stringify(remote.taskResult),
+      };
+      await db()
+        .update(aiTask)
+        .set({
+          status: failedTask.status,
+          taskInfo: failedTask.taskInfo,
+          taskResult: failedTask.taskResult,
+        })
+        .where(eq(aiTask.id, task.id));
+      return toClientTask(failedTask);
+    }
+
     if (!(error instanceof ImageModerationError)) throw error;
 
-    const failedTaskInfo: StoredTaskInfo = {
+    // A temporary moderation outage is not an upstream generation failure.
+    // Keep the completed provider result private and retry moderation on the
+    // next client poll instead of permanently failing/refunding the task.
+    const pendingTaskInfo: StoredTaskInfo = {
       ...taskInfoFromRemote(remote),
       errorMessage: error.message,
       moderation: {
@@ -423,21 +415,24 @@ export async function getGrokImagineImageTask(params: {
         status: 'failed',
       },
     };
-    const failedTask = {
+    const pendingTask = {
       ...task,
-      status: AITaskStatus.FAILED,
-      taskInfo: JSON.stringify(failedTaskInfo),
+      status:
+        remote.taskStatus === AITaskStatus.SUCCESS
+          ? AITaskStatus.PROCESSING
+          : remote.taskStatus,
+      taskInfo: JSON.stringify(pendingTaskInfo),
       taskResult: JSON.stringify(remote.taskResult),
     };
     await db()
       .update(aiTask)
       .set({
-        status: failedTask.status,
-        taskInfo: failedTask.taskInfo,
-        taskResult: failedTask.taskResult,
+        status: pendingTask.status,
+        taskInfo: pendingTask.taskInfo,
+        taskResult: pendingTask.taskResult,
       })
       .where(eq(aiTask.id, task.id));
-    return toClientTask(failedTask);
+    return toClientTask(pendingTask);
   }
   const updatedTask = {
     ...task,

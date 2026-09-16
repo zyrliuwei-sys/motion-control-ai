@@ -4,9 +4,9 @@ import { getUuid } from '@/lib/hash';
 const SEEAPI_BASE_URL = 'https://api.seeapi.com';
 const INFERENCE_PATH = '/v1/inferences';
 const REQUEST_TIMEOUT_MS = 15_000;
-const MAX_POLL_ATTEMPTS = 12;
+const MAX_POLL_ATTEMPTS = 6;
 const INITIAL_POLL_DELAY_MS = 500;
-const MAX_POLL_DELAY_MS = 4_000;
+const MAX_POLL_DELAY_MS = 2_000;
 
 type JsonObject = Record<string, unknown>;
 
