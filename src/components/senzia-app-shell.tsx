@@ -104,7 +104,7 @@ export function SenziaAppShell({
       <MobileNav items={mobileItems} />
 
       <div
-        className="flex min-h-[calc(100dvh-3rem)] min-w-0"
+        className="flex min-w-0 md:h-[calc(100dvh-3rem)] md:min-h-0 md:overflow-hidden"
         style={
           {
             '--app-sidebar-width': isSidebarOpen ? '14rem' : '0rem',
@@ -112,7 +112,7 @@ export function SenziaAppShell({
         }
       >
         <aside
-          className={`relative sticky top-12 hidden h-[calc(100dvh-3rem)] shrink-0 overflow-x-hidden overflow-y-auto bg-[#fff1f5] transition-[width,padding,border-color] duration-300 ease-out md:block ${
+          className={`relative hidden h-full shrink-0 overflow-x-hidden overflow-y-auto bg-[#fff1f5] transition-[width,padding,border-color] duration-300 ease-out md:block ${
             isSidebarOpen
               ? 'w-56 border-r border-[#d6e0e7] p-3'
               : 'w-0 border-r-0 p-0'
@@ -180,7 +180,7 @@ export function SenziaAppShell({
           </div>
         </aside>
 
-        <main className="relative min-w-0 flex-1">
+        <main className="relative min-w-0 flex-1 md:h-full md:overflow-x-hidden md:overflow-y-auto">
           {!isSidebarOpen ? (
             <button
               type="button"

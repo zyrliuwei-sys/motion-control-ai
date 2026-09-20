@@ -1,17 +1,38 @@
-# Proactiv homepage topology
+# EzRemove AI Video Generator — First-Version Clone Topology
 
-Reference: local Next.js project at `/Users/wl./Desktop/saas/模版/manuarora700-proactiv-aceternity-c0e9dc32fd207e736e4ceb6c030fd88ac8489d02`.
+Reference: `https://ezremove.ai/ai-video-generator/`
 
-The source is a single dark marketing page. The desktop reference is 13,390px tall at a 1,440px viewport and the mobile reference is 12,941px tall at a 390px viewport.
+## Product boundary
 
-1. Fixed navigation overlay. Interaction model: scroll-driven compact background, click-driven mobile menu.
-2. Hero with animated trust avatars, CTA, clickable dashboard/video preview. Interaction model: hover, click, scroll-driven 3D motion.
-3. Asymmetric feature grid. Interaction model: hover and continuous decorative animation.
-4. Product tools, alternating copy and screenshots. Interaction model: scroll-driven transforms/background on desktop; static stack on mobile.
-5. Testimonial wall and rotating foreground quote. Interaction model: time-driven carousel with click-to-select.
-6. Pricing switch, four plans, logo marquee. Interaction model: click-driven annual/monthly price switch and time-driven logo travel.
-7. FAQ accordion. Interaction model: click-driven single expansion.
-8. CTA with avatar stack and interactive laptop preview. Interaction model: hover/tap laptop and avatar tooltips.
-9. Four-column footer. Interaction model: link hover.
+The reference route has a product sidebar, a global header, a generator workspace, a model rail, and a long SEO landing page. This implementation intentionally does not copy the reference sidebar. It reuses the existing application shell and adds “AI Video Generator” as the first item in the existing text-to-image workspace sidebar.
 
-System layers: page content (0), decorative backgrounds (1), sticky navigation (50), modal/mobile menu (60). Every section uses the same charcoal background and cyan accent.
+## Visual order
+
+1. Existing application header and sidebar chrome.
+2. Soft mint/lilac generator canvas.
+3. Centered title and description.
+4. Large white composer card with optional image upload, prompt, mode, model, output settings, and generate action.
+5. History affordance.
+6. Two sales-video template chips.
+7. Four compact “more tools” cards.
+8. Horizontal model rail with selectable model cards.
+9. Four alternating feature bands using reference screenshots.
+10. Three-step “How it works” section.
+11. Six benefit cards and a compact FAQ accordion.
+
+## Layout and layering
+
+- The page is a normal flow document inside the existing app shell; it does not introduce a second product sidebar.
+- The generator canvas uses a fixed soft gradient treatment and scrolls with the main content.
+- The composer is a centered max-width panel with a 20px radius, translucent white surface, and deep soft shadow.
+- Model cards are horizontally scrollable on narrow screens and remain a single row on desktop.
+- Marketing sections collapse from alternating two-column bands to a single column below the tablet breakpoint.
+
+## Interaction model
+
+- Composer fields are click/input driven.
+- Upload controls are local preview controls; generation state is represented as a first-version UI state until a text/image-to-video provider is wired.
+- Mode, model, output settings, and template controls are click-driven and update the selected state.
+- Model rail is click-to-select.
+- FAQ items are click-to-expand accordions.
+- The reference page uses an internal scroll container for its content; this clone uses the existing app content scroll behavior.
