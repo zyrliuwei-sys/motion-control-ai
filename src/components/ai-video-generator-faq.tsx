@@ -11,6 +11,7 @@ import { motion } from 'motion/react';
 
 import { Link } from '@/core/i18n/navigation';
 import { cn } from '@/lib/utils';
+import { getLocale } from '@/paraglide/runtime.js';
 
 type FaqItem = {
   question: string;
@@ -52,148 +53,173 @@ function GridLineVertical({ className, offset = '88px' }: GridLineProps) {
   );
 }
 
-const faqSections: FaqSection[] = [
-  {
-    items: [
+function faqSections(locale: 'en' | 'zh'): FaqSection[] {
+  if (locale === 'zh') {
+    return [
       {
-        question: 'Is this AI video generator really unfiltered?',
-        answer:
-          'Yes. We do not filter, rewrite or refuse motion prompts, and we do not block adult, dark or unconventional themes. What you write is what the model receives. You must be 18 or older to generate adult content, and you are responsible for complying with the laws of your country and the rules of any platform you publish to.',
+        items: [
+          {
+            question: '这是无过滤的 AI 视频生成器吗？',
+            answer:
+              '我们不会改写或弱化你的动作提示词，也不会因为成人、黑暗或非传统主题直接拒绝。生成成人内容必须年满 18 岁，你需要遵守所在地法律以及发布平台规则。',
+          },
+          {
+            question: '应该选择哪种生成模式？',
+            answer:
+              '想生成新场景选择文字生视频；想让静态图片动起来选择图片生视频；需要保持视觉方向时选择参考生视频。',
+          },
+          {
+            question: '生成一条视频需要多久？',
+            answer:
+              '生成任务是异步的，完成时间取决于服务商队列。工作区会显示排队和完成状态，目前没有承诺固定完成时间。',
+          },
+          {
+            question: '手机上可以使用吗？',
+            answer:
+              '可以。工作区支持手机和平板浏览器，9:16 预设适合竖屏视频；批量处理在桌面端更方便。',
+          },
+        ],
       },
       {
-        question: 'Can I choose aspect ratio and clip length?',
-        answer: (
-          <>
-            Yes. Choose 9:16, 1:1 or 16:9 before generating, and pick the length
-            from the options on the panel. {'{{时长选项}}'} Choosing the ratio
-            up front gives a better clip than cropping afterwards, and the
-            credit cost updates before you generate.
-          </>
-        ),
+        items: [
+          {
+            question: '需要登录或免费额度吗？',
+            answer:
+              '当前流程需要登录，并且账户需要先有付费积分才可以生成视频，不支持免登录生成。',
+          },
+          {
+            question: '视频有水印吗？可以商用吗？',
+            answer:
+              '当前流程不会额外添加产品水印，但服务商规则和套餐条款可能适用。商用前请确认你拥有上传素材的合法权利，并查看最新价格和服务条款。',
+          },
+          {
+            question: '会保留我的提示词和上传内容吗？',
+            answer: (
+              <>
+                提示词和上传内容会用于执行生成任务，并按照{' '}
+                <Link
+                  href="/privacy-policy"
+                  className="font-medium text-[#0aa8a7] underline underline-offset-4"
+                >
+                  隐私政策
+                </Link>{' '}
+                处理和保存。请不要上传你无权处理的素材。
+              </>
+            ),
+          },
+          {
+            question: '如何从图片开始制作视频？',
+            answer: (
+              <>
+                你可以先在{' '}
+                <Link
+                  href="/text-to-image"
+                  className="font-medium text-[#0aa8a7] underline underline-offset-4"
+                >
+                  AI 图片编辑器
+                </Link>{' '}
+                中制作图片，再回到这里使用图片生视频或参考生视频。
+              </>
+            ),
+          },
+        ],
       },
-      {
-        question: 'How long does one video take to generate?',
-        answer: (
-          <>
-            A short clip normally finishes in{' '}
-            {'{{生成耗时，如 under a minute}}'}
-            at 1K. Busy periods queue and paid plans are prioritised. You can
-            leave the tab — the job keeps running and the clip lands in your
-            library.
-          </>
-        ),
-      },
-      {
-        question: 'Does it work on mobile?',
-        answer:
-          'Yes, the studio runs in the browser on phones and tablets, and the 9:16 preset is built for vertical output. Batch work is still faster on desktop.',
-      },
-      {
-        question: 'How is this different from other AI video generators?',
-        answer:
-          'Three things: the prompt is not editorialised, the starting frame can be an image you already approved instead of a fresh guess, and the credit cost is visible before the task runs. If you came here looking for an AI video generator with no restrictions, an unfiltered video tool, or an image to video tool with no filter, it is the same feature.',
-      },
-    ],
-  },
-  {
-    items: [
-      {
-        question: 'Do I need an account to generate a video?',
-        answer: (
-          <>
-            You need to be signed in, because credits and your generation
-            history are tied to your account.{' '}
-            {
-              '{{免登录说明：如 You can open the studio and try a prompt without an account, but saving the clip requires sign-in.}}'
-            }
-            Signing in takes a few seconds.
-          </>
-        ),
-      },
-      {
-        question: 'How many free credits do I get, and how far do they go?',
-        answer: (
-          <>
-            {
-              '{{如 New accounts get N credits on signup. A 1K short clip costs M credits, so the free balance is worth roughly X clips.}}'
-            }
-            Daily {'{{每日赠送}}'} bonus credits keep the free tier usable after
-            that. Nothing is charged until you choose a plan.
-          </>
-        ),
-      },
-      {
-        question: 'Is there a watermark on the video?',
-        answer: (
-          <>
-            {
-              '{{水印政策：如 Clips generated on a paid plan download without a watermark. Free-tier output may carry a small mark.}}'
-            }
-            Check the pricing page for the current policy before you rely on it
-            for client work.
-          </>
-        ),
-      },
-      {
-        question: 'Can I use the videos commercially?',
-        answer: (
-          <>
-            {
-              '{{商用政策：如 Yes — paid-plan output can be used commercially.}}'
-            }
-            You keep responsibility for the rights to any image you upload, and
-            for how the finished clip is used.
-          </>
-        ),
-      },
-    ],
-  },
-  {
-    items: [
-      {
-        question: 'Do you keep my prompts and uploads?',
-        answer: (
-          <>
-            {
-              '{{数据政策：如 Uploads and prompts are used only to run your generation and are not used to train models.}}'
-            }
-            Full detail is in the{' '}
-            <a
-              href="/privacy"
-              className="font-medium text-[#0aa8a7] underline underline-offset-4"
-            >
-              privacy policy
-            </a>{' '}
-            — read it before uploading anything sensitive.
-          </>
-        ),
-      },
-      {
-        question: 'Looking for the still-image side instead?',
-        answer: (
-          <>
-            The same account gives you the{' '}
-            <Link
-              href="/text-to-image"
-              className="font-medium text-[#0aa8a7] underline underline-offset-4"
-            >
-              AI image editor
-            </Link>{' '}
-            with credit-based generation — make the frame there, then animate it
-            here.
-          </>
-        ),
-      },
-    ],
-  },
-];
+    ];
+  }
 
-const faqItems = faqSections.flatMap((section) => section.items);
+  return [
+    {
+      items: [
+        {
+          question: 'Is this AI video generator really unfiltered?',
+          answer:
+            'We do not rewrite or soften your motion prompts, and we do not directly refuse adult, dark, or unconventional themes. You must be 18 or older to generate adult content and must follow the laws of your country and the rules of the platform where you publish it.',
+        },
+        {
+          question: 'Which mode should I choose?',
+          answer:
+            'Use Text to Video for a new scene, Image to Video to animate a still, or Reference to Video when a visual direction matters.',
+        },
+        {
+          question: 'How long does one video take to generate?',
+          answer:
+            'Generation is asynchronous and depends on the provider queue. The workspace shows queued and ready states instead of promising a fixed completion time.',
+        },
+        {
+          question: 'Does it work on mobile?',
+          answer:
+            'Yes. The studio runs in phone and tablet browsers, and the 9:16 preset is designed for vertical output. Batch work is still faster on desktop.',
+        },
+      ],
+    },
+    {
+      items: [
+        {
+          question: 'Do I need an account or a free balance?',
+          answer:
+            'You must be signed in and have a paid credit grant before video generation. Guest generation is not enabled in the current flow.',
+        },
+        {
+          question: 'Are there watermarks or commercial-use rights?',
+          answer:
+            'The current flow does not add a product watermark, but provider output rules and plan terms may apply. Confirm that you own the rights to uploaded material before commercial use.',
+        },
+        {
+          question: 'Do you keep my prompts and uploads?',
+          answer: (
+            <>
+              Prompts and uploads are processed to run the requested generation
+              and handled according to the{' '}
+              <Link
+                href="/privacy-policy"
+                className="font-medium text-[#0aa8a7] underline underline-offset-4"
+              >
+                privacy policy
+              </Link>
+              . Do not upload material you are not authorized to process.
+            </>
+          ),
+        },
+        {
+          question: 'How do I make a video from an image?',
+          answer: (
+            <>
+              Make a still in the{' '}
+              <Link
+                href="/text-to-image"
+                className="font-medium text-[#0aa8a7] underline underline-offset-4"
+              >
+                AI image editor
+              </Link>{' '}
+              first, then return here and choose Image to Video or Reference to
+              Video.
+            </>
+          ),
+        },
+      ],
+    },
+  ];
+}
 
 export function AiVideoGeneratorFaq() {
   const [activeId, setActiveId] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const idPrefix = useId().replace(/[^a-zA-Z0-9]/g, '');
+  const locale = getLocale() === 'zh' ? 'zh' : 'en';
+  const items = faqSections(locale).flatMap((section) => section.items);
+  const copy =
+    locale === 'zh'
+      ? {
+          eyebrow: '快速解答',
+          title: '常见问题',
+          description: '关于提示词、积分、输出和工作区数据处理的实用说明。',
+        }
+      : {
+          eyebrow: 'Quick answers',
+          title: 'FAQ',
+          description:
+            'Practical details about prompts, credits, output, and keeping your work in the studio.',
+        };
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -218,17 +244,16 @@ export function AiVideoGeneratorFaq() {
       <div className="mx-auto w-full max-w-4xl">
         <header className="text-center">
           <p className="text-[11px] font-semibold tracking-[0.18em] text-[#0aa8a7] uppercase">
-            Quick answers
+            {copy.eyebrow}
           </p>
           <h2
             id={`${idPrefix}-heading`}
             className="mt-3 text-3xl font-semibold tracking-[-0.05em] text-[#354144] sm:text-4xl"
           >
-            FAQ
+            {copy.title}
           </h2>
           <p className="mx-auto mt-4 max-w-2xl text-sm leading-7 text-[#718083] sm:text-base">
-            The practical details about prompts, credits, output and keeping
-            your work in the studio.
+            {copy.description}
           </p>
         </header>
 
@@ -236,7 +261,7 @@ export function AiVideoGeneratorFaq() {
           ref={containerRef}
           className="mt-12 flex flex-col gap-3 sm:mt-14 sm:px-8"
         >
-          {faqItems.map((faq, index) => {
+          {items.map((faq, index) => {
             const id = `${idPrefix}-faq-${index}`;
             const isActive = activeId === id;
             const answerId = `${id}-answer`;

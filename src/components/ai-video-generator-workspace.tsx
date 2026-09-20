@@ -51,13 +51,6 @@ export interface AiVideoFeature {
   videoSrc: string;
 }
 
-export interface AiVideoStep {
-  description: string;
-  imageSrc: string;
-  title: string;
-  videoSrc: string;
-}
-
 export interface AiVideoBenefit {
   description: string;
   title: string;
@@ -91,7 +84,6 @@ export interface AiVideoGeneratorCopy {
   promptPlaceholder: string;
   removeUpload: string;
   settings: string;
-  stepsTitle: string;
   uploadImage: string;
   readyLabel: string;
   queuedLabel: string;
@@ -109,7 +101,6 @@ interface AiVideoGeneratorWorkspaceProps {
   copy: AiVideoGeneratorCopy;
   features: AiVideoFeature[];
   models: AiVideoModelCard[];
-  steps: AiVideoStep[];
 }
 
 interface EvolinkVideoTask {
@@ -175,7 +166,6 @@ export function AiVideoGeneratorWorkspace({
   copy,
   features,
   models,
-  steps,
 }: AiVideoGeneratorWorkspaceProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const historyRef = useRef<HTMLElement>(null);
@@ -870,51 +860,6 @@ export function AiVideoGeneratorWorkspace({
             </section>
           ))}
         </div>
-
-        <section
-          className="mt-16 sm:mt-24"
-          aria-labelledby="ai-video-steps-heading"
-        >
-          <div className="mx-auto max-w-2xl text-center">
-            <h2
-              id="ai-video-steps-heading"
-              className="text-3xl font-semibold tracking-[-0.05em] text-[#354144]"
-            >
-              {copy.stepsTitle}
-            </h2>
-          </div>
-          <div className="mt-8 grid gap-5 md:grid-cols-3">
-            {steps.map((step, index) => (
-              <article
-                key={step.title}
-                className="overflow-hidden rounded-2xl border border-[#e5e7e9] bg-white shadow-[0_8px_18px_rgba(76,82,88,0.08)]"
-              >
-                <video
-                  autoPlay
-                  loop
-                  muted
-                  playsInline
-                  preload="metadata"
-                  src={step.videoSrc}
-                  poster={'/ezremove-video/' + step.imageSrc}
-                  className="aspect-[3/2] w-full object-cover"
-                  aria-hidden="true"
-                />
-                <div className="p-5">
-                  <span className="text-xs font-semibold text-[#687078]">
-                    0{index + 1}
-                  </span>
-                  <h3 className="mt-2 text-base font-semibold text-[#354144]">
-                    {step.title}
-                  </h3>
-                  <p className="mt-2 text-sm leading-6 text-[#718083]">
-                    {step.description}
-                  </p>
-                </div>
-              </article>
-            ))}
-          </div>
-        </section>
 
         <section
           className="mt-16 sm:mt-24"

@@ -6,7 +6,6 @@ import {
   type AiVideoFeature,
   type AiVideoGeneratorCopy,
   type AiVideoModelCard,
-  type AiVideoStep,
 } from '@/components/ai-video-generator-workspace';
 
 const localVideoSources = Array.from(
@@ -55,17 +54,6 @@ function features(): AiVideoFeature[] {
   );
 }
 
-function steps(): AiVideoStep[] {
-  return records(m['ai_video.steps.records'](), 3).map(
-    ([title, description, imageSrc], index) => ({
-      description,
-      imageSrc,
-      title,
-      videoSrc: localVideoSources[videoAssignments.steps[index] ?? 0],
-    })
-  );
-}
-
 function benefits(): AiVideoBenefit[] {
   return records(m['ai_video.benefits.records'](), 2).map(
     ([title, description]) => ({
@@ -98,16 +86,14 @@ function copy(): AiVideoGeneratorCopy {
     model: m['ai_video.model'](),
     optional: m['ai_video.upload.optional'](),
     output: m['ai_video.output'](),
-    pageDescription:
-      'Generate a video from a prompt or a photo with an AI video generator with no filter. Your motion prompt goes through as written — the model does not rewrite it, soften it or refuse it. Text to video and image to video run in the same browser studio, the credit cost is shown before every task, and you can download the clip without leaving the page.',
-    pageTitle: 'AI Video Generator With No Filter',
+    pageDescription: m['ai_video.page.description'](),
+    pageTitle: m['ai_video.page.title'](),
     promptLabel: m['ai_video.prompt.label'](),
     promptPlaceholder: m['ai_video.prompt.placeholder'](),
     queuedLabel: m['ai_video.status.queued'](),
     readyLabel: m['ai_video.status.ready'](),
     removeUpload: m['ai_video.remove_upload'](),
     settings: m['ai_video.settings'](),
-    stepsTitle: m['ai_video.steps.title'](),
     uploadImage: m['ai_video.upload.title'](),
     monthlyPlanOptions: [
       {
@@ -151,7 +137,6 @@ export function AiVideoGenerator() {
       copy={copy()}
       features={features()}
       models={models()}
-      steps={steps()}
     />
   );
 }
