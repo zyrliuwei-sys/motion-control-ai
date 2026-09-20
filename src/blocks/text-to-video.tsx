@@ -15,8 +15,8 @@ const hiddenNavigationIds = new Set([
   'video-extender',
 ]);
 
-function navGroups(): SenziaNavGroup[] {
-  return m['proactiv.video.navigation.records']()
+export function studioNavGroups(activeId = 'text-to-video'): SenziaNavGroup[] {
+  const groups = m['proactiv.video.navigation.records']()
     .split('\n')
     .filter(Boolean)
     .map((row) => {
@@ -31,13 +31,57 @@ function navGroups(): SenziaNavGroup[] {
             return {
               id: id ?? '',
               label: itemLabel ?? '',
-              active: active === 'true',
+              active:
+                id === activeId ||
+                (activeId === 'text-to-video' && active === 'true'),
               href: navHref(id ?? ''),
             };
           })
           .filter((item) => !hiddenNavigationIds.has(item.id)),
       };
     });
+
+  const videoGeneratorItem = {
+    id: 'ai-video-generator',
+    label: m['ai_video.nav.label'](),
+    active: activeId === 'ai-video-generator',
+    href: '/ai-video-generator',
+  };
+
+  const hasLabeledGroup = groups.some((group) => group.label);
+  const items = groups.flatMap((group) => group.items);
+  const imageGeneratorIndex = items.findIndex(
+    (item) => item.id === 'text-to-video'
+  );
+
+  if (!hasLabeledGroup && imageGeneratorIndex !== -1) {
+    return [
+      {
+        items: [
+          ...items.slice(0, imageGeneratorIndex + 1),
+          videoGeneratorItem,
+          ...items.slice(imageGeneratorIndex + 1),
+        ],
+      },
+    ];
+  }
+
+  return groups.map((group) => {
+    const groupImageGeneratorIndex = group.items.findIndex(
+      (item) => item.id === 'text-to-video'
+    );
+
+    if (groupImageGeneratorIndex === -1) return group;
+
+    return {
+      ...group,
+      items: [
+        ...group.items.slice(0, groupImageGeneratorIndex + 1),
+        videoGeneratorItem,
+        ...group.items.slice(groupImageGeneratorIndex + 1),
+      ],
+    };
+  });
 }
 
 function navHref(id: string) {
@@ -161,7 +205,7 @@ export function TextToVideo({
       pricingHref="/pricing"
       collapseSidebarLabel={m['proactiv.sidebar.collapse']()}
       expandSidebarLabel={m['proactiv.sidebar.expand']()}
-      navGroups={navGroups()}
+      navGroups={studioNavGroups('text-to-video')}
     >
       <script
         type="application/ld+json"

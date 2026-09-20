@@ -77,6 +77,31 @@ export async function getBalance(userId: string): Promise<number> {
   return parseInt(result?.total || '0');
 }
 
+/**
+ * New users must complete a successful payment before video generation.
+ * Payment-created grants are the durable source of truth, so welcome gifts
+ * and admin grants do not unlock the video workspace.
+ */
+export async function hasPaidCredits(userId: string): Promise<boolean> {
+  const [result] = await db()
+    .select({ id: credit.id })
+    .from(credit)
+    .where(
+      and(
+        eq(credit.userId, userId),
+        eq(credit.transactionType, CreditTransactionType.GRANT),
+        or(
+          eq(credit.transactionScene, CreditTransactionScene.PAYMENT),
+          eq(credit.transactionScene, CreditTransactionScene.SUBSCRIPTION),
+          eq(credit.transactionScene, CreditTransactionScene.RENEWAL)
+        )
+      )
+    )
+    .limit(1);
+
+  return Boolean(result);
+}
+
 // --- Grant ---
 
 export async function grant(params: {

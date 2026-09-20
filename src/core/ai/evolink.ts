@@ -33,6 +33,15 @@ export interface EvolinkImageGenerationOptions {
   size?: string;
 }
 
+export interface EvolinkVideoGenerationOptions {
+  mode: 'text-to-video' | 'image-to-video' | 'reference-to-video';
+  imageUrls?: string[];
+  duration: number;
+  quality: '480p' | '720p' | '768p' | '1080p';
+  aspectRatio?: string;
+  generateAudio?: boolean;
+}
+
 type EvolinkTaskResponse = {
   data?: unknown;
   id?: string;
@@ -273,6 +282,69 @@ export class EvolinkProvider implements AIProvider {
         },
         ...(params.callbackUrl ? { callback_url: params.callbackUrl } : {}),
       }),
+    });
+    const data = await this.readResponse(response);
+
+    if (!data.id) {
+      throw new Error(
+        'AI generation service: task creation returned no task ID'
+      );
+    }
+
+    return {
+      taskId: data.id,
+      taskStatus: this.mapStatus(data.status || data.task_status || data.state),
+      taskInfo: this.taskInfo(data),
+      taskResult: data,
+    };
+  }
+
+  /** Submit a text, image, or reference-to-video task through EvoLink. */
+  async generateVideo(params: {
+    callbackUrl?: string;
+    model: string;
+    options: EvolinkVideoGenerationOptions;
+    prompt: string;
+  }): Promise<AITaskResult> {
+    const { model, options } = params;
+    const isMiniMax = model.startsWith('minimax-h3-max-');
+    const body: Record<string, unknown> = {
+      model,
+      prompt: params.prompt,
+      duration: options.duration,
+      quality: options.quality,
+    };
+
+    // Seedance image-to-video accepts first/last frames in image_urls. H3
+    // Max uses image_start/image_end for that route.
+    if (options.mode === 'image-to-video' && options.imageUrls?.length) {
+      if (isMiniMax) {
+        body.image_start = options.imageUrls[0];
+        if (options.imageUrls[1]) body.image_end = options.imageUrls[1];
+      } else {
+        body.image_urls = options.imageUrls.slice(0, 2);
+      }
+    }
+
+    if (options.mode === 'reference-to-video' && options.imageUrls?.length) {
+      body.image_urls = options.imageUrls;
+    }
+
+    // H3 Max image-to-video follows the first frame's ratio. Seedance
+    // image-to-video requires adaptive; both reference routes accept a ratio.
+    if (options.mode !== 'image-to-video' || !isMiniMax) {
+      body.aspect_ratio =
+        options.mode === 'image-to-video' ? 'adaptive' : options.aspectRatio;
+    }
+    if (!isMiniMax && options.generateAudio !== undefined) {
+      body.generate_audio = options.generateAudio;
+    }
+    if (params.callbackUrl) body.callback_url = params.callbackUrl;
+
+    const response = await fetch(`${EVOLINK_API_BASE_URL}/videos/generations`, {
+      method: 'POST',
+      headers: this.headers(),
+      body: JSON.stringify(body),
     });
     const data = await this.readResponse(response);
 

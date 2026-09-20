@@ -1,10 +1,28 @@
-# Proactiv interaction and responsive audit
+# EzRemove AI Video Generator — Behavior Notes
 
-- Desktop breakpoint: 1024px. Tablet breakpoint: 768px. Mobile breakpoint: 640px.
-- Navigation is fixed, enters from `translateY(-80px)` over 0.8s. Once `scrollY > 100`, the desktop bar contracts from 100% to 80%, gains `rgb(23,23,23)` background and a rounded masked panel. The mobile bar gains the same dark background and an inset border. It must respect reduced motion.
-- Hero dashboard responds to its containing scroll progress: 3D rotation `20deg -> 0deg`; translation `0px -> 100px`. Hover clears grayscale. The central play control opens a video dialog.
-- Tool cards are scroll-driven only. At desktop each is a 3-column text/image pair; first image fades in during the center range. Below 1024px the content is a normal static single column stack.
-- Testimonials rotate every 7 seconds until a person button is selected. Avatar uses opacity/rotation; quote uses a 16px horizontal fade. The name button disables auto-rotation.
-- Pricing switch moves an inline knob over 300ms and changes the displayed price only. Cards do not navigate; the featured card has a 2-4 second cyan meteor beam.
-- FAQ defaults closed; clicking one item closes any other item. Answer transition: height `0 -> auto`, opacity `0 -> 1`, 200ms ease out.
-- All animated elements must have a reduced-motion static state.
+## Reference observations
+
+- Desktop viewport: 1440 × 900. The reference header is 64px tall and the product sidebar is approximately 212px wide.
+- The reference content area is an internal `main.layout-content-right` scroller (`overflow: hidden auto`) rather than document-level scrolling.
+- The page background is a pale vertical gradient with mint, lavender, and blush radial highlights.
+- The composer surface is white with approximately 0.96 opacity, a 20px radius, a 1px translucent border, and a `0 10px 36px rgba(0,0,0,.12)` shadow.
+- The composer toolbar is separated from the prompt surface by a thin divider and uses pill-like controls.
+- The model rail is horizontally scrollable and exposes more cards beyond the viewport.
+- On mobile the header collapses to a menu button, the sidebar becomes an overlay navigation, the composer controls wrap/stack, and the model rail remains horizontally scrollable.
+
+## States
+
+- Mode control: Text/Image to Video is selected by default; alternate modes are exposed through a menu.
+- Model control: Seedance 2.0 is selected by default.
+- Output control: 16:9 / 5s / 480p is selected by default.
+- Generate button displays the current credit cost.
+- Sales templates expose a selected/preview affordance and a NEW badge.
+- Model cards expose a selected border state; only one model is active.
+- FAQ rows expand/collapse on click.
+
+## Clone decisions
+
+- Keep the visual density and control hierarchy of the reference generator.
+- Omit the reference product sidebar and all reference-site navigation links.
+- Use the existing app sidebar and keep the new generator entry above the existing text-to-image tools.
+- Keep first-version generation local and explicit: controls, upload preview, model selection, templates, and queued state work immediately; provider submission is a follow-up integration because the existing motion-control endpoint requires a different input contract.

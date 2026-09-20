@@ -9,6 +9,15 @@ import {
 import { db } from '@/core/db';
 import type { StorageManager } from '@/core/storage';
 import { aiTask, type AiTask } from '@/config/db/schema';
+import {
+  EVOLINK_VIDEO_DURATION_LIMITS,
+  EVOLINK_VIDEO_QUALITY_OPTIONS,
+  evolinkVideoCreditsForSeconds,
+  getEvolinkVideoModelFamily,
+  type EvolinkVideoMode,
+  type EvolinkVideoModelFamily,
+  type EvolinkVideoQuality,
+} from '@/lib/evolink-video-pricing';
 import { motionControlCreditsForSeconds } from '@/lib/retail-pricing';
 
 const MODEL = 'kling-v3-motion-control';
@@ -28,6 +37,17 @@ export interface MotionControlInput {
   elementList?: Array<{ elementId: string }>;
   watermarkEnabled?: boolean;
   callbackUrl?: string;
+}
+
+export interface VideoGenerationInput {
+  model: string;
+  mode: EvolinkVideoMode;
+  prompt: string;
+  imageUrls: string[];
+  duration: number;
+  quality: EvolinkVideoQuality;
+  aspectRatio: string;
+  generateAudio?: boolean;
 }
 
 export interface MotionControlTask {
@@ -140,17 +160,72 @@ function validateInput(input: MotionControlInput) {
   }
 }
 
+function validateVideoGenerationInput(input: VideoGenerationInput) {
+  const model = getEvolinkVideoModelFamily(input.model);
+  if (!model) throw new Error('Unsupported EvoLink video model');
+  if (!input.prompt.trim()) throw new Error('Prompt is required');
+  if (input.prompt.length > 7000) {
+    throw new Error('Prompt must be 7000 characters or fewer');
+  }
+
+  const limits = EVOLINK_VIDEO_DURATION_LIMITS[model];
+  if (
+    !Number.isInteger(input.duration) ||
+    input.duration < limits.min ||
+    input.duration > limits.max
+  ) {
+    throw new Error(
+      `${model} supports videos from ${limits.min} to ${limits.max} seconds`
+    );
+  }
+  if (!EVOLINK_VIDEO_QUALITY_OPTIONS[model].includes(input.quality)) {
+    throw new Error(`Quality ${input.quality} is not available for ${model}`);
+  }
+  if (
+    input.mode !== 'text-to-video' &&
+    (!input.imageUrls.length ||
+      !input.imageUrls.every((url) => isPublicHttpsUrl(url)))
+  ) {
+    throw new Error('Upload at least one reference image before generating');
+  }
+  if (input.mode === 'text-to-video' && input.imageUrls.length) {
+    throw new Error('Text-to-video does not accept reference images');
+  }
+  if (input.imageUrls.length > (input.mode === 'image-to-video' ? 2 : 30)) {
+    throw new Error('Too many reference images');
+  }
+}
+
 function toClientTask(task: AiTask): MotionControlTask {
   const info = parseJson<StoredTaskInfo>(task.taskInfo) ?? {};
   const result = persistedVideoResult(task.taskResult);
-  const input = parseJson<Pick<MotionControlInput, 'quality'>>(task.options);
-  const billedCredits =
-    input?.quality && info.outputSeconds
-      ? motionControlCreditsForSeconds({
-          quality: input.quality,
-          outputSeconds: info.outputSeconds,
-        })
+  const input = parseJson<Record<string, unknown>>(task.options);
+  const motionQuality =
+    input?.quality === '720p' || input?.quality === '1080p'
+      ? input.quality
       : undefined;
+  const videoModel = getEvolinkVideoModelFamily(task.model);
+  const videoQuality =
+    input?.quality === '480p' ||
+    input?.quality === '720p' ||
+    input?.quality === '768p' ||
+    input?.quality === '1080p'
+      ? input.quality
+      : undefined;
+  const duration = Number(input?.duration);
+  const billedCredits =
+    videoModel && videoQuality && Number.isFinite(duration)
+      ? evolinkVideoCreditsForSeconds({
+          model: videoModel,
+          quality: videoQuality,
+          durationSeconds: duration,
+        })
+      : motionQuality && info.outputSeconds
+        ? motionControlCreditsForSeconds({
+            quality: motionQuality,
+            outputSeconds: info.outputSeconds,
+          })
+        : undefined;
 
   return {
     id: task.id,
@@ -270,6 +345,81 @@ export async function submitMotionControlTask(params: {
   }
 }
 
+/** Submit a pre-authorized Seedance 2.5 or MiniMax H3 Max task. */
+export async function submitVideoGenerationTask(params: {
+  taskId: string;
+  userId: string;
+  apiKey: string;
+  input: VideoGenerationInput;
+}): Promise<MotionControlTask> {
+  const { taskId, userId, apiKey, input } = params;
+  validateVideoGenerationInput(input);
+
+  const [localTask] = await db()
+    .select()
+    .from(aiTask)
+    .where(
+      and(
+        eq(aiTask.id, taskId),
+        eq(aiTask.userId, userId),
+        eq(aiTask.provider, 'evolink'),
+        isNull(aiTask.deletedAt)
+      )
+    )
+    .limit(1);
+
+  if (!localTask) throw new Error('Video task not found');
+  if (localTask.status !== AITaskStatus.PENDING) {
+    throw new Error('Video task has already been submitted');
+  }
+
+  try {
+    const provider = new EvolinkProvider({ apiKey });
+    const remote = await provider.generateVideo({
+      model: input.model,
+      prompt: input.prompt,
+      options: {
+        mode: input.mode,
+        imageUrls: input.imageUrls,
+        duration: input.duration,
+        quality: input.quality,
+        aspectRatio: input.aspectRatio,
+        generateAudio: input.generateAudio,
+      },
+    });
+    const info = taskInfoFromResult(remote);
+
+    await db()
+      .update(aiTask)
+      .set({
+        taskId: remote.taskId,
+        status: remote.taskStatus,
+        taskInfo: JSON.stringify(info),
+        taskResult: JSON.stringify(remote.taskResult),
+      })
+      .where(eq(aiTask.id, localTask.id));
+
+    return toClientTask({
+      ...localTask,
+      taskId: remote.taskId,
+      status: remote.taskStatus,
+      taskInfo: JSON.stringify(info),
+      taskResult: JSON.stringify(remote.taskResult),
+    });
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : 'AI generation task failed';
+    await db()
+      .update(aiTask)
+      .set({
+        status: AITaskStatus.FAILED,
+        taskInfo: JSON.stringify({ errorMessage: message, progress: 0 }),
+      })
+      .where(eq(aiTask.id, localTask.id));
+    throw error;
+  }
+}
+
 /** Read an owned task, refreshing its state from EvoLink while it is nonterminal. */
 export async function getMotionControlTask(params: {
   userId: string;
@@ -308,6 +458,81 @@ export async function getMotionControlTask(params: {
     .returning();
 
   return toClientTask(updated ?? task);
+}
+
+/** Read an owned Seedance/MiniMax task and refresh it while still running. */
+export async function getVideoGenerationTask(params: {
+  userId: string;
+  apiKey: string;
+  taskId: string;
+}): Promise<MotionControlTask> {
+  const [task] = await db()
+    .select()
+    .from(aiTask)
+    .where(
+      and(
+        eq(aiTask.id, params.taskId),
+        eq(aiTask.userId, params.userId),
+        eq(aiTask.provider, 'evolink'),
+        isNull(aiTask.deletedAt)
+      )
+    )
+    .limit(1);
+
+  if (!task || !getEvolinkVideoModelFamily(task.model)) {
+    throw new Error('Video task not found');
+  }
+  if (!task.taskId || TERMINAL_STATUSES.has(task.status)) {
+    return toClientTask(task);
+  }
+
+  const provider = new EvolinkProvider({ apiKey: params.apiKey });
+  const remote = await provider.query({
+    taskId: task.taskId,
+    mediaType: AIMediaType.VIDEO,
+    model: task.model,
+  });
+  const info = taskInfoFromResult(remote);
+  const [updated] = await db()
+    .update(aiTask)
+    .set({
+      status: remote.taskStatus,
+      taskInfo: JSON.stringify(info),
+      taskResult: JSON.stringify(remote.taskResult),
+    })
+    .where(eq(aiTask.id, task.id))
+    .returning();
+
+  return toClientTask(updated ?? task);
+}
+
+/** Return only the recent tasks created by the two public video routes. */
+export async function listVideoGenerationTasks(params: {
+  userId: string;
+  limit?: number;
+}): Promise<MotionControlTask[]> {
+  const limit =
+    params.limit === undefined
+      ? undefined
+      : Math.min(200, Math.max(1, params.limit));
+  const query = db()
+    .select()
+    .from(aiTask)
+    .where(
+      and(
+        eq(aiTask.userId, params.userId),
+        eq(aiTask.provider, 'evolink'),
+        isNull(aiTask.deletedAt)
+      )
+    )
+    .orderBy(desc(aiTask.createdAt));
+  const tasks =
+    limit === undefined ? await query : await query.limit(limit * 2);
+
+  return tasks
+    .filter((task: AiTask) => Boolean(getEvolinkVideoModelFamily(task.model)))
+    .slice(0, limit)
+    .map(toClientTask);
 }
 
 /** Return the most recent persisted EvoLink tasks for restoring the result UI. */
@@ -430,4 +655,13 @@ export async function getMotionControlDownloadUrl(params: {
     throw new Error('Generated video is unavailable');
   }
   return resultUrl;
+}
+
+/** Download guard shared by the public Seedance/MiniMax video history. */
+export async function getVideoGenerationDownloadUrl(params: {
+  userId: string;
+  taskId: string;
+  index: number;
+}): Promise<string> {
+  return getMotionControlDownloadUrl(params);
 }
