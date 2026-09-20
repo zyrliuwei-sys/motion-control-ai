@@ -19,6 +19,12 @@ import {
   type EvolinkVideoQuality,
 } from '@/lib/evolink-video-pricing';
 import { motionControlCreditsForSeconds } from '@/lib/retail-pricing';
+import { ImageModerationError } from '@/lib/seeapi-moderation';
+import {
+  moderateVideo,
+  VideoModerationRejectedError,
+  type VideoModerationSummary,
+} from '@/lib/video-moderation';
 
 const MODEL = 'kling-v3-motion-control';
 const TERMINAL_STATUSES = new Set<string>([
@@ -71,6 +77,13 @@ type StoredTaskInfo = {
   outputSeconds?: number;
   progress?: number;
   providerStatus?: string;
+  moderation?: {
+    checkedAt: string;
+    mediaType: 'video';
+    provider: 'seeapi';
+    status: 'failed' | 'passed' | 'pending' | 'rejected';
+    videos?: VideoModerationSummary[];
+  };
 };
 
 function parseJson<T>(value: string | null | undefined): T | undefined {
@@ -199,6 +212,7 @@ function validateVideoGenerationInput(input: VideoGenerationInput) {
 function toClientTask(task: AiTask): MotionControlTask {
   const info = parseJson<StoredTaskInfo>(task.taskInfo) ?? {};
   const result = persistedVideoResult(task.taskResult);
+  const resultIsModerated = info.moderation?.status === 'passed';
   const input = parseJson<Record<string, unknown>>(task.options);
   const motionQuality =
     input?.quality === '720p' || input?.quality === '1080p'
@@ -233,7 +247,12 @@ function toClientTask(task: AiTask): MotionControlTask {
     model: task.model,
     status: task.status,
     progress: Math.max(0, Math.min(100, Number(info.progress) || 0)),
-    resultUrls: result.urls,
+    // A provider result is private until every output video has passed the
+    // server-side SeeAPI keyframe review. Missing moderation is never a pass.
+    resultUrls:
+      task.status === AITaskStatus.SUCCESS && resultIsModerated
+        ? result.urls
+        : [],
     isArchived: result.isArchived,
     ...(billedCredits === undefined ? {} : { billedCredits }),
     ...(info.errorMessage ? { errorMessage: info.errorMessage } : {}),
@@ -270,6 +289,131 @@ function taskInfoFromResult(result: {
         ? outputSeconds
         : undefined,
   };
+}
+
+function pendingVideoModeration(): StoredTaskInfo['moderation'] {
+  return {
+    checkedAt: new Date().toISOString(),
+    provider: 'seeapi',
+    mediaType: 'video',
+    status: 'pending',
+  };
+}
+
+function failedVideoModeration(): StoredTaskInfo['moderation'] {
+  return {
+    checkedAt: new Date().toISOString(),
+    provider: 'seeapi',
+    mediaType: 'video',
+    status: 'failed',
+  };
+}
+
+async function moderateTaskVideoResult(params: {
+  apiKey: string;
+  storage: StorageManager;
+  task: AiTask;
+  taskInfo: StoredTaskInfo;
+  resultUrls: string[];
+}): Promise<{ status: AITaskStatus; taskInfo: StoredTaskInfo }> {
+  const { apiKey, storage, task, taskInfo, resultUrls } = params;
+  if (!resultUrls.length) {
+    return {
+      status: AITaskStatus.FAILED,
+      taskInfo: {
+        ...taskInfo,
+        errorMessage: 'Generated video was not returned by the provider.',
+        moderation: failedVideoModeration(),
+      },
+    };
+  }
+
+  try {
+    const summaries: VideoModerationSummary[] = [];
+    for (const [index, videoUrl] of resultUrls.entries()) {
+      summaries.push(
+        await moderateVideo({
+          apiKey,
+          storage,
+          videoUrl,
+          idempotencyPrefix: `generated-video-${task.id}-${index}`,
+        })
+      );
+    }
+
+    return {
+      status: AITaskStatus.SUCCESS,
+      taskInfo: {
+        ...taskInfo,
+        moderation: {
+          checkedAt: new Date().toISOString(),
+          provider: 'seeapi',
+          mediaType: 'video',
+          status: 'passed',
+          videos: summaries,
+        },
+      },
+    };
+  } catch (error) {
+    if (error instanceof VideoModerationRejectedError) {
+      return {
+        status: AITaskStatus.FAILED,
+        taskInfo: {
+          ...taskInfo,
+          errorMessage: 'Generated video did not pass the content review.',
+          moderation: error.summary
+            ? {
+                checkedAt: error.summary.checkedAt,
+                provider: 'seeapi',
+                mediaType: 'video',
+                status: 'rejected',
+                videos: [error.summary],
+              }
+            : failedVideoModeration(),
+        },
+      };
+    }
+    if (error instanceof ImageModerationError) {
+      const terminalFailure = error.status < 500;
+      return {
+        status: terminalFailure ? AITaskStatus.FAILED : AITaskStatus.PROCESSING,
+        taskInfo: {
+          ...taskInfo,
+          errorMessage: error.message,
+          moderation: terminalFailure
+            ? {
+                ...failedVideoModeration(),
+                status: 'rejected',
+              }
+            : failedVideoModeration(),
+        },
+      };
+    }
+    throw error;
+  }
+}
+
+async function saveVideoTaskState(params: {
+  task: AiTask;
+  status: AITaskStatus;
+  taskInfo: StoredTaskInfo;
+  taskResult: unknown;
+}) {
+  const taskInfo = JSON.stringify(params.taskInfo);
+  const taskResult = JSON.stringify(params.taskResult);
+  const [updated] = await db()
+    .update(aiTask)
+    .set({ status: params.status, taskInfo, taskResult })
+    .where(eq(aiTask.id, params.task.id))
+    .returning();
+  return (
+    updated ?? {
+      ...params.task,
+      status: params.status,
+      taskInfo,
+      taskResult,
+    }
+  );
 }
 
 /** Submit a pre-authorized EvoLink Kling 3.0 motion-control task. */
@@ -313,12 +457,19 @@ export async function submitMotionControlTask(params: {
       },
     });
     const info = taskInfoFromResult(remote);
+    const initialStatus =
+      remote.taskStatus === AITaskStatus.SUCCESS
+        ? AITaskStatus.PROCESSING
+        : remote.taskStatus;
+    if (remote.taskStatus === AITaskStatus.SUCCESS) {
+      info.moderation = pendingVideoModeration();
+    }
 
     await db()
       .update(aiTask)
       .set({
         taskId: remote.taskId,
-        status: remote.taskStatus,
+        status: initialStatus,
         taskInfo: JSON.stringify(info),
         taskResult: JSON.stringify(remote.taskResult),
       })
@@ -327,7 +478,7 @@ export async function submitMotionControlTask(params: {
     return toClientTask({
       ...localTask,
       taskId: remote.taskId,
-      status: remote.taskStatus,
+      status: initialStatus,
       taskInfo: JSON.stringify(info),
       taskResult: JSON.stringify(remote.taskResult),
     });
@@ -388,12 +539,19 @@ export async function submitVideoGenerationTask(params: {
       },
     });
     const info = taskInfoFromResult(remote);
+    const initialStatus =
+      remote.taskStatus === AITaskStatus.SUCCESS
+        ? AITaskStatus.PROCESSING
+        : remote.taskStatus;
+    if (remote.taskStatus === AITaskStatus.SUCCESS) {
+      info.moderation = pendingVideoModeration();
+    }
 
     await db()
       .update(aiTask)
       .set({
         taskId: remote.taskId,
-        status: remote.taskStatus,
+        status: initialStatus,
         taskInfo: JSON.stringify(info),
         taskResult: JSON.stringify(remote.taskResult),
       })
@@ -402,7 +560,7 @@ export async function submitVideoGenerationTask(params: {
     return toClientTask({
       ...localTask,
       taskId: remote.taskId,
-      status: remote.taskStatus,
+      status: initialStatus,
       taskInfo: JSON.stringify(info),
       taskResult: JSON.stringify(remote.taskResult),
     });
@@ -424,6 +582,8 @@ export async function submitVideoGenerationTask(params: {
 export async function getMotionControlTask(params: {
   userId: string;
   apiKey: string;
+  moderationApiKey: string;
+  storage: StorageManager;
   taskId: string;
 }): Promise<MotionControlTask> {
   const [task] = await db()
@@ -440,30 +600,63 @@ export async function getMotionControlTask(params: {
     .limit(1);
 
   if (!task) throw new Error('Video task not found');
+  const storedInfo = parseJson<StoredTaskInfo>(task.taskInfo) ?? {};
+  if (task.status === AITaskStatus.SUCCESS) {
+    if (storedInfo.moderation?.status === 'passed') {
+      return toClientTask(task);
+    }
+    const resolved = await moderateTaskVideoResult({
+      apiKey: params.moderationApiKey,
+      storage: params.storage,
+      task,
+      taskInfo: storedInfo,
+      resultUrls: persistedVideoResult(task.taskResult).urls,
+    });
+    return toClientTask(
+      await saveVideoTaskState({
+        task,
+        status: resolved.status,
+        taskInfo: resolved.taskInfo,
+        taskResult: task.taskResult,
+      })
+    );
+  }
   if (!task.taskId || TERMINAL_STATUSES.has(task.status)) {
     return toClientTask(task);
   }
 
   const provider = new EvolinkProvider({ apiKey: params.apiKey });
   const remote = await provider.query({ taskId: task.taskId });
-  const info = taskInfoFromResult(remote);
-  const [updated] = await db()
-    .update(aiTask)
-    .set({
-      status: remote.taskStatus,
-      taskInfo: JSON.stringify(info),
-      taskResult: JSON.stringify(remote.taskResult),
-    })
-    .where(eq(aiTask.id, task.id))
-    .returning();
+  let info = taskInfoFromResult(remote);
+  let status = remote.taskStatus;
+  if (remote.taskStatus === AITaskStatus.SUCCESS) {
+    const resolved = await moderateTaskVideoResult({
+      apiKey: params.moderationApiKey,
+      storage: params.storage,
+      task,
+      taskInfo: info,
+      resultUrls: persistedVideoResult(JSON.stringify(remote.taskResult)).urls,
+    });
+    status = resolved.status;
+    info = resolved.taskInfo;
+  }
 
-  return toClientTask(updated ?? task);
+  return toClientTask(
+    await saveVideoTaskState({
+      task,
+      status,
+      taskInfo: info,
+      taskResult: remote.taskResult,
+    })
+  );
 }
 
 /** Read an owned Seedance/MiniMax task and refresh it while still running. */
 export async function getVideoGenerationTask(params: {
   userId: string;
   apiKey: string;
+  moderationApiKey: string;
+  storage: StorageManager;
   taskId: string;
 }): Promise<MotionControlTask> {
   const [task] = await db()
@@ -482,6 +675,27 @@ export async function getVideoGenerationTask(params: {
   if (!task || !getEvolinkVideoModelFamily(task.model)) {
     throw new Error('Video task not found');
   }
+  const storedInfo = parseJson<StoredTaskInfo>(task.taskInfo) ?? {};
+  if (task.status === AITaskStatus.SUCCESS) {
+    if (storedInfo.moderation?.status === 'passed') {
+      return toClientTask(task);
+    }
+    const resolved = await moderateTaskVideoResult({
+      apiKey: params.moderationApiKey,
+      storage: params.storage,
+      task,
+      taskInfo: storedInfo,
+      resultUrls: persistedVideoResult(task.taskResult).urls,
+    });
+    return toClientTask(
+      await saveVideoTaskState({
+        task,
+        status: resolved.status,
+        taskInfo: resolved.taskInfo,
+        taskResult: task.taskResult,
+      })
+    );
+  }
   if (!task.taskId || TERMINAL_STATUSES.has(task.status)) {
     return toClientTask(task);
   }
@@ -492,18 +706,28 @@ export async function getVideoGenerationTask(params: {
     mediaType: AIMediaType.VIDEO,
     model: task.model,
   });
-  const info = taskInfoFromResult(remote);
-  const [updated] = await db()
-    .update(aiTask)
-    .set({
-      status: remote.taskStatus,
-      taskInfo: JSON.stringify(info),
-      taskResult: JSON.stringify(remote.taskResult),
-    })
-    .where(eq(aiTask.id, task.id))
-    .returning();
+  let info = taskInfoFromResult(remote);
+  let status = remote.taskStatus;
+  if (remote.taskStatus === AITaskStatus.SUCCESS) {
+    const resolved = await moderateTaskVideoResult({
+      apiKey: params.moderationApiKey,
+      storage: params.storage,
+      task,
+      taskInfo: info,
+      resultUrls: persistedVideoResult(JSON.stringify(remote.taskResult)).urls,
+    });
+    status = resolved.status;
+    info = resolved.taskInfo;
+  }
 
-  return toClientTask(updated ?? task);
+  return toClientTask(
+    await saveVideoTaskState({
+      task,
+      status,
+      taskInfo: info,
+      taskResult: remote.taskResult,
+    })
+  );
 }
 
 /** Return only the recent tasks created by the two public video routes. */
@@ -583,6 +807,10 @@ export async function archiveMotionControlResult(params: {
   if (!task || task.status !== AITaskStatus.SUCCESS) {
     throw new Error('Completed video task not found');
   }
+  const moderation = parseJson<StoredTaskInfo>(task.taskInfo)?.moderation;
+  if (moderation?.status !== 'passed') {
+    throw new Error('Generated video is still pending content review');
+  }
 
   const current = persistedVideoResult(task.taskResult);
   if (current.isArchived || !current.urls.length) return toClientTask(task);
@@ -648,6 +876,12 @@ export async function getMotionControlDownloadUrl(params: {
     )
     .limit(1);
   if (!task) throw new Error('Video task not found');
+  if (
+    task.status !== AITaskStatus.SUCCESS ||
+    parseJson<StoredTaskInfo>(task.taskInfo)?.moderation?.status !== 'passed'
+  ) {
+    throw new Error('Generated video is still pending content review');
+  }
 
   const resultUrls = persistedVideoResult(task.taskResult).urls;
   const resultUrl = resultUrls[params.index];

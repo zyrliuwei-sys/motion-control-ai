@@ -12,6 +12,10 @@ import {
   ImageModerationError,
   ImageModerationRejectedError,
 } from '@/lib/seeapi-moderation';
+import {
+  moderateVideo,
+  VideoModerationRejectedError,
+} from '@/lib/video-moderation';
 
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
 const MAX_VIDEO_BYTES = 100 * 1024 * 1024;
@@ -120,6 +124,13 @@ async function POST({ request }: { request: Request }) {
         apiKey: getSeeApiKey(),
         imageUrls: images,
       });
+      for (const videoUrl of videos) {
+        await moderateVideo({
+          apiKey: getSeeApiKey(),
+          storage,
+          videoUrl,
+        });
+      }
     } catch (error) {
       await Promise.all(uploadedKeys.map((key) => storage.deleteFile({ key })));
       throw error;
@@ -130,7 +141,9 @@ async function POST({ request }: { request: Request }) {
     const message =
       error instanceof ImageModerationRejectedError
         ? 'This reference image cannot be uploaded. Please choose another image.'
-        : error?.message || 'Unable to upload media';
+        : error instanceof VideoModerationRejectedError
+          ? 'This reference video cannot be uploaded. Please choose another video.'
+          : error?.message || 'Unable to upload media';
     return respErr(
       message,
       error instanceof ImageModerationError

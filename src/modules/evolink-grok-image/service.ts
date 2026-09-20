@@ -116,8 +116,7 @@ function taskMode(task: AiTask): 'edit' | 'text' {
 
 function toClientTask(task: AiTask): GrokImagineImageTask {
   const info = parseJson<StoredTaskInfo>(task.taskInfo) ?? {};
-  const resultIsModerated =
-    !info.moderation || info.moderation.status === 'passed';
+  const resultIsModerated = info.moderation?.status === 'passed';
 
   return {
     id: task.id,
@@ -127,8 +126,9 @@ function toClientTask(task: AiTask): GrokImagineImageTask {
     status: task.status,
     progress: Math.max(0, Math.min(100, Number(info.progress) || 0)),
     // Do not expose a result unless the provider task succeeded and the
-    // generated image passed SeeAPI moderation. Legacy tasks without a
-    // moderation record remain readable.
+    // Do not expose generated images unless this task has an explicit
+    // successful SeeAPI moderation record. Legacy tasks without a record stay
+    // hidden instead of being treated as implicitly safe.
     resultUrls:
       task.status === AITaskStatus.SUCCESS && resultIsModerated
         ? resultUrls(task.taskResult)
