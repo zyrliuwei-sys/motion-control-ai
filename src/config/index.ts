@@ -79,7 +79,7 @@ export const envConfigs: Record<string, string> = {
   // OPENAI_API_KEY / ANTHROPIC_API_KEY are common ambient vars, and falling back
   // to them would let the admin "Test" silently pass on the machine's own key.
   replicate_api_token: procEnv.REPLICATE_API_TOKEN ?? '',
-  // SeeAPI image moderation.
+  // SeeAPI text, image, and video moderation.
   seeapi_api_key: procEnv.SEEAPI_API_KEY ?? '',
 
   // SEO — can also be managed through Admin → Settings → SEO.

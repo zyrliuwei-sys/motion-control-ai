@@ -43,6 +43,18 @@ function imageUrls(taskResult: string | null) {
   );
 }
 
+function hasPassedModeration(taskInfo: string | null) {
+  if (!taskInfo) return false;
+  try {
+    const info = JSON.parse(taskInfo) as {
+      moderation?: { status?: unknown };
+    };
+    return info.moderation?.status === 'passed';
+  } catch {
+    return false;
+  }
+}
+
 /** Same route the studio polls, so history images download with a forced
  * Content-Disposition instead of the cross-origin `download` hint. */
 const downloadPath = '/api/evolink/grok-imagine-image';
@@ -62,7 +74,11 @@ async function GET({ request }: { request: Request }) {
     });
 
     const images = tasks
-      .filter((task: AiTask) => task.model === EVOLINK_GROK_IMAGINE_IMAGE_MODEL)
+      .filter(
+        (task: AiTask) =>
+          task.model === EVOLINK_GROK_IMAGINE_IMAGE_MODEL &&
+          hasPassedModeration(task.taskInfo)
+      )
       .flatMap((task: AiTask) =>
         imageUrls(task.taskResult).map((url, index) => ({
           createdAt: task.createdAt.toISOString(),

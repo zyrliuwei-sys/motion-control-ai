@@ -4,9 +4,15 @@ import { getUuid } from '@/lib/hash';
 const SEEAPI_BASE_URL = 'https://api.seeapi.com';
 const INFERENCE_PATH = '/v1/inferences';
 const REQUEST_TIMEOUT_MS = 15_000;
-const MAX_POLL_ATTEMPTS = 6;
+const MAX_POLL_ATTEMPTS = 10;
 const INITIAL_POLL_DELAY_MS = 500;
-const MAX_POLL_DELAY_MS = 2_000;
+const MAX_POLL_DELAY_MS = 3_000;
+
+const TEXT_MODERATION_CATEGORIES = [
+  'sexual_explicit',
+  'sexual_suggestive',
+  'sexual_minors',
+] as const;
 
 type JsonObject = Record<string, unknown>;
 
@@ -29,6 +35,36 @@ export type ImageModerationSummary = {
   status: 'passed' | 'rejected';
 };
 
+export type TextModerationCategoryResult = {
+  score: number;
+  flagged: boolean;
+};
+
+export type TextModerationResult = {
+  categories: Record<string, TextModerationCategoryResult>;
+  flagged: boolean;
+  status: 'succeeded';
+  taskId: string;
+  threshold: number;
+};
+
+export type VideoModerationFrameResult = {
+  frameNumber: number;
+  imageUrl?: string;
+  nsfw: string[];
+  nsfwDetected: boolean;
+  specialCare: string[];
+  timestampSeconds: number;
+};
+
+export type SeeApiVideoModerationResult = {
+  checkedFrames: number;
+  flagged: boolean;
+  frames: VideoModerationFrameResult[];
+  status: 'succeeded';
+  taskId: string;
+};
+
 export class ImageModerationError extends Error {
   constructor(
     message: string,
@@ -46,6 +82,23 @@ export class ImageModerationRejectedError extends ImageModerationError {
       400
     );
     this.name = 'ImageModerationRejectedError';
+  }
+}
+
+export class TextModerationError extends ImageModerationError {
+  constructor(message: string, status = 503) {
+    super(message, status);
+    this.name = 'TextModerationError';
+  }
+}
+
+export class TextModerationRejectedError extends TextModerationError {
+  constructor(readonly result: TextModerationResult) {
+    super(
+      'The prompt did not pass the content review. Please revise it and try again.',
+      400
+    );
+    this.name = 'TextModerationRejectedError';
   }
 }
 
@@ -94,7 +147,8 @@ async function readJson(response: Response): Promise<JsonObject> {
 async function request(
   apiKey: string,
   path: string,
-  init: RequestInit
+  init: RequestInit,
+  label: string
 ): Promise<JsonObject> {
   let response: Response;
   try {
@@ -104,19 +158,19 @@ async function request(
     });
   } catch {
     throw new ImageModerationError(
-      'Image moderation is temporarily unavailable. Please try again later.',
+      `${label} moderation is temporarily unavailable. Please try again later.`,
       503
     );
   }
 
   const body = await readJson(response);
   if (!response.ok) {
-    console.error('[image-safety] SeeAPI request failed', {
+    console.error('[content-safety] SeeAPI request failed', {
       path,
       status: response.status,
     });
     throw new ImageModerationError(
-      'Image moderation is temporarily unavailable. Please try again later.',
+      `${label} moderation is temporarily unavailable. Please try again later.`,
       response.status >= 500 ? 503 : 502
     );
   }
@@ -128,7 +182,111 @@ function taskStatus(body: JsonObject): string {
   return typeof body.status === 'string' ? body.status.toLowerCase() : '';
 }
 
-function parseCompletedResult(
+function pollDelay(attempt: number) {
+  return Math.min(
+    MAX_POLL_DELAY_MS,
+    INITIAL_POLL_DELAY_MS * 2 ** Math.min(attempt, 4)
+  );
+}
+
+function wait(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function createInferenceTask(params: {
+  apiKey: string;
+  endpoint: string;
+  idempotencyKey: string;
+  input: JsonObject;
+  label: string;
+  model: string;
+}): Promise<string> {
+  const body = await request(
+    params.apiKey,
+    INFERENCE_PATH,
+    {
+      method: 'POST',
+      headers: authHeaders(params.apiKey, {
+        'Idempotency-Key': params.idempotencyKey,
+      }),
+      body: JSON.stringify({
+        model: params.model,
+        endpoint: params.endpoint,
+        provider: 'seeapi',
+        input: params.input,
+      }),
+    },
+    params.label
+  );
+
+  if (typeof body.id !== 'string' || !body.id) {
+    throw new ImageModerationError(
+      `${params.label} moderation did not return a task ID. Please try again later.`,
+      502
+    );
+  }
+  return body.id;
+}
+
+async function queryInferenceTask(params: {
+  apiKey: string;
+  label: string;
+  taskId: string;
+}): Promise<JsonObject> {
+  return request(
+    params.apiKey,
+    `${INFERENCE_PATH}/${encodeURIComponent(params.taskId)}`,
+    {
+      method: 'GET',
+      headers: authHeaders(params.apiKey),
+    },
+    params.label
+  );
+}
+
+async function pollInferenceTask<T>(params: {
+  apiKey: string;
+  label: string;
+  parse: (body: JsonObject, taskId: string) => T;
+  taskId: string;
+}): Promise<T> {
+  for (let attempt = 0; attempt < MAX_POLL_ATTEMPTS; attempt += 1) {
+    const body = await queryInferenceTask({
+      apiKey: params.apiKey,
+      label: params.label,
+      taskId: params.taskId,
+    });
+    const status = taskStatus(body);
+
+    if (status === 'succeeded' || status === 'success') {
+      return params.parse(body, params.taskId);
+    }
+    if (
+      status === 'failed' ||
+      status === 'error' ||
+      status === 'canceled' ||
+      status === 'cancelled' ||
+      status === 'refunded' ||
+      status === 'expired'
+    ) {
+      throw new ImageModerationError(
+        `${params.label} moderation failed. Please try again later.`,
+        503
+      );
+    }
+
+    if (attempt < MAX_POLL_ATTEMPTS - 1) {
+      await wait(pollDelay(attempt));
+    }
+  }
+
+  throw new ImageModerationError(
+    `${params.label} moderation timed out. Please try again later.`,
+    503
+  );
+}
+
+function parseImageResult(
   body: JsonObject,
   taskId: string
 ): ImageModerationResult {
@@ -153,71 +311,108 @@ function parseCompletedResult(
   };
 }
 
-function pollDelay(attempt: number) {
-  return Math.min(
-    MAX_POLL_DELAY_MS,
-    INITIAL_POLL_DELAY_MS * 2 ** Math.min(attempt, 4)
-  );
+function parseTextResult(
+  body: JsonObject,
+  taskId: string
+): TextModerationResult {
+  const result = isRecord(body.result) ? body.result : undefined;
+  const data = result && isRecord(result.data) ? result.data : undefined;
+  if (
+    !data ||
+    typeof data.flagged !== 'boolean' ||
+    typeof data.threshold !== 'number'
+  ) {
+    throw new TextModerationError(
+      'Text moderation returned an invalid result. Please try again later.',
+      502
+    );
+  }
+
+  const categories: Record<string, TextModerationCategoryResult> = {};
+  if (isRecord(data.categories)) {
+    for (const [category, value] of Object.entries(data.categories)) {
+      if (
+        isRecord(value) &&
+        typeof value.score === 'number' &&
+        typeof value.flagged === 'boolean'
+      ) {
+        categories[category] = {
+          score: value.score,
+          flagged: value.flagged,
+        };
+      }
+    }
+  }
+
+  return {
+    taskId,
+    status: 'succeeded',
+    flagged: data.flagged,
+    threshold: data.threshold,
+    categories,
+  };
 }
 
-function wait(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+function parseVideoResult(
+  body: JsonObject,
+  taskId: string
+): SeeApiVideoModerationResult {
+  const result = isRecord(body.result) ? body.result : undefined;
+  const data = result && isRecord(result.data) ? result.data : undefined;
+  if (!data || typeof data.flagged !== 'boolean') {
+    throw new ImageModerationError(
+      'Video moderation returned an invalid result. Please try again later.',
+      502
+    );
+  }
+
+  const output = isRecord(data.output) ? data.output : undefined;
+  const frames: VideoModerationFrameResult[] = [];
+  if (Array.isArray(output?.frames)) {
+    for (const [index, value] of output.frames.entries()) {
+      if (!isRecord(value) || typeof value.nsfw_detected !== 'boolean') {
+        continue;
+      }
+      frames.push({
+        frameNumber:
+          typeof value.frame_number === 'number'
+            ? value.frame_number
+            : index + 1,
+        timestampSeconds:
+          typeof value.timestamp_seconds === 'number'
+            ? value.timestamp_seconds
+            : 0,
+        nsfwDetected: value.nsfw_detected,
+        nsfw: stringArray(value.nsfw),
+        specialCare: stringArray(value.special),
+        ...(typeof value.image_url === 'string'
+          ? { imageUrl: value.image_url }
+          : {}),
+      });
+    }
+  }
+
+  return {
+    taskId,
+    status: 'succeeded',
+    flagged: data.flagged,
+    checkedFrames:
+      typeof output?.checked_frames === 'number'
+        ? output.checked_frames
+        : frames.length,
+    frames,
+  };
 }
 
 export function getSeeApiKey(): string {
   const apiKey = envConfigs.seeapi_api_key?.trim();
   if (!apiKey) {
     throw new ImageModerationError(
-      'Image moderation is not configured. Set SEEAPI_API_KEY on the server.',
+      'Content moderation is not configured. Set SEEAPI_API_KEY on the server.',
       503
     );
   }
   return apiKey;
-}
-
-async function createInferenceTask(params: {
-  apiKey: string;
-  idempotencyKey: string;
-  imageUrl: string;
-}): Promise<string> {
-  const body = await request(params.apiKey, INFERENCE_PATH, {
-    method: 'POST',
-    headers: authHeaders(params.apiKey, {
-      'Idempotency-Key': params.idempotencyKey,
-    }),
-    body: JSON.stringify({
-      model: 'nsfw-filter',
-      endpoint: 'image-moderation',
-      provider: 'seeapi',
-      input: {
-        image_url: params.imageUrl,
-        threshold_offset: 0.02,
-        strict_special_care: true,
-      },
-    }),
-  });
-
-  if (typeof body.id !== 'string' || !body.id) {
-    throw new ImageModerationError(
-      'Image moderation did not return a task ID. Please try again later.',
-      502
-    );
-  }
-  return body.id;
-}
-
-async function queryInferenceTask(params: {
-  apiKey: string;
-  taskId: string;
-}): Promise<JsonObject> {
-  return request(
-    params.apiKey,
-    `${INFERENCE_PATH}/${encodeURIComponent(params.taskId)}`,
-    {
-      method: 'GET',
-      headers: authHeaders(params.apiKey),
-    }
-  );
 }
 
 /** Run one SeeAPI image moderation task and wait for its terminal result. */
@@ -235,41 +430,112 @@ export async function moderateImage(params: {
 
   const taskId = await createInferenceTask({
     apiKey: params.apiKey,
+    endpoint: 'image-moderation',
     idempotencyKey: params.idempotencyKey || getUuid(),
-    imageUrl: params.imageUrl,
+    input: {
+      image_url: params.imageUrl,
+      threshold_offset: 0.02,
+      strict_special_care: true,
+    },
+    label: 'Image',
+    model: 'nsfw-filter',
   });
 
-  for (let attempt = 0; attempt < MAX_POLL_ATTEMPTS; attempt += 1) {
-    const body = await queryInferenceTask({
-      apiKey: params.apiKey,
-      taskId,
-    });
-    const status = taskStatus(body);
+  return pollInferenceTask({
+    apiKey: params.apiKey,
+    label: 'Image',
+    parse: parseImageResult,
+    taskId,
+  });
+}
 
-    if (status === 'succeeded' || status === 'success') {
-      return parseCompletedResult(body, taskId);
-    }
-    if (
-      status === 'failed' ||
-      status === 'error' ||
-      status === 'canceled' ||
-      status === 'cancelled'
-    ) {
-      throw new ImageModerationError(
-        'Image moderation failed. Please try again later.',
-        503
-      );
-    }
-
-    if (attempt < MAX_POLL_ATTEMPTS - 1) {
-      await wait(pollDelay(attempt));
-    }
+/** Run SeeAPI's sexual-content text moderation before any media is inspected. */
+export async function moderateText(params: {
+  apiKey: string;
+  idempotencyKey?: string;
+  text: string;
+}): Promise<TextModerationResult> {
+  if (!params.text.trim() || params.text.length > 20_000) {
+    throw new TextModerationError(
+      'Text moderation accepts between 1 and 20,000 characters.',
+      400
+    );
   }
 
-  throw new ImageModerationError(
-    'Image moderation timed out. Please try again later.',
-    503
-  );
+  const taskId = await createInferenceTask({
+    apiKey: params.apiKey,
+    endpoint: 'text-moderation',
+    idempotencyKey: params.idempotencyKey || getUuid(),
+    input: {
+      text: params.text,
+      threshold: 0.3,
+      categories: [...TEXT_MODERATION_CATEGORIES],
+    },
+    label: 'Text',
+    model: 'text-nsfw-filter',
+  });
+
+  return pollInferenceTask({
+    apiKey: params.apiKey,
+    label: 'Text',
+    parse: parseTextResult,
+    taskId,
+  });
+}
+
+/** Reject a prompt when SeeAPI flags sexual content in the text. */
+export async function assertTextAllowed(params: {
+  apiKey: string;
+  idempotencyKey?: string;
+  text: string;
+}): Promise<TextModerationResult> {
+  const result = await moderateText(params);
+  if (result.flagged) {
+    console.info('[text-safety] prompt rejected by SeeAPI', {
+      flaggedCategories: Object.entries(result.categories)
+        .filter(([, category]) => category.flagged)
+        .map(([category]) => category),
+      taskId: result.taskId,
+    });
+    throw new TextModerationRejectedError(result);
+  }
+  return result;
+}
+
+/** Run SeeAPI's official video moderation task and wait for its result. */
+export async function moderateVideoWithSeeApi(params: {
+  apiKey: string;
+  idempotencyKey?: string;
+  videoUrl: string;
+}): Promise<SeeApiVideoModerationResult> {
+  if (!isPublicHttpsUrl(params.videoUrl)) {
+    throw new ImageModerationError(
+      'Reference videos must use public HTTPS URLs.',
+      400
+    );
+  }
+
+  const taskId = await createInferenceTask({
+    apiKey: params.apiKey,
+    endpoint: 'video-moderation',
+    idempotencyKey: params.idempotencyKey || getUuid(),
+    input: {
+      video_url: params.videoUrl,
+      num_frames: 8,
+      threshold_offset: 0.02,
+      strict_special_care: true,
+      return_frames: 'none',
+    },
+    label: 'Video',
+    model: 'video-nsfw-filter',
+  });
+
+  return pollInferenceTask({
+    apiKey: params.apiKey,
+    label: 'Video',
+    parse: parseVideoResult,
+    taskId,
+  });
 }
 
 /** Moderate several images concurrently while preserving input order. */

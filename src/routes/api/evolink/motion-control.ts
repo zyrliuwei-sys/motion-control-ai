@@ -158,17 +158,9 @@ async function POST({ request }: { request: Request }) {
       apiKey: moderationApiKey,
       imageUrls: input.imageUrls,
     });
-    const storage = await getStorage();
-    if (!storage) {
-      throw new ImageModerationError(
-        'Video moderation requires configured public storage.',
-        503
-      );
-    }
     for (const videoUrl of input.videoUrls) {
       await moderateVideo({
         apiKey: moderationApiKey,
-        storage,
         videoUrl,
       });
     }
@@ -232,18 +224,10 @@ async function GET({ request }: { request: Request }) {
       return respData(archivedTasks);
     }
 
-    const storage = await getStorage();
-    if (!storage) {
-      throw new ImageModerationError(
-        'Video moderation requires configured public storage.',
-        503
-      );
-    }
     const task = await getMotionControlTask({
       userId: session.user.id,
       apiKey: await configuredApiKey(),
       moderationApiKey: getSeeApiKey(),
-      storage,
       taskId,
     });
     const settledTask = await settleMotionControlBilling(task);

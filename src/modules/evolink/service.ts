@@ -291,7 +291,7 @@ function taskInfoFromResult(result: {
   };
 }
 
-function pendingVideoModeration(): StoredTaskInfo['moderation'] {
+function pendingVideoModeration(): NonNullable<StoredTaskInfo['moderation']> {
   return {
     checkedAt: new Date().toISOString(),
     provider: 'seeapi',
@@ -300,7 +300,7 @@ function pendingVideoModeration(): StoredTaskInfo['moderation'] {
   };
 }
 
-function failedVideoModeration(): StoredTaskInfo['moderation'] {
+function failedVideoModeration(): NonNullable<StoredTaskInfo['moderation']> {
   return {
     checkedAt: new Date().toISOString(),
     provider: 'seeapi',
@@ -311,12 +311,11 @@ function failedVideoModeration(): StoredTaskInfo['moderation'] {
 
 async function moderateTaskVideoResult(params: {
   apiKey: string;
-  storage: StorageManager;
   task: AiTask;
   taskInfo: StoredTaskInfo;
   resultUrls: string[];
 }): Promise<{ status: AITaskStatus; taskInfo: StoredTaskInfo }> {
-  const { apiKey, storage, task, taskInfo, resultUrls } = params;
+  const { apiKey, task, taskInfo, resultUrls } = params;
   if (!resultUrls.length) {
     return {
       status: AITaskStatus.FAILED,
@@ -334,7 +333,6 @@ async function moderateTaskVideoResult(params: {
       summaries.push(
         await moderateVideo({
           apiKey,
-          storage,
           videoUrl,
           idempotencyPrefix: `generated-video-${task.id}-${index}`,
         })
@@ -583,7 +581,6 @@ export async function getMotionControlTask(params: {
   userId: string;
   apiKey: string;
   moderationApiKey: string;
-  storage: StorageManager;
   taskId: string;
 }): Promise<MotionControlTask> {
   const [task] = await db()
@@ -607,7 +604,6 @@ export async function getMotionControlTask(params: {
     }
     const resolved = await moderateTaskVideoResult({
       apiKey: params.moderationApiKey,
-      storage: params.storage,
       task,
       taskInfo: storedInfo,
       resultUrls: persistedVideoResult(task.taskResult).urls,
@@ -632,7 +628,6 @@ export async function getMotionControlTask(params: {
   if (remote.taskStatus === AITaskStatus.SUCCESS) {
     const resolved = await moderateTaskVideoResult({
       apiKey: params.moderationApiKey,
-      storage: params.storage,
       task,
       taskInfo: info,
       resultUrls: persistedVideoResult(JSON.stringify(remote.taskResult)).urls,
@@ -656,7 +651,6 @@ export async function getVideoGenerationTask(params: {
   userId: string;
   apiKey: string;
   moderationApiKey: string;
-  storage: StorageManager;
   taskId: string;
 }): Promise<MotionControlTask> {
   const [task] = await db()
@@ -682,7 +676,6 @@ export async function getVideoGenerationTask(params: {
     }
     const resolved = await moderateTaskVideoResult({
       apiKey: params.moderationApiKey,
-      storage: params.storage,
       task,
       taskInfo: storedInfo,
       resultUrls: persistedVideoResult(task.taskResult).urls,
@@ -711,7 +704,6 @@ export async function getVideoGenerationTask(params: {
   if (remote.taskStatus === AITaskStatus.SUCCESS) {
     const resolved = await moderateTaskVideoResult({
       apiKey: params.moderationApiKey,
-      storage: params.storage,
       task,
       taskInfo: info,
       resultUrls: persistedVideoResult(JSON.stringify(remote.taskResult)).urls,

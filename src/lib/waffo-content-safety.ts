@@ -2,6 +2,7 @@ import * as crypto from 'crypto';
 
 import { getAllConfigs } from '@/modules/config/service';
 import { hasRestrictedPromptContent } from '@/lib/prompt-policy';
+import { assertTextAllowed, getSeeApiKey } from '@/lib/seeapi-moderation';
 
 const WAFFO_API_URL = 'https://api.waffo.ai';
 const SCAN_PROMPT_PATH = '/v1/actions/verification/scan-prompt';
@@ -44,8 +45,9 @@ function wait(ms: number) {
 
 /**
  * Screen a generation prompt before it is persisted, billed, or sent to a
- * generation provider. Once Waffo credentials are configured, screening is
- * mandatory so generation cannot bypass the moderation step.
+ * generation provider. SeeAPI's sexual-content check runs before Waffo and
+ * before any input media moderation, so a flagged prompt short-circuits the
+ * rest of the request.
  */
 export async function screenGenerationPrompt(
   prompt: string,
@@ -64,6 +66,11 @@ export async function screenGenerationPrompt(
       400
     );
   }
+
+  await assertTextAllowed({
+    apiKey: getSeeApiKey(),
+    text: prompt,
+  });
 
   const configs = await getAllConfigs();
 

@@ -249,18 +249,10 @@ async function GET({ request }: { request: Request }) {
       return respData(result);
     }
 
-    const storage = await getStorage();
-    if (!storage) {
-      throw new ImageModerationError(
-        'Video moderation requires configured public storage.',
-        503
-      );
-    }
     const task = await getVideoGenerationTask({
       userId: session.user.id,
       apiKey: await configuredApiKey(),
       moderationApiKey: getSeeApiKey(),
-      storage,
       taskId,
     });
     const settled = await settleVideoBilling(task);

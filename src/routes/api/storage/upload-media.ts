@@ -127,7 +127,6 @@ async function POST({ request }: { request: Request }) {
       for (const videoUrl of videos) {
         await moderateVideo({
           apiKey: getSeeApiKey(),
-          storage,
           videoUrl,
         });
       }
